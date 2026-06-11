@@ -41,7 +41,7 @@ LEAK_TERMS = [
     "promo", "campaign", "quantity_discount", "format_cents",
     "apply_promo", "validate_promo", "order_total", "discount",
     "create_note", "add_tag", "find_by_tag", "MAX_NOTE_LENGTH",
-    "format_timestamp",
+    "format_timestamp", "set_stock", "stock_level", "sku", "oversell",
 ]
 
 

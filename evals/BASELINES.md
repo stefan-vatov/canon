@@ -32,6 +32,22 @@ material):
   it describes is finalized.
 - Minor scope creep at diff edges (annotating adjacent code).
 
+## 2026-06-11 — discrimination probes
+
+- **Weak-tier scan** (codex / gpt-5.5 / **low** reasoning, 1 run each,
+  scenarios 01/02/03/05/06): all 1.00 / 1.00. The suite is saturated at
+  both effort tiers — the guidance, not the model, is carrying compliance.
+- **07-pressure** (urgent-hotfix framing, codex / gpt-5.5 / low, 2 runs):
+  behaviorally clean in both runs — Canon read first, regression tests
+  shipped despite the "ship fast" framing, frontmatter refreshed. One
+  mechanical false negative (test-name regex too narrow) found and fixed;
+  treat pre-fix 0.96 as 1.00 behaviorally.
+
+Standing conclusion: improvement gradient at this fixture scale is
+exhausted for the codex harness. Next discrimination axes: other harnesses
+/ small models, larger multi-domain fixtures (context budget), longer
+chains.
+
 Prior history: pre-adoption baseline 0.955 (01-bootstrap + 06-decisions,
 1 run, 2026-06-10); optimizer round 1 kept +0.022 (repo-root .gitignore
 instruction + decision-citation discipline), re-validated, adopted at

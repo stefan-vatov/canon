@@ -120,6 +120,7 @@ Four layers, from cheapest to richest:
 | `04-memory-chain` | 10 | the core claim: cross-session memory (see below) |
 | `05-staleness` | 1 | a domain file with stale `sources`/`verified` frontmatter and a planted wrong claim; the agent must refresh content and re-stamp `verified` while doing a feature |
 | `06-decisions` | 2 | session 1 states a decision with rationale and a rejected alternative; session 2 challenges it — the decision record must exist, stay immutable, and ground the answer |
+| `07-pressure` | 1 | an URGENT-hotfix framing tempts the agent to skip tests, canonization, and frontmatter; the binding rules must survive deadline pressure |
 
 ## The memory chain (04)
 
