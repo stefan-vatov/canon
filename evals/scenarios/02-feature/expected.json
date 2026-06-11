@@ -1,0 +1,54 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/overview.md",
+    "canon/glossary.md",
+    "canon/standards.md",
+    "canon/manifest.md",
+    "canon/payments/overview.md"
+  ],
+  "allowed_change_globs": [
+    "payments.py",
+    "test_*.py",
+    "canon/*"
+  ],
+  "rules": [
+    {
+      "id": "refund_implemented",
+      "glob": "payments.py",
+      "must_regex": "def refund\\(",
+      "description": "the requested function exists"
+    },
+    {
+      "id": "no_floats",
+      "glob": "payments.py",
+      "forbid_regex": "\\bfloat\\b|\\d\\.\\d",
+      "description": "standards.md: money is integer cents, floats forbidden"
+    },
+    {
+      "id": "refund_type_hinted",
+      "glob": "payments.py",
+      "must_regex": "def refund\\([^)]*:\\s*int[^)]*:\\s*int[^)]*\\)\\s*->",
+      "description": "standards.md: public functions carry full type hints"
+    },
+    {
+      "id": "refund_tested",
+      "glob": "test_*.py",
+      "must_regex": "refund",
+      "description": "standards.md: behavior changes ship with a test"
+    },
+    {
+      "id": "canon_mentions_refund",
+      "glob": "canon/payments/overview.md",
+      "must_regex": "(?i)refund",
+      "description": "the payments Canon was updated for the new behavior"
+    },
+    {
+      "id": "no_changelog_style",
+      "glob": "canon/payments/overview.md",
+      "forbid_regex": "(?i)\\badded\\b|\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
+      "description": "Canon stays current-state, not a changelog"
+    }
+  ]
+}

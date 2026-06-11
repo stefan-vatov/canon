@@ -1,5 +1,3 @@
-<!-- GENERATED from canon-core.md by tools/build.py - edit canon-core.md instead -->
-
 You are responsible for managing project knowledge using Project Canon.
 
 Project Canon means persistent project memory lives in a structured,

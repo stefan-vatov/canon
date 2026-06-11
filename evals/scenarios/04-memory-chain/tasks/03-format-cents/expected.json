@@ -1,0 +1,21 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "format_cents_implemented",
+      "glob": "orders.py",
+      "must_regex": "def format_cents\\(",
+      "description": "function exists"
+    },
+    {
+      "id": "no_float_money",
+      "glob": "orders.py",
+      "forbid_regex": "\\bfloat\\b|(?<!/)/(?!/)\\s*100\\b",
+      "description": "standards.md: no floats, including float division by 100"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t03"
+  }
+}

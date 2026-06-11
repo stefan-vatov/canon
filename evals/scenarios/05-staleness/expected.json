@@ -1,0 +1,47 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/overview.md",
+    "canon/glossary.md",
+    "canon/standards.md",
+    "canon/manifest.md",
+    "canon/notes/overview.md"
+  ],
+  "allowed_change_globs": [
+    "*.py",
+    "canon/*"
+  ],
+  "rules": [
+    {
+      "id": "tagging_implemented",
+      "glob": "notes.py",
+      "must_regex": "def add_tag\\(",
+      "description": "requested feature exists"
+    },
+    {
+      "id": "stale_claim_corrected",
+      "glob": "canon/notes/overview.md",
+      "must_regex": "280",
+      "forbid_regex": "100 ?char",
+      "description": "the stale 100-char claim was refreshed against the code"
+    },
+    {
+      "id": "frontmatter_refreshed",
+      "glob": "canon/notes/overview.md",
+      "must_regex": "(?s)sources:.*verified:",
+      "forbid_regex": "verified: 0000000",
+      "description": "sources/verified frontmatter kept and re-stamped"
+    },
+    {
+      "id": "tagging_canonized",
+      "glob": "canon/notes/overview.md",
+      "must_regex": "(?i)tag",
+      "description": "new behavior documented in the domain file"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t05s"
+  }
+}

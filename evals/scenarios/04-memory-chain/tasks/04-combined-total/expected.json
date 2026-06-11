@@ -1,0 +1,15 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "combined_implemented",
+      "glob": "orders.py",
+      "must_regex": "def order_total_with_promo\\(",
+      "description": "function exists"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t04"
+  }
+}

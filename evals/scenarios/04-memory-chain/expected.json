@@ -1,0 +1,52 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/overview.md",
+    "canon/glossary.md",
+    "canon/standards.md",
+    "canon/manifest.md",
+    "canon/pricing/overview.md"
+  ],
+  "allowed_change_globs": [
+    "*.py",
+    "canon/*",
+    ".gitignore"
+  ],
+  "rules": [
+    {
+      "id": "final_cap_documented",
+      "glob": "canon/*",
+      "must_regex": "50",
+      "description": "current discount cap is in the Canon"
+    },
+    {
+      "id": "no_stale_cap",
+      "glob": "canon/*",
+      "forbid_regex": "40%|40 ?percent",
+      "description": "superseded cap is gone from the Canon"
+    },
+    {
+      "id": "campaigns_documented",
+      "glob": "canon/*",
+      "must_regex": "(?i)campaign",
+      "description": "campaign domain knowledge is in the Canon"
+    },
+    {
+      "id": "no_changelog_style",
+      "glob": "canon/*",
+      "forbid_regex": "(?i)\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
+      "description": "Canon stays current-state after ten sessions of churn"
+    },
+    {
+      "id": "no_float_money_final",
+      "glob": "orders.py",
+      "forbid_regex": "\\bfloat\\b|(?<!/)/(?!/)\\s*100\\b",
+      "description": "standards held across the whole chain"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_final"
+  }
+}

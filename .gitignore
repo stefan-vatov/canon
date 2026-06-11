@@ -350,3 +350,11 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/macos,vim,emacs,visualstudiocode,node,react,elixir,rust,windows,linux
 
 canon/scratch/
+
+# Eval results are local artifacts
+evals/results/*
+!evals/results/.gitkeep
+
+# Generated guidance artifacts are shipped, not build output
+!dist/
+!dist/**

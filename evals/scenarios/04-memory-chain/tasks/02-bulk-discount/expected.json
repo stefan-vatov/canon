@@ -1,0 +1,15 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "quantity_discount_implemented",
+      "glob": "orders.py",
+      "must_regex": "def quantity_discount\\([^)]*int[^)]*\\)\\s*->",
+      "description": "function exists with type hints"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t02"
+  }
+}

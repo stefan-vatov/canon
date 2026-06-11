@@ -1,0 +1,15 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "decision_record_immutable",
+      "glob": "canon/decisions/*",
+      "must_regex": "(?i)reject|instead of|rather than|chose",
+      "description": "the original record still carries the rationale"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t06c"
+  }
+}

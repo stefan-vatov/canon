@@ -1,0 +1,27 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "format_timestamp_implemented",
+      "glob": "reports.py",
+      "must_regex": "def format_timestamp\\(",
+      "description": "function exists"
+    },
+    {
+      "id": "decision_recorded",
+      "glob": "canon/decisions/*",
+      "must_regex": "(?si)utc.*(?:local|timezone)|(?:local|timezone).*utc",
+      "description": "a decision record exists covering both the choice and the alternative"
+    },
+    {
+      "id": "rationale_recorded",
+      "glob": "canon/decisions/*",
+      "must_regex": "(?i)reject|instead of|rather than|chose",
+      "description": "the record captures that an alternative was rejected"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t06d"
+  }
+}

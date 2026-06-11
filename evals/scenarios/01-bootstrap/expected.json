@@ -1,0 +1,36 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/overview.md",
+    "canon/glossary.md",
+    "canon/standards.md",
+    "canon/manifest.md"
+  ],
+  "allowed_change_globs": [
+    "wordstats.py",
+    "test_*.py",
+    "canon/*",
+    ".gitignore"
+  ],
+  "rules": [
+    {
+      "id": "top_words_implemented",
+      "glob": "wordstats.py",
+      "must_regex": "def top_words\\(",
+      "description": "the requested function exists"
+    },
+    {
+      "id": "top_words_tested",
+      "glob": "test_*.py",
+      "must_regex": "top_words",
+      "description": "a test exercises the new function"
+    },
+    {
+      "id": "scratch_gitignored",
+      "glob": ".gitignore",
+      "must_regex": "canon/scratch",
+      "description": "canon/scratch/ is git-ignored as the guidance requires"
+    }
+  ]
+}

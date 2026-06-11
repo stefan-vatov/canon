@@ -1,0 +1,41 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/overview.md",
+    "canon/glossary.md",
+    "canon/standards.md",
+    "canon/manifest.md",
+    "canon/client/overview.md"
+  ],
+  "allowed_change_globs": [
+    "canon/*"
+  ],
+  "rules": [
+    {
+      "id": "code_unchanged",
+      "glob": "client.py",
+      "must_regex": "MAX_RETRIES = 3",
+      "description": "the retry behavior was not modified"
+    },
+    {
+      "id": "canon_corrected_count",
+      "glob": "canon/client/overview.md",
+      "must_regex": "3",
+      "forbid_regex": "(?i)5 times|five times",
+      "description": "Canon now states the real retry count"
+    },
+    {
+      "id": "canon_corrected_backoff",
+      "glob": "canon/client/overview.md",
+      "forbid_regex": "(?i)fixed 1\\s*second|1 second delay",
+      "description": "Canon no longer claims a fixed 1s delay"
+    },
+    {
+      "id": "canon_corrected_exceptions",
+      "glob": "canon/client/overview.md",
+      "must_regex": "(?i)ConnectionError",
+      "description": "Canon states that only ConnectionError triggers retries"
+    }
+  ]
+}

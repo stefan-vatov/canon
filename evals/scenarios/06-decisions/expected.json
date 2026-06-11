@@ -1,0 +1,32 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/overview.md",
+    "canon/glossary.md",
+    "canon/standards.md",
+    "canon/manifest.md"
+  ],
+  "allowed_change_globs": [
+    "*.py",
+    "canon/*"
+  ],
+  "rules": [
+    {
+      "id": "decision_in_manifest",
+      "glob": "canon/manifest.md",
+      "must_regex": "decisions/",
+      "description": "the manifest routes to the decision record"
+    },
+    {
+      "id": "no_changelog_style",
+      "glob": "canon/overview.md",
+      "forbid_regex": "(?i)\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
+      "description": "overview stays current-state"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t06f"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "rules": [
+    {
+      "id": "handover_in_scratch",
+      "glob": "canon/scratch/*",
+      "must_regex": "(?si)campaign",
+      "description": "a handover document exists in canon/scratch/ and covers the open work"
+    },
+    {
+      "id": "no_handover_in_permanent_canon",
+      "glob": "canon/overview.md",
+      "forbid_regex": "(?i)handover",
+      "description": "session scraps stay out of permanent Canon files"
+    }
+  ]
+}

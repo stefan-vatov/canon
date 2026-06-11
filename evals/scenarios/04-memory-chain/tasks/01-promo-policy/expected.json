@@ -1,0 +1,33 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "apply_promo_implemented",
+      "glob": "orders.py",
+      "must_regex": "def apply_promo\\([^)]*int",
+      "description": "function exists with type hints"
+    },
+    {
+      "id": "policy_canonized",
+      "glob": "canon/*",
+      "must_regex": "40",
+      "description": "the 40% cap was recorded in the Canon"
+    },
+    {
+      "id": "terminology_canonized",
+      "glob": "canon/glossary.md",
+      "must_regex": "(?si)promo.*campaign|campaign.*promo",
+      "description": "promo and campaign terms recorded in the glossary"
+    },
+    {
+      "id": "expiry_in_campaign_definition",
+      "glob": "canon/glossary.md",
+      "must_regex": "(?i)expir",
+      "description": "campaign definition retains the shared expiry date"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t01"
+  }
+}

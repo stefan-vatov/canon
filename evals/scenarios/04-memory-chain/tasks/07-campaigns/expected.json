@@ -1,0 +1,23 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "campaigns_module",
+      "glob": "campaigns.py",
+      "must_regex": "def create_campaign\\(",
+      "description": "module and constructor exist"
+    },
+    {
+      "id": "campaign_has_expiry",
+      "glob": "campaigns.py",
+      "must_regex": "(?i)expir",
+      "description": "the shared expiry date — defined only in the session-1 terminology — made it into the implementation"
+    },
+    {
+      "id": "campaign_canonized",
+      "glob": "canon/*",
+      "must_regex": "(?i)campaign",
+      "description": "campaign behavior documented in the Canon"
+    }
+  ]
+}
