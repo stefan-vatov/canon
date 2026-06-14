@@ -32,6 +32,36 @@ material):
   it describes is finalized.
 - Minor scope creep at diff edges (annotating adjacent code).
 
+## 2026-06-14 — round 4 REJECTED (lean / de-duplication hypothesis)
+
+Research-driven (arXiv 2510.14842 "Boosting Instruction Following at Scale":
+adding instructions degrades following via tension/conflict between them;
+AGENTS.md best-practice guides: minimize, state triggers once, most-important
+first). Hypothesis: a lean 141-line core (177 -> 141, canon-read-first stated
+once at top instead of three times) holds or improves the weak-model floor at
+lower token cost.
+
+A/B, n=3, corrected judge (haiku agent / sonnet judge), combined means:
+
+| scenario | lean (141 ln) | current (177 ln) |
+|----------|:-------------:|:----------------:|
+| 06-decisions | 0.985 | 1.000 |
+| 05-staleness | 0.967 | 0.967 |
+| 07-pressure | 1.000 | 0.988 |
+| 02-feature | 0.952 | 0.988 |
+| **mean** | **0.976** | **0.986** |
+
+Both have healthy floors, zero catastrophic misses; current marginally ahead
+(+0.01, within noise) but lean shows a small, consistent 02-feature dip on
+BOTH tiers (codex 0.93/0.88 vs 1.00). Mechanism: compressing the freshness
+section made the agent more likely to stamp `verified` with the pre-commit
+HEAD. Verdict: keep the 177-line core; the redundancy is reinforcing, not
+conflicting, and the suite is near its ceiling so trimming has no headroom to
+help. Negative result kept so the lean cut is not re-attempted.
+
+Takeaway: further real gains need harder/larger scenarios (multi-domain repos
+where the context-budget rule bites, longer chains), not prompt-trimming.
+
 ## 2026-06-14 — round 3 adopted (hoisted first-action directive)
 
 Two changes this round. (1) Fixed a measurement bug: the judge was fed
