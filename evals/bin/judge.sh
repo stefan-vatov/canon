@@ -39,16 +39,16 @@ git -C "$WORK" add -A >/dev/null 2>&1 || true
   for c in "$RUN"/checks*.json; do
     [[ -f "$c" ]] && { echo "### $(basename "$c")"; cat "$c"; }
   done
-  echo; echo "## Transcript (truncated)"
+  echo; echo "## Transcript (distilled action log)"
   if compgen -G "$RUN/transcript-*.txt" > /dev/null; then
-    # Multi-session: truncate each session separately so the judge always
-    # sees evidence from every session, not just the first ones.
+    # Multi-session: distill each session separately so the judge sees the
+    # ordered actions of every session, not raw stream-json noise.
     for t in "$RUN"/transcript-*.txt; do
-      printf '\n===== session %s (truncated) =====\n' "$(basename "$t")"
-      head -c 12000 "$t"
+      printf '\n===== session %s =====\n' "$(basename "$t" .txt | sed 's/^transcript-//')"
+      uv run --script "$EVALS/bin/distill-transcript.py" "$t" 15000
     done
   else
-    head -c 60000 "$RUN/transcript.txt" 2>/dev/null || echo "(none)"
+    uv run --script "$EVALS/bin/distill-transcript.py" "$RUN/transcript.txt" 40000
   fi
 } > "$RUN/judge-input.md"
 
