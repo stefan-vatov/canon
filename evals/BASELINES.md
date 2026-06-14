@@ -32,6 +32,44 @@ material):
   it describes is finalized.
 - Minor scope creep at diff edges (annotating adjacent code).
 
+## 2026-06-14 — optimizer round 2 adopted (Haiku-driven)
+
+The codex tier was saturated, so discrimination moved to a small model
+(claude / haiku via the claude harness), where the guidance — not the
+model — carries compliance. Haiku exposed real failures (canon-read-first
+skipped, placeholder `verified` left, decision records not written, tests
+skipped under pressure). Optimizer round 2 (improver: claude) proposed a
+candidate addressing all 20 failure signals; adopted after a two-gate
+validation.
+
+Validation, n=3, apples-to-apples (haiku agent, sonnet judge):
+
+| scenario | prior core @0d0bcab | adopted core | combined Δ |
+|----------|:-------------------:|:------------:|:----------:|
+| 02-feature | 0.93 / 0.82 | 0.98 / 0.96 | +0.10 |
+| 05-staleness | 0.86 / 0.56 | 1.00 / 1.00 | +0.29 |
+| 06-decisions | 0.88 / 0.68 | 0.88 / 0.70 | +0.01 |
+| 07-pressure | 0.83 / 0.67 | 0.98 / 0.96 | +0.22 |
+| **combined mean** | **0.779** | **0.933** | **+0.15** |
+
+No-regression gate (candidate, codex / gpt-5.5 / high, 1 run):
+02-feature, 06-decisions, 07-pressure all 1.00 / 1.00 — the stronger
+guidance costs the strong model nothing.
+
+Edits adopted (all map to verified failures, none leak fixture answers):
+canon-read-first repositioned to "before any file listing/search/read";
+`verified` must be `git rev-parse --short HEAD`, never a placeholder;
+editing a `sources` file obligates refreshing its Canon file; decision
+record written the moment a decision is stated, with a manifest entry;
+a pre-report verification checklist; "urgency exempts nothing".
+
+Remaining laggard: 06-decisions (~0.79 on haiku) — decision-record
+creation is the hardest behavior for the small model. Next target.
+
+Note: optimizer iters 2-3 this round returned degenerate output (improver
+hit a session limit); the length/leak guards rejected both, so no
+session-limit text could be adopted as guidance.
+
 ## 2026-06-11 — discrimination probes
 
 - **Weak-tier scan** (codex / gpt-5.5 / **low** reasoning, 1 run each,
