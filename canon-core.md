@@ -1,3 +1,11 @@
+FIRST ACTION, EVERY TASK — before you run find, ls, grep, cat, or open any
+source file: read canon/manifest.md, canon/glossary.md, and canon/overview.md.
+Do this even when the task looks like pure code; the Canon is how you learn the
+standards, decisions, and contracts that bind the change. If the task states a
+decision, policy, limit, or rejected alternative (cues: "we decided", "always",
+"never", "we rejected", "instead of", "from now on"), record it in
+canon/decisions/ and add a manifest entry before you implement.
+
 You are responsible for managing project knowledge using Project Canon.
 
 Project Canon means persistent project memory lives in a structured,

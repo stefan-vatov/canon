@@ -32,6 +32,38 @@ material):
   it describes is finalized.
 - Minor scope creep at diff edges (annotating adjacent code).
 
+## 2026-06-14 — round 3 adopted (hoisted first-action directive)
+
+Two changes this round. (1) Fixed a measurement bug: the judge was fed
+raw stream-json truncated by bytes, so multi-session runs were judged on
+the init event alone — now distilled to a compact ordered action log
+(see `bin/distill-transcript.py`). Corrected judging is marginally
+stricter. (2) Hoisted an unmissable "FIRST ACTION, EVERY TASK: read the
+Canon before find/grep/source" directive — plus lexical decision cues —
+to the very top of canon-core.md, after diagnosing that the 06-decisions
+failures all cascade from canon-read-first being skipped.
+
+A/B, n=3, corrected judge (haiku agent / sonnet judge). The decisive
+metric is the floor (worst run), since the failure mode is a catastrophic
+canon-skip, not a low mean:
+
+| | candidate worst→best | prior-core worst→best |
+|--|--|--|
+| 06-decisions | 0.91 / 1.00 / 1.00 | 1.00 / 1.00 / 1.00 (lucky batch) |
+| 05-staleness | 0.90 / 0.90 / 1.00 | **0.44** / 0.90 / 1.00 |
+| 07-pressure | 1.00 / 1.00 / 1.00 | 0.89 / 0.90 / 1.00 (mech 0.93) |
+
+Candidate worst run across all 9 = 0.90; prior-core worst = 0.44.
+Combined means 0.928 → 0.984. No scenario regressed; candidate had zero
+mechanical failures across 9 runs. Codex no-regression: 06-decisions
+1.00 / 1.00 on gpt-5.5-high.
+
+Variance lesson: n=3 is too noisy to pin a single scenario's mean at this
+tier (prior-core 06 swung from a ⅔-fail batch earlier to a clean 3/3
+here). Decisions now weight the floor (catastrophic-miss rate) over the
+mean, and the regression guard spans multiple scenarios so one lucky
+batch can't mask a real effect.
+
 ## 2026-06-14 — optimizer round 2 adopted (Haiku-driven)
 
 The codex tier was saturated, so discrimination moved to a small model
