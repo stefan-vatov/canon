@@ -121,6 +121,8 @@ Four layers, from cheapest to richest:
 | `05-staleness` | 1 | a domain file with stale `sources`/`verified` frontmatter and a planted wrong claim; the agent must refresh content and re-stamp `verified` while doing a feature |
 | `06-decisions` | 2 | session 1 states a decision with rationale and a rejected alternative; session 2 challenges it — the decision record must exist, stay immutable, and ground the answer |
 | `07-pressure` | 1 | an URGENT-hotfix framing tempts the agent to skip tests, canonization, and frontmatter; the binding rules must survive deadline pressure |
+| `08-routing` | 1 | ~10 domains, one relevant; sibling domains carry distractor rates. Tests routing precision (read the right doc, don't bulk-load — scored from the transcript) and distractor resistance. Research-driven; see RESEARCH.md |
+| `09-abstention` | 1 | the task needs a policy that exists in no Canon file and no code; the agent must surface the gap, not fabricate a value. Research-driven; see RESEARCH.md |
 
 ## The memory chain (04)
 
@@ -179,7 +181,19 @@ Create `evals/scenarios/<name>/` with `task.md` (the prompt), `fixture/`
 ```
 
 Note: globs use `fnmatch`, where `*` also crosses `/` — `canon/*` matches
-`canon/payments/overview.md`.
+`canon/payments/overview.md`. fnmatch does NOT expand braces (`{a,b}`).
+
+A `routing` block scores retrieval/routing separately from correctness
+(LongMemEval Oracle idea), parsed from the run's stream-json transcript:
+
+```json
+"routing": {"domain_glob": "canon/*/overview.md",
+            "must_read": ["canon/pricing/overview.md"], "max_domain_reads": 2}
+```
+
+It passes if the agent read every `must_read` doc and at most `max_domain_reads`
+files matching `domain_glob` (i.e. didn't bulk-load). Skipped automatically for
+plain-text transcripts (e.g. codex), where per-tool file paths aren't structured.
 
 For a multi-session scenario, replace the root `task.md` with
 `tasks/NN-step/task.md` directories; each step runs as a fresh agent session

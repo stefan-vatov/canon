@@ -38,7 +38,9 @@ Reply with ONLY a JSON object, no markdown fences, in this shape:
     {"id": "drift_resolution", "score": null, "reason": "..."},
     {"id": "memory_persistence", "score": null, "reason": "..."},
     {"id": "rationale_capture", "score": null, "reason": "..."},
-    {"id": "freshness_maintained", "score": null, "reason": "..."}
+    {"id": "freshness_maintained", "score": null, "reason": "..."},
+    {"id": "abstention", "score": null, "reason": "..."},
+    {"id": "routing_discipline", "score": null, "reason": "..."}
   ],
   "notes": "one short paragraph: the most important behavioral gap you saw"
 }

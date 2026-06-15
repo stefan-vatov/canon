@@ -51,9 +51,10 @@ mkdir -p "$OUT"
 cp "$GUIDANCE" "$OUT/guidance-used.md"
 echo "results: $OUT"
 
-run_check() { # workdir expected_json out_json
+run_check() { # workdir expected_json out_json [transcript_dir]
   uv run --script "$EVALS/bin/check.py" \
-    --workdir "$1" --expected "$2" --out "$3" || echo "warn: check.py failed" >&2
+    --workdir "$1" --expected "$2" --out "$3" \
+    ${4:+--transcript-dir "$4"} || echo "warn: check.py failed" >&2
 }
 
 for i in $(seq 1 "$RUNS"); do
@@ -79,7 +80,7 @@ for i in $(seq 1 "$RUNS"); do
       echo "[$SCENARIO/$HARNESS] run $i/$RUNS step $STEP: agent..."
       "$ADAPTER" run || echo "warn: adapter exited nonzero at $STEP" >&2
       if [[ -f "$STEP_DIR/expected.json" ]]; then
-        run_check "$WORK" "$STEP_DIR/expected.json" "$RUN/checks-$STEP.json"
+        run_check "$WORK" "$STEP_DIR/expected.json" "$RUN/checks-$STEP.json" "$RUN"
       fi
     done
     # Stitch per-step transcripts so the judge sees the whole chain.
@@ -88,12 +89,12 @@ for i in $(seq 1 "$RUNS"); do
       cat "$t"
     done > "$RUN/transcript.txt"
     [[ -f "$SCEN_DIR/expected.json" ]] && \
-      run_check "$WORK" "$SCEN_DIR/expected.json" "$RUN/checks.json"
+      run_check "$WORK" "$SCEN_DIR/expected.json" "$RUN/checks.json" "$RUN"
   else
     export TASK_FILE="$SCEN_DIR/task.md" TRANSCRIPT="$RUN/transcript.txt"
     echo "[$SCENARIO/$HARNESS] run $i/$RUNS: agent..."
     "$ADAPTER" run || echo "warn: adapter exited nonzero" >&2
-    run_check "$WORK" "$SCEN_DIR/expected.json" "$RUN/checks.json"
+    run_check "$WORK" "$SCEN_DIR/expected.json" "$RUN/checks.json" "$RUN"
   fi
 
   if [[ "$JUDGE" == 1 ]]; then

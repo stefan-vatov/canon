@@ -60,11 +60,41 @@ def matching_files(workdir, glob):
     )
 
 
+def canon_reads_from_transcripts(transcript_dir):
+    """Ordered list of canon/* paths the agent opened, parsed from any
+    stream-json transcripts in transcript_dir. Returns [] for plain-text
+    (e.g. codex) transcripts, where per-tool file paths are not structured."""
+    reads = []
+    tdir = Path(transcript_dir)
+    if not tdir.is_dir():
+        return reads
+    for tf in sorted(tdir.glob("transcript*.txt")):
+        for raw in tf.read_text(errors="replace").splitlines():
+            raw = raw.strip()
+            if not raw.startswith("{") or '"tool_use"' not in raw:
+                continue
+            try:
+                e = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if e.get("type") != "assistant":
+                continue
+            for b in e.get("message", {}).get("content", []):
+                if b.get("type") == "tool_use" and b.get("name") == "Read":
+                    fp = b.get("input", {}).get("file_path", "")
+                    idx = fp.find("canon/")
+                    if idx >= 0:
+                        reads.append(fp[idx:])
+    return reads
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--workdir", required=True)
     ap.add_argument("--expected", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--transcript-dir", default=None,
+                    help="dir holding transcript*.txt, for routing checks")
     args = ap.parse_args()
 
     work = Path(args.workdir).resolve()
@@ -136,6 +166,32 @@ def main():
             ok = not hits
             detail = f"/{rule['forbid_regex']}/ found in: {', '.join(hits)}" if hits else ""
         add(f"rule:{rule['id']}", ok, detail or rule.get("description", ""))
+
+    # Routing precision: did the agent read the right Canon doc and avoid
+    # bulk-loading sibling domains? Isolates retrieval/routing from
+    # correctness (LongMemEval Oracle idea). Only scorable with a structured
+    # (claude stream-json) transcript; skipped otherwise so codex runs don't
+    # fail spuriously.
+    routing = expected.get("routing")
+    if routing and args.transcript_dir:
+        reads = canon_reads_from_transcripts(args.transcript_dir)
+        if not reads:
+            add("routing_precision", True,
+                "no structured transcript reads (non-claude harness); skipped")
+        else:
+            domain_glob = routing.get("domain_glob", "canon/*/overview.md")
+            domain_reads = sorted({r for r in reads if fnmatch.fnmatch(r, domain_glob)})
+            must = routing.get("must_read", [])
+            missing = [m for m in must if not any(r.endswith(m) or m in r for r in reads)]
+            max_domains = routing.get("max_domain_reads", 2)
+            ok = not missing and len(domain_reads) <= max_domains
+            detail = ""
+            if missing:
+                detail = f"never read required: {', '.join(missing)}"
+            elif len(domain_reads) > max_domains:
+                detail = (f"bulk-loaded {len(domain_reads)} domain docs "
+                          f"(max {max_domains}): {', '.join(domain_reads)}")
+            add("routing_precision", ok, detail)
 
     holdout = expected.get("holdout")
     if holdout:

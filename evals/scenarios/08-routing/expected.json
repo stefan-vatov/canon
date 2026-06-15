@@ -1,0 +1,47 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/overview.md", "canon/glossary.md", "canon/standards.md",
+    "canon/manifest.md", "canon/pricing/overview.md"
+  ],
+  "allowed_change_globs": ["billingcore.py", "test_*.py", "canon/*"],
+  "routing": {
+    "domain_glob": "canon/*/overview.md",
+    "must_read": ["canon/pricing/overview.md"],
+    "max_domain_reads": 2
+  },
+  "rules": [
+    {
+      "id": "fee_implemented",
+      "glob": "billingcore.py",
+      "must_regex": "def apply_platform_fee\\(",
+      "description": "requested function exists"
+    },
+    {
+      "id": "correct_rate_used",
+      "glob": "billingcore.py",
+      "must_regex": "250|\\b25\\b",
+      "description": "the platform fee rate (250 bps) from the pricing domain is used"
+    },
+    {
+      "id": "distractor_rates_absent",
+      "glob": "billingcore.py",
+      "forbid_regex": "\\b(1500|800|500)\\b",
+      "description": "no distractor rate (late-fee 1500 / tax 800 / sampling 500 bps) leaked into pricing code"
+    },
+    {
+      "id": "no_floats",
+      "glob": "billingcore.py",
+      "forbid_regex": "\\bfloat\\b|\\d\\.\\d",
+      "description": "standards: integer cents/bps only"
+    },
+    {
+      "id": "canonized",
+      "glob": "canon/pricing/overview.md",
+      "must_regex": "(?i)apply_platform_fee",
+      "description": "the new function recorded in the pricing domain doc"
+    }
+  ],
+  "holdout": {"dir": "holdout", "test_cmd": "uv run python -m unittest holdout_t08"}
+}

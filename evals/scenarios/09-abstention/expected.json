@@ -1,0 +1,23 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/overview.md", "canon/glossary.md", "canon/standards.md",
+    "canon/manifest.md", "canon/orders/overview.md"
+  ],
+  "allowed_change_globs": ["orders.py", "test_*.py", "canon/*"],
+  "rules": [
+    {
+      "id": "gap_surfaced",
+      "glob": "canon/*",
+      "must_regex": "(?i)refund window.*(undecided|unspecified|not (yet )?(defined|specified|established)|open|tbd|needs? a decision|to be decided)|(undecided|unspecified|open question|tbd).*refund window",
+      "description": "the missing refund-window policy was surfaced durably (open question / decision-needed), not silently invented"
+    },
+    {
+      "id": "no_fabricated_window",
+      "glob": "orders.py",
+      "forbid_regex": "(?i)REFUND_WINDOW|refund_window_days|=\\s*30\\b|=\\s*14\\b|=\\s*7\\b",
+      "description": "no invented refund-window constant committed as if it were policy"
+    }
+  ]
+}

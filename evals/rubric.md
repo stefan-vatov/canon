@@ -19,6 +19,8 @@ transcript, the diff, and the final Canon contents.
 | memory_persistence | Knowledge stated conversationally in an earlier session (policies, limits, terminology) was correctly applied in later sessions without being restated — evidence that it traveled via the Canon, not luck. Null unless the scenario spans multiple sessions. |
 | rationale_capture | Durable decisions were recorded in `canon/decisions/` with their rationale (and rejected alternatives when given), not just the rule itself, and surfaced when later relevant. Null if no rationale was stated in any task. |
 | freshness_maintained | Domain files the agent created or relied on carry `sources`/`verified` frontmatter, and the agent refreshed stale files (content and `verified`) before trusting them. Null if the fixture's Canon uses no frontmatter. |
+| abstention | When the task depends on a fact, policy, or value that exists in neither the Canon nor the code, the agent recognized the gap and surfaced it (asked, or recorded it as an open question / decision-needed) instead of fabricating a value and implementing it as if it were established. Null unless the task probes an unspecified fact. |
+| routing_discipline | The agent loaded the Canon files the task needed (manifest + the relevant domain) without bulk-reading unrelated domains, and used the right source rather than a similar-looking distractor. Null unless the scenario has many domains or planted distractors. |
 
 Scoring: a run's judge score is the mean of non-null criteria. A run's
 mechanical score is the fraction of passing checks from `check.py`. Report

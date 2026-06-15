@@ -42,6 +42,8 @@ LEAK_TERMS = [
     "apply_promo", "validate_promo", "order_total", "discount",
     "create_note", "add_tag", "find_by_tag", "MAX_NOTE_LENGTH",
     "format_timestamp", "set_stock", "stock_level", "sku", "oversell",
+    "apply_platform_fee", "platform fee", "250 bps", "billingcore",
+    "within_refund_window", "refund window", "REFUND_WINDOW",
 ]
 
 
