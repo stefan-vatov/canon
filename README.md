@@ -39,7 +39,8 @@ memory, not a substitute for reality.
 
 All guidance artifacts are generated from the single source of truth,
 [`canon-core.md`](canon-core.md). Copy the one matching your agent into your
-target repository:
+target repository. For step-by-step setup instructions an AI agent can follow
+directly, see [INSTALL.md](INSTALL.md).
 
 ### Claude Code
 
