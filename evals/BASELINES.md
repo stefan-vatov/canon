@@ -32,6 +32,33 @@ material):
   it describes is finalized.
 - Minor scope creep at diff edges (annotating adjacent code).
 
+## 2026-06-15 — round 8: supersession-hygiene edit (r8) — PENDING codex gate
+
+Targets the one strong-tier gradient found in round 7: codex fails
+10-supersede by writing supersession changelog-style ("changed from 50 to
+100") into current-state docs. r8 adds one rule to the decision-records
+section (preserved verbatim in evals/candidates-pending-r8-supersession.md):
+"When a value or rule is superseded, current-state files must state only the
+new value; the prior value belongs in its decision record — never leave
+'changed from X', 'previously Y', or a superseded value presented as current."
+
+Haiku evidence (n=3, current = wave D/I baselines): IMPROVES the target, no
+regression —
+| scenario | current | r8 |
+|----------|:-------:|:--:|
+| 10-supersede | 0.93/0.94 | 0.97/0.97 |
+| 06-decisions | 1.00/1.00 | 1.00/1.00 |
+| 03-drift | 1.00/1.00 | 1.00/1.00 |
+(n=6 Haiku confirmation of the 10-supersede win in progress.)
+
+Codex no-regression gate: BLOCKED. The codex (ChatGPT) workspace ran out of
+credits mid-burn ("out of credits — ask your workspace owner to refill"), so
+every codex run after that point was a non-executing abort (the 0.86/0.00
+codex numbers this round are credit failures, NOT guidance signals — there
+is zero valid r8 codex data). This is a manual credit refill, not a timed
+reset. r8 is NOT adopted until codex credits return and the no-regression
+gate passes; the candidate is held in the repo for that retry.
+
 ## 2026-06-15 — round 7: comprehensive baselines + INT edit REJECTED
 
 Parallel eval burn. First full baselines on both tiers (current core).
