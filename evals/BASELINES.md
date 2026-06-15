@@ -74,6 +74,10 @@ Haiku (n=3, claude harness, sonnet judge), mech / judge:
 Codex gpt-5.5-high (n=2): every scenario 1.00/1.00 — strong tier fully
 saturated on 01-09.
 
+04-memory-chain (the flagship 10-session chain), first weak-tier run
+(haiku n=2): 0.89 / 0.85 — cross-session Canon memory holds reasonably but
+imperfectly on a small model; healthy discrimination, not saturated.
+
 10-supersede (new) discriminates on BOTH tiers — the first scenario the
 strong model does not ace:
 - haiku 0.93/0.94 — misses manifest entries for new decision records
