@@ -53,19 +53,23 @@ cp path/to/canon/dist/CLAUDE.md CLAUDE.md
 cp path/to/canon/dist/AGENTS.md AGENTS.md
 ```
 
-Alternatively, `.codex/system.md` is a full Codex system prompt (base prompt
-plus the Canon section), wired via `.codex/config.toml`'s
-`model_instructions_file`.
+Alternatively, copy the full Codex system prompt (base prompt plus the Canon
+section), which is wired via `config.toml`'s `model_instructions_file`:
+
+```sh
+cp -r path/to/canon/dist/.codex .codex
+```
 
 ### Pi
 
 ```sh
 mkdir -p .pi
-cp path/to/canon/.pi/APPEND_SYSTEM.md .pi/APPEND_SYSTEM.md
+cp path/to/canon/dist/.pi/APPEND_SYSTEM.md .pi/APPEND_SYSTEM.md
 ```
 
-Start a new session from the target repository. If no `canon/` directory
-exists yet, ask the agent to create the Canon structure and then begin work.
+Every artifact under `dist/` mirrors the path you copy it to. Start a new
+session from the target repository. If no `canon/` directory exists yet, ask
+the agent to create the Canon structure and then begin work.
 
 ## Canon Structure
 
@@ -109,17 +113,22 @@ Requires [uv](https://docs.astral.sh/uv/); everything else is stdlib.
 ## Repository Scope
 
 ```text
-canon-core.md            # the single source of truth for the guidance
-dist/CLAUDE.md           # generated — Claude Code variant
-dist/AGENTS.md           # generated — Codex/AGENTS.md variant
-.pi/APPEND_SYSTEM.md     # generated — Pi variant
-.codex/system.md         # generated — full Codex system prompt
-tools/                   # build + doctor utilities
-evals/                   # guidance measurement harness
+canon-core.md                  # the single source of truth for the guidance
+templates/                     # build inputs (codex base prompt + config)
+dist/                          # generated artifacts — copy these into a repo
+    CLAUDE.md                  #   Claude Code variant
+    AGENTS.md                  #   Codex / AGENTS.md variant
+    .pi/APPEND_SYSTEM.md       #   Pi variant
+    .codex/system.md           #   full Codex system prompt
+    .codex/config.toml         #   wires system.md (static)
+tools/                         # build + doctor utilities
+evals/                         # guidance measurement harness
 ```
 
-Agent-specific launchers and shell wrappers are intentionally absent. Canon is
-plain repo guidance plus maintenance utilities, not a command shim.
+`dist/` is regenerated from `canon-core.md` by `tools/build.py` (and kept in
+sync on `main` by a CI workflow); never edit it by hand. Agent-specific
+launchers and shell wrappers are intentionally absent — Canon is plain repo
+guidance plus maintenance utilities, not a command shim.
 
 ## Credit
 

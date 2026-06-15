@@ -1,0 +1,46 @@
+name: build-artifacts
+
+# Regenerate dist/ from canon-core.md on merge to main and commit any drift.
+# The commit carries [skip ci] so it does not re-trigger this workflow.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - canon-core.md
+      - templates/**
+      - tools/build.py
+      - .github/workflows/build-artifacts.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-artifacts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Regenerate dist/ from canon-core.md
+        run: uv run --script tools/build.py
+
+      - name: Commit regenerated artifacts if they drifted
+        run: |
+          if git diff --quiet -- dist/; then
+            echo "dist/ already in sync — nothing to commit."
+            exit 0
+          fi
+          git config user.name "canon-bot"
+          git config user.email "noreply@users.noreply.github.com"
+          git add dist/
+          git commit -m "chore(dist): regenerate artifacts from canon-core.md [skip ci]
+
+          Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+          git push

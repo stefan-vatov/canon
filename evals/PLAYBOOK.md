@@ -10,9 +10,11 @@ A measurement harness for the Project Canon guidance (`../canon-core.md`). It
 runs an agent through scenario repos, scores whether it followed the Canon
 discipline (mechanically + with an LLM judge), and lets you A/B guidance edits
 so improvements are driven by scores, not vibes. `canon-core.md` is the single
-source of truth; `../tools/build.py` regenerates the four shipped artifacts
-(`.pi/APPEND_SYSTEM.md`, `.codex/system.md`, `dist/CLAUDE.md`, `dist/AGENTS.md`)
-— never edit those by hand.
+source of truth; `../tools/build.py` regenerates all shipped artifacts under
+`dist/` (CLAUDE.md, AGENTS.md, .pi/APPEND_SYSTEM.md, .codex/system.md +
+config.toml) — never edit those by hand. On `main` a CI workflow regenerates
+and commits `dist/` automatically (with `[skip ci]`), so you only edit
+`canon-core.md`.
 
 ## Current state (2026-06-15)
 

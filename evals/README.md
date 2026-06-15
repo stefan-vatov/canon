@@ -55,7 +55,7 @@ JUDGE_CMD="claude -p --model claude-opus-4-8" evals/bin/run-eval.sh ...
 1. **Baseline:** run all scenarios at `--runs 3`+ against the current
    guidance. Record the means.
 2. **Tweak:** copy the guidance, edit one thing:
-   `cp .pi/APPEND_SYSTEM.md /tmp/variant-b.md && $EDITOR /tmp/variant-b.md`
+   `cp canon-core.md /tmp/variant-b.md && $EDITOR /tmp/variant-b.md`
 3. **Re-measure:** `evals/bin/run-eval.sh --scenario ... --guidance /tmp/variant-b.md --runs 3`
 4. **Compare:** `uv run --script evals/bin/summarize.py results/<baseline-dir> results/<variant-dir>`
 5. Keep the edit only if scores improve; then apply it to `canon-core.md`

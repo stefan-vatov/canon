@@ -11,7 +11,7 @@ keep it only if the combined score beats the best by at least --min-delta.
 usage:
   optimize.py --scenarios 01-bootstrap,02-feature,03-drift \
               --harness codex --runs 3 --iterations 5 \
-              [--guidance .pi/APPEND_SYSTEM.md] [--no-judge] [--min-delta 0.02]
+              [--guidance ../canon-core.md] [--no-judge] [--min-delta 0.02]
 
 env:
   IMPROVER_CMD  command reading the improver prompt on stdin, printing the
