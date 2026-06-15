@@ -46,7 +46,9 @@ ADAPTER="$EVALS/adapters/$HARNESS.sh"
 GUIDANCE="$(cd "$(dirname "$GUIDANCE")" && pwd)/$(basename "$GUIDANCE")"
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
-OUT="$EVALS/results/$STAMP-$SCENARIO-$HARNESS"
+# include PID so concurrent runs of the same scenario+harness in the same
+# second don't collide on one output dir (git-init config-lock race).
+OUT="$EVALS/results/$STAMP-$SCENARIO-$HARNESS-$$"
 mkdir -p "$OUT"
 cp "$GUIDANCE" "$OUT/guidance-used.md"
 echo "results: $OUT"
