@@ -68,7 +68,7 @@ for i in $(seq 1 "$RUNS"); do
   # Guidance is installed before the baseline commit so it never shows in the
   # agent's diff.
   "$ADAPTER" install
-  git -C "$WORK" init -q
+  git -C "$WORK" init -q --template=  # empty template: avoids hook-sample copy race under parallel runs
   git -C "$WORK" -c user.email=eval@local -c user.name=eval add -A
   git -C "$WORK" -c user.email=eval@local -c user.name=eval commit -qm baseline
 

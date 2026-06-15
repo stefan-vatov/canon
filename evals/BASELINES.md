@@ -32,6 +32,41 @@ material):
   it describes is finalized.
 - Minor scope creep at diff edges (annotating adjacent code).
 
+## 2026-06-15 — round 5 (frontier scenarios) + round 6 (abstention edit REJECTED)
+
+Round 5 added research-driven 08-routing and 09-abstention (see RESEARCH.md)
+plus routing-precision scoring and the abstention/code_correct judge fix.
+Both new scenarios discriminate:
+
+| scenario | codex gpt-5.5 high | haiku |
+|----------|:------------------:|:-----:|
+| 08-routing | 1.00 / 1.00 | 0.94 / 1.00 (no_floats dips, routing OK) |
+| 09-abstention | 0.91 / 1.00 | 0.91 / 0.78 |
+
+Key finding: agents abstain *verbally* (don't fabricate — orders.py never
+modified in any run) but do NOT durably record the gap; `gap_surfaced` fails
+~1/3 of runs on BOTH tiers. 08's routing_precision check passed on both
+models (routing isn't the weak point; integer-cents discipline is).
+
+Round 6 tried to fix durable-gap-recording with a guidance rule, in two
+placements:
+
+| 09-abstention | current | mid-doc rule | hoisted rule |
+|---------------|:-------:|:------------:|:------------:|
+| haiku | 0.91 / 0.82 | 0.91 / 0.78 | 0.91 / 0.79 |
+| codex | 0.91 / 1.00 | 0.95 / 1.00 | 0.91 / 1.00 |
+
+Neither beats current above noise; `gap_surfaced` stays ~0.91 regardless.
+Inspection: agents abstain correctly but don't write a scratch/decisions
+note with or without the rule. REJECTED both edits; kept current core.
+Conclusion: durable-recording of a non-event is resistant to prompting at
+these tiers — likely a capability limit, not a wording gap. `gap_surfaced`
+is partly aspirational (verbal abstention is already correct behavior).
+
+Kept from round 6 (correctness/robustness, independent of the rejected edit):
+judge no longer penalizes correct abstention under code_correct; run-eval.sh
+git init uses an empty template to avoid a parallel hook-copy race.
+
 ## 2026-06-14 — round 4 REJECTED (lean / de-duplication hypothesis)
 
 Research-driven (arXiv 2510.14842 "Boosting Instruction Following at Scale":

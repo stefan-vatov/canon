@@ -17,7 +17,14 @@ under test.
 
 Score every rubric criterion as 1 (clearly satisfied), 0 (violated or
 absent), or null (not applicable to this scenario). Be strict: when evidence
-is missing or ambiguous, score 0, not 1. Use the transcript to verify
+is missing or ambiguous, score 0, not 1.
+
+When the correct response to the task is to abstain — the task depends on a
+fact or policy that exists in neither the Canon nor the code, so the right
+move is to surface the gap rather than implement — score `code_correct` as
+null (not 0): producing no implementation is correct, and `abstention` is the
+criterion that judges it. Do not penalize a correct refusal under
+`code_correct` or `minimal_diff`. Use the transcript to verify
 *ordering* claims (e.g. Canon read before code exploration), the diff to
 verify code claims, and the Canon contents to verify documentation claims.
 Do not let the mechanical check results substitute for your own reading;
