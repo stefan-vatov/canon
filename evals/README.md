@@ -4,6 +4,12 @@ A harness for measuring whether the Project Canon guidance actually changes
 agent behavior, so edits to the guidance are driven by scores instead of
 intuition.
 
+**Resuming this work in a new session? Start with [PLAYBOOK.md](PLAYBOOK.md)** —
+the operational runbook (current state, how to run a round, the adoption
+discipline, gotchas, and the next frontier). `BASELINES.md` is the full
+round-by-round history; `RESEARCH.md` is the evidence behind the harder
+scenarios.
+
 ## How it works
 
 Each scenario is a small fixture repo plus a task prompt plus expectations.

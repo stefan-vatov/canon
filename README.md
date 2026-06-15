@@ -100,7 +100,9 @@ handover drafts, and temporary analysis belong in `canon/scratch/`.
 
 - `evals/` — a measurement harness for the guidance itself: scenario-based
   agent evals (including a ten-session memory chain with hidden holdout
-  tests) and a hill-climbing optimizer. See [evals/README.md](evals/README.md).
+  tests) and a hill-climbing optimizer. See [evals/README.md](evals/README.md),
+  or [evals/PLAYBOOK.md](evals/PLAYBOOK.md) to run or resume the improvement
+  loop.
 
 Requires [uv](https://docs.astral.sh/uv/); everything else is stdlib.
 
