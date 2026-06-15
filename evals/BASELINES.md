@@ -32,32 +32,34 @@ material):
   it describes is finalized.
 - Minor scope creep at diff edges (annotating adjacent code).
 
-## 2026-06-15 — round 8: supersession-hygiene edit (r8) — PENDING codex gate
+## 2026-06-15 — round 8: supersession-hygiene edit (r8) — REJECTED (variance)
 
-Targets the one strong-tier gradient found in round 7: codex fails
-10-supersede by writing supersession changelog-style ("changed from 50 to
-100") into current-state docs. r8 adds one rule to the decision-records
-section (preserved verbatim in evals/candidates-pending-r8-supersession.md):
-"When a value or rule is superseded, current-state files must state only the
-new value; the prior value belongs in its decision record — never leave
-'changed from X', 'previously Y', or a superseded value presented as current."
+Targeted the one strong-tier gradient from round 7 (codex leaks "changed
+from 50 to 100" into current-state docs on 10-supersede). r8 added a
+supersession-hygiene rule to the decision-records section: "When a value or
+rule is superseded, current-state files must state only the new value; the
+prior value belongs in its decision record — never 'changed from X' …".
 
-Haiku evidence (n=3, current = wave D/I baselines): IMPROVES the target, no
-regression —
-| scenario | current | r8 |
-|----------|:-------:|:--:|
-| 10-supersede | 0.93/0.94 | 0.97/0.97 |
-| 06-decisions | 1.00/1.00 | 1.00/1.00 |
-| 03-drift | 1.00/1.00 | 1.00/1.00 |
-(n=6 Haiku confirmation of the 10-supersede win in progress.)
+Initial cross-batch read looked like a win (10-supersede 0.93→0.97 on
+haiku). The n=6 SAME-BATCH confirmation killed it:
 
-Codex no-regression gate: BLOCKED. The codex (ChatGPT) workspace ran out of
-credits mid-burn ("out of credits — ask your workspace owner to refill"), so
-every codex run after that point was a non-executing abort (the 0.86/0.00
-codex numbers this round are credit failures, NOT guidance signals — there
-is zero valid r8 codex data). This is a manual credit refill, not a timed
-reset. r8 is NOT adopted until codex credits return and the no-regression
-gate passes; the candidate is held in the repo for that retry.
+| 10-supersede haiku | current | r8 |
+|--------------------|:-------:|:--:|
+| pooled n=6 | ~0.95 / 0.955 | ~0.94 / 0.90 |
+| wave J same-batch n=3 | 0.97 / 0.97 | 0.91 / 0.83 |
+
+The apparent gain was cross-batch variance — wave D's current baseline was
+a low draw (0.93); head-to-head, r8 is neutral-to-slightly-worse. No Haiku
+benefit. The codex no-regression gate was also unavailable (workspace out of
+credits — manual refill, not a timed reset; all round-8 codex numbers were
+non-executing aborts, not signal). With no demonstrated win on the testable
+tier, r8 REJECTED; candidate file removed. Lesson reinforced: only same-batch
+comparisons are trustworthy at this variance; cross-batch deltas mislead.
+
+Standing tally: 2 guidance edits adopted (rounds 2, 3), 4 rejected (round 4
+lean, round 6 abstention ×2, round 7 INT, round 8 r8). The guidance is at a
+robust local optimum for the current suite; further real gains need harder
+scenarios (10-supersede is the first strong-tier discriminator), not edits.
 
 ## 2026-06-15 — round 7: comprehensive baselines + INT edit REJECTED
 
