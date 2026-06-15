@@ -1,0 +1,8 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {"id":"impl","glob":"pagination.py","must_regex":"def default_page_size\\(","description":"function exists"},
+    {"id":"decision","glob":"canon/decisions/*","must_regex":"50","description":"decision recorded with the value"}
+  ],
+  "holdout": {"dir":"holdout","test_cmd":"uv run python -m unittest holdout_t10a"}
+}

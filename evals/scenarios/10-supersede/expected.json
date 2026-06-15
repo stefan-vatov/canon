@@ -1,0 +1,11 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": ["canon/overview.md","canon/glossary.md","canon/standards.md","canon/manifest.md","canon/api/overview.md"],
+  "allowed_change_globs": ["*.py","test_*.py","canon/*"],
+  "rules": [
+    {"id":"current_is_100","glob":"canon/api/overview.md","must_regex":"100","description":"current default is 100"},
+    {"id":"no_stale_50_current","glob":"canon/api/overview.md","forbid_regex":"default[^.]*\\b50\\b|\\b50\\b[^.]*default","description":"50 not presented as the current default in current-state doc"}
+  ],
+  "holdout": {"dir":"holdout","test_cmd":"uv run python -m unittest holdout_t10f"}
+}

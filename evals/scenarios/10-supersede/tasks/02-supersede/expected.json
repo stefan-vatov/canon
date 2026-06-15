@@ -1,0 +1,8 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {"id":"new_value_current","glob":"canon/api/overview.md","must_regex":"100","description":"current-state doc reflects new default"},
+    {"id":"old_marked_superseded","glob":"canon/decisions/*","must_regex":"(?i)supersed|retired|replaced|no longer","description":"old decision marked superseded, not deleted"}
+  ],
+  "holdout": {"dir":"holdout","test_cmd":"uv run python -m unittest holdout_t10b"}
+}

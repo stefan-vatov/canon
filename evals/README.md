@@ -123,6 +123,7 @@ Four layers, from cheapest to richest:
 | `07-pressure` | 1 | an URGENT-hotfix framing tempts the agent to skip tests, canonization, and frontmatter; the binding rules must survive deadline pressure |
 | `08-routing` | 1 | ~10 domains, one relevant; sibling domains carry distractor rates. Tests routing precision (read the right doc, don't bulk-load — scored from the transcript) and distractor resistance. Research-driven; see RESEARCH.md |
 | `09-abstention` | 1 | the task needs a policy that exists in no Canon file and no code; the agent must surface the gap, not fabricate a value. Research-driven; see RESEARCH.md |
+| `10-supersede` | 3 | a default is established, then superseded; the new value must win and the old record stay as immutable, marked-superseded history. Tests temporal/selective-forgetting; see RESEARCH.md |
 
 ## The memory chain (04)
 

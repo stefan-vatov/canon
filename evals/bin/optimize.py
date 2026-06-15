@@ -44,6 +44,7 @@ LEAK_TERMS = [
     "format_timestamp", "set_stock", "stock_level", "sku", "oversell",
     "apply_platform_fee", "platform fee", "250 bps", "billingcore",
     "within_refund_window", "refund window", "REFUND_WINDOW",
+    "default_page_size", "clamp_page_size", "DEFAULT_PAGE_SIZE", "page size",
 ]
 
 
