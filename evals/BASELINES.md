@@ -32,6 +32,44 @@ material):
   it describes is finalized.
 - Minor scope creep at diff edges (annotating adjacent code).
 
+## 2026-06-15 — round 7: comprehensive baselines + INT edit REJECTED
+
+Parallel eval burn. First full baselines on both tiers (current core).
+
+Haiku (n=3, claude harness, sonnet judge), mech / judge:
+
+| 01 | 02 | 03 | 05 | 06 | 07 | 08 | 09 |
+|----|----|----|----|----|----|----|----|
+|1.00/1.00|0.95/1.00|1.00/1.00|1.00/0.97|0.94/0.92|0.95/1.00|0.90/0.88|0.91/0.85|
+
+Codex gpt-5.5-high (n=2): every scenario 1.00/1.00 — strong tier fully
+saturated on 01-09.
+
+10-supersede (new) discriminates on BOTH tiers — the first scenario the
+strong model does not ace:
+- haiku 0.93/0.94 — misses manifest entries for new decision records
+- codex 0.97/0.91 — writes supersession changelog-style ("changed from 50
+  to 100") in the current-state doc instead of pure current state
+
+INT candidate (hoisted integer-arithmetic / literal-standards cue) — REJECTED.
+A/B n=6 haiku (pooled), codex n=2:
+
+| scenario | current | INT | 
+|----------|:-------:|:---:|
+| 08-routing | ~0.91/0.85 | ~0.94/0.91 (modest win, the no_floats target) |
+| 02-feature | ~0.95/1.00 | ~0.93/0.95 (small, consistent regression) |
+| 05-staleness | ~0.98 | ~0.97 (neutral) |
+| codex 02/05/08 | 1.00 | 1.00 (no regression) |
+
+Net Haiku ~wash (+0.005): the 08 gain is traded for a 02 loss — the
+round-4 "more instructions can hurt elsewhere" effect again. No clear win
+above noise; kept current core.
+
+Harness robustness fixes found during the burn (both committed): git init
+uses an empty template (hook-copy race) and result dirs are pid-suffixed
+(same-second same-scenario collision). A collided A/B pair was discarded;
+all reported numbers are from verified-distinct dirs.
+
 ## 2026-06-15 — round 5 (frontier scenarios) + round 6 (abstention edit REJECTED)
 
 Round 5 added research-driven 08-routing and 09-abstention (see RESEARCH.md)
