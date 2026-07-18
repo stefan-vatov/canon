@@ -133,6 +133,64 @@ class DoctorRuleConsistencyTests(unittest.TestCase):
 
             self.assertEqual(self.staleness(root), [])
 
+    def test_prettier_multiline_sources_and_quoted_verified_are_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            anchor = self.make_domain_repo(root)
+            write(root / "second.py", "VALUE = 2\n")
+            write(root / "src/it's.py", "VALUE = 3\n")
+            self.commit(root, "add second source")
+            domain = root / "canon/api/overview.md"
+            write(
+                domain,
+                "---\n# formatter-expanded source paths\n"
+                "sources: # paths checked at the anchor\n"
+                "  [\n    app.py,\n    'second.py',\n    src/it's.py,\n  ]\n"
+                f'verified: "{anchor}"\n---\n# API\n',
+            )
+            self.commit(root, "format frontmatter")
+
+            self.assertEqual(self.staleness(root), [])
+
+            write(
+                domain,
+                "---\nsources: # block-list form is valid too\n"
+                "  - app.py\n  - second.py\n  - src/it's.py\n"
+                f"verified: {anchor}\n---\n# API\n",
+            )
+            self.assertEqual(self.staleness(root), [])
+
+    def test_malformed_multiline_frontmatter_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            anchor = self.make_domain_repo(root)
+            domain = root / "canon/api/overview.md"
+            for ambiguous in ("%source.py", "- source.py", "true", "123", ".5"):
+                write(root / ambiguous, "VALUE = 1\n")
+            self.commit(root, "add ambiguous source names")
+            malformed_cases = {
+                "nested mapping": "sources:\n  path: app.py",
+                "unterminated flow list": "sources: [app.py",
+                "inconsistent list indentation": "sources:\n  - app.py\n   - app.py",
+                "tab-indented list": "sources:\n\t- app.py",
+                "directive indicator": "sources: [%source.py]",
+                "sequence indicator": "sources:\n  - - source.py",
+                "implicit boolean": "sources: [true]",
+                "implicit integer": "sources: [123]",
+                "implicit leading-dot float": "sources: [.5]",
+            }
+            for label, sources in malformed_cases.items():
+                with self.subTest(label=label):
+                    write(
+                        domain,
+                        f"---\n{sources}\nverified: {anchor}\n---\n# API\n",
+                    )
+
+                    warnings = self.staleness(root)
+
+                    self.assertEqual(len(warnings), 1)
+                    self.assertIn("has no sources/verified frontmatter", warnings[0]["detail"])
+
     def test_missing_full_length_anchor_is_indeterminate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

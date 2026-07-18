@@ -17,10 +17,12 @@ adds context cost without durable value.
 - Do not edit source code, tests, project configuration, or decision records.
 - Do not commit, push, or modify unrelated dirty files unless separately asked.
 
-Apply mode requires a completely clean worktree, including untracked files. If
-it is dirty, report the exact paths and stop after the audit; never stash,
-reset, restore, stage, or delete existing work. Never delete an untracked Canon
-file; classify it and report it.
+Apply mode requires a completely clean worktree, including untracked files, at
+entry. If it is dirty, report the exact paths and stop after the audit; never
+stash, reset, restore, stage, or delete existing work. Record that clean status
+and `BASE_HEAD` as the transaction boundary. During the run, track every
+run-owned Canon path and stop if unrelated dirt appears. Never delete an
+untracked Canon file; classify it and report it.
 
 ## Establish the baseline
 
@@ -107,27 +109,43 @@ In apply mode, create an operation ledger before editing. Then:
 4. Remove changelog prose, completed-task summaries, duplicate examples,
    speculative notes, and routine implementation detail.
 5. Refresh `sources` and `verified` metadata only after checking the named
-   source evidence. Follow the repository's existing freshness convention.
+   source evidence. Follow the repository's existing, formatter-compatible
+   freshness convention. A clean source path proves traceability, not that the
+   source supports every rewritten claim.
 6. Leave standards, decisions, and uncertain claims unchanged; list them under
    `Abstained` in the result. A proven no-op is a valid compaction result.
 
 Use patch-based edits. Preserve pre-existing user changes and keep the diff
-limited to the authorized Canon paths.
+limited to the authorized Canon paths. Parallel workers must own disjoint files;
+reserve shared indexes and the manifest for one coordinator, and do not run a
+broad formatter until all writers finish.
 
 ## Verify semantic preservation
 
-1. Re-run the analyzer and Canon doctor.
-2. Resolve broken routes and links, size-cap failures, malformed frontmatter,
-   and newly stale metadata.
-3. Run `git diff --check` and inspect the complete Canon diff.
+1. Run the repository's formatter or formatting check, ensuring it changes only
+   run-owned Canon paths. Treat the formatted bytes as final input to every
+   remaining gate; leave headroom for formatter-expanded lists and tables.
+2. Re-run the analyzer and Canon doctor. Resolve broken routes and links,
+   size-cap failures, malformed frontmatter, and newly stale metadata, then
+   repeat formatting and validation until formatting is idempotent.
+3. Run `git diff --check`; inspect `git status --porcelain=v1
+   --untracked-files=all` and the complete `git diff BASE_HEAD -- canon/`.
+   Reject every changed, deleted, untracked, or symlinked path outside `canon/`.
 4. Compare the operation ledger with the diff: every deletion must have a
    retained destination or explicit evidence that it failed the retention test.
 5. Search the post-compaction Canon for every active decision name, normative
    keyword, public contract, operational constraint, and domain term identified
    in the baseline.
-6. Confirm decision paths and hashes are identical, standards bytes are
+6. Give every major rewrite containing normative language, numeric limits,
+   exceptions, rationale, or external product evidence a cold second review
+   against `BASE_HEAD`, final formatted bytes, and the exact named sources.
+   Restore any lost negation, limit, exception, ownership rule, or uncertainty;
+   do not upgrade evidence debt into verified fact.
+7. Confirm decision paths and hashes are identical, standards bytes are
    unchanged, and no non-Canon path changed.
 
 Report before/after metrics, files merged or removed, durable information
-preserved, abstentions, validator results, and the exact diff scope. In a
-read-only run, report candidates and projected savings without changing files.
+preserved, abstentions, final formatter/analyzer/doctor results, semantic-review
+findings and resolutions, `BASE_HEAD`, exact changed paths, and commit status.
+Use only final formatted bytes for the report. In a read-only run, report
+candidates and projected savings without changing files.

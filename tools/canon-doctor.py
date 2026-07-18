@@ -38,6 +38,17 @@ MAX_LINES = 250
 MAX_BYTES = 64 * 1024
 CHANGELOG_RE = re.compile(r"(?i)\bpreviously\b|\b20\d\d-\d\d-\d\d\b|\bwe (?:added|changed|removed)\b")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+FRONTMATTER_KEY_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
+PLAIN_STRING_RE = re.compile(r'''[A-Za-z0-9._/][^\s\[\]{},#&*!|>"`\\]*''')
+IMPLICIT_NON_STRING_RE = re.compile(
+    r"(?ix)(?:"
+    r"null|~|true|false|yes|no|on|off|"
+    r"[-+]?(?:0b[01_]+|0o[0-7_]+|0x[0-9a-f_]+|[0-9][0-9_]*"
+    r"(?:\.[0-9_]*)?(?:e[-+]?[0-9]+)?|\.[0-9_]+(?:e[-+]?[0-9]+)?)|"
+    r"[-+]?\.(?:inf|nan)|"
+    r"[0-9]{4}-[0-9]{2}-[0-9]{2}(?:[tT ]\S+)?"
+    r")"
+)
 FULL_COMMIT_ID_RE = re.compile(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})")
 
 
@@ -55,32 +66,209 @@ def permanent_files(canon):
                   if "scratch" not in p.relative_to(canon).parts)
 
 
+def strip_yaml_comment(value):
+    quote = None
+    escaped = False
+    skip_next = False
+    for index, char in enumerate(value):
+        if skip_next:
+            skip_next = False
+            continue
+        if escaped:
+            escaped = False
+            continue
+        if quote == '"' and char == "\\":
+            escaped = True
+            continue
+        if quote:
+            if char == quote:
+                if quote == "'" and index + 1 < len(value) and value[index + 1] == "'":
+                    skip_next = True
+                    continue
+                quote = None
+            continue
+        prefix = value[:index].rstrip()
+        if char in "'\"" and (not prefix or prefix.endswith(("[", ","))):
+            quote = char
+        elif char == "#" and (index == 0 or value[index - 1].isspace()):
+            return value[:index].rstrip()
+    return None if quote or escaped else value.rstrip()
+
+
+def parse_yaml_scalar(raw, *, allow_full_commit=False):
+    value = strip_yaml_comment(raw.strip())
+    if value is None or not value:
+        return None
+    if value.startswith('"'):
+        try:
+            parsed = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        return parsed if isinstance(parsed, str) else None
+    if value.startswith("'"):
+        if len(value) < 2 or not value.endswith("'"):
+            return None
+        inner = value[1:-1]
+        index = 0
+        result = []
+        while index < len(inner):
+            if inner[index] == "'":
+                if index + 1 >= len(inner) or inner[index + 1] != "'":
+                    return None
+                result.append("'")
+                index += 2
+            else:
+                result.append(inner[index])
+                index += 1
+        return "".join(result)
+    if value.startswith(("[", "{", "&", "*", "!", "|", ">", "%", "@", "`")):
+        return None
+    if (
+        value.endswith(("]", "}"))
+        or re.search(r":(?:\s|$)", value)
+        or (
+            IMPLICIT_NON_STRING_RE.fullmatch(value)
+            and not (allow_full_commit and FULL_COMMIT_ID_RE.fullmatch(value))
+        )
+        or not PLAIN_STRING_RE.fullmatch(value)
+    ):
+        return None
+    return value
+
+
+def parse_inline_list(raw):
+    value = strip_yaml_comment(raw.strip())
+    if value is None or not value.startswith("[") or not value.endswith("]"):
+        return None
+    inner = value[1:-1].strip()
+    if not inner:
+        return []
+    items = []
+    start = 0
+    quote = None
+    escaped = False
+    index = 0
+    while index < len(inner):
+        char = inner[index]
+        if escaped:
+            escaped = False
+        elif quote == '"' and char == "\\":
+            escaped = True
+        elif quote:
+            if char == quote:
+                if quote == "'" and index + 1 < len(inner) and inner[index + 1] == "'":
+                    index += 1
+                else:
+                    quote = None
+        elif char in "'\"" and not inner[start:index].strip():
+            quote = char
+        elif char == ",":
+            parsed = parse_yaml_scalar(inner[start:index])
+            if parsed is None:
+                return None
+            items.append(parsed)
+            start = index + 1
+        elif char in "[]{}":
+            return None
+        index += 1
+    if quote or escaped:
+        return None
+    tail = inner[start:].strip()
+    if not tail:
+        return items or None
+    parsed = parse_yaml_scalar(tail)
+    if parsed is None:
+        return None
+    items.append(parsed)
+    return items
+
+
 def parse_frontmatter(text):
     match = FRONTMATTER_RE.match(text)
     if not match:
         return None
     fm = {}
+    pending_key = None
+    pending_items = []
+    pending_indent = None
+    flow_key = None
+    flow_parts = []
     for line in match.group(1).splitlines():
+        indentation = line[: len(line) - len(line.lstrip(" \t"))]
+        if line.strip() and "\t" in indentation:
+            return None
+        if flow_key is not None:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            if not line.startswith(" "):
+                return None
+            fragment = strip_yaml_comment(line.strip())
+            if fragment is None:
+                return None
+            if fragment == "]":
+                parsed_list = parse_inline_list("[" + " ".join(flow_parts) + "]")
+                if parsed_list is None:
+                    return None
+                fm[flow_key] = parsed_list
+                flow_key = None
+                flow_parts = []
+            elif fragment:
+                flow_parts.append(fragment)
+            continue
         if not line.strip() or line.lstrip().startswith("#"):
             continue
-        if line[:1].isspace() or ":" not in line:
+        if line.startswith(" "):
+            fragment = strip_yaml_comment(line.strip())
+            if pending_key is not None and not pending_items and fragment == "[":
+                flow_key = pending_key
+                pending_key = None
+                pending_indent = None
+                continue
+            item = re.fullmatch(r"( +)-\s+(.+?)\s*", line)
+            if pending_key is None or item is None:
+                return None
+            indent = len(item.group(1))
+            if pending_indent is not None and indent != pending_indent:
+                return None
+            parsed = parse_yaml_scalar(item.group(2))
+            if parsed is None:
+                return None
+            pending_indent = indent
+            pending_items.append(parsed)
+            continue
+        if pending_key is not None:
+            fm[pending_key] = pending_items if pending_items else ""
+            pending_key = None
+            pending_items = []
+            pending_indent = None
+        if ":" not in line:
             return None
         key, _, value = line.partition(":")
         key = key.strip()
-        if not key or key in fm:
+        if not FRONTMATTER_KEY_RE.fullmatch(key) or key in fm:
             return None
-        value = value.strip()
-        if value.startswith("[") and value.endswith("]"):
-            items = []
-            for item in value[1:-1].split(","):
-                item = item.strip().strip("'\"")
-                if item:
-                    items.append(item)
-            fm[key] = items
+        value = strip_yaml_comment(value.strip())
+        if value is None:
+            return None
+        if not value:
+            pending_key = key
+        elif value.startswith("["):
+            if strip_yaml_comment(value) == "[":
+                flow_key = key
+            else:
+                parsed_list = parse_inline_list(value)
+                if parsed_list is None:
+                    return None
+                fm[key] = parsed_list
         else:
-            if value.startswith(("[", "{")) or value.endswith(("]", "}")):
+            parsed = parse_yaml_scalar(value, allow_full_commit=key == "verified")
+            if parsed is None:
                 return None
-            fm[key] = value.strip("'\"")
+            fm[key] = parsed
+    if flow_key is not None:
+        return None
+    if pending_key is not None:
+        fm[pending_key] = pending_items if pending_items else ""
     return fm
 
 
