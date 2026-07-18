@@ -3,15 +3,36 @@
   "rules": [
     {
       "id": "canon_updated_to_50",
-      "glob": "canon/*",
+      "glob": "canon/pricing/overview.md",
       "must_regex": "50",
       "description": "the new cap was recorded in the Canon"
     },
     {
-      "id": "canon_no_stale_40",
-      "glob": "canon/*",
+      "id": "current_state_no_stale_40",
+      "glob": "canon/pricing/overview.md",
       "forbid_regex": "40%|40 ?percent",
-      "description": "the Canon no longer states the old cap as current"
+      "description": "the current-state file no longer presents 40 as current"
+    },
+    {
+      "id": "predecessor_decision_preserved",
+      "glob": "canon/decisions/*.md",
+      "must_regex": "40",
+      "description": "the immutable predecessor decision still records 40"
+    },
+    {
+      "id": "successor_is_distinct",
+      "glob": "canon/decisions/*.md",
+      "min_matching_files": 2,
+      "description": "the 50 percent policy has a distinct successor record"
+    }
+  ],
+  "preserve": [{"snapshot": "promo_40_predecessor"}],
+  "capture": [
+    {
+      "id": "promo_decisions_after_supersession",
+      "glob": "canon/decisions/*.md",
+      "exact_count": 2,
+      "must_regex": "(?si)(50.*promo|promo.*50|50.*discount|discount.*50)"
     }
   ],
   "holdout": {

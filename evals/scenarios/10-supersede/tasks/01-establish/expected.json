@@ -1,8 +1,18 @@
 {
+  "required_files": ["canon/decisions/api-default-page-size-50.md"],
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "rules": [
     {"id":"impl","glob":"pagination.py","must_regex":"def default_page_size\\(","description":"function exists"},
-    {"id":"decision","glob":"canon/decisions/*","must_regex":"50","description":"decision recorded with the value"}
+    {"id":"decision","glob":"canon/decisions/api-default-page-size-50.md","must_regex":"(?si)50.*payload|payload.*50","description":"predecessor identity, value, and rationale recorded"},
+    {"id":"one_decision","glob":"canon/decisions/*.md","max_matching_files":1,"description":"session one creates only its stated decision"}
+  ],
+  "capture": [
+    {
+      "id": "page_size_50_predecessor",
+      "glob": "canon/decisions/*.md",
+      "exact_count": 1,
+      "must_regex": "(?si)(50.*payload.*round|payload.*round.*50)"
+    }
   ],
   "holdout": {"dir":"holdout","test_cmd":"uv run python -m unittest holdout_t10a"}
 }

@@ -16,25 +16,32 @@
   "rules": [
     {
       "id": "final_cap_documented",
-      "glob": "canon/*",
+      "glob": "canon/pricing/overview.md",
       "must_regex": "50",
       "description": "current discount cap is in the Canon"
     },
     {
-      "id": "no_stale_cap",
-      "glob": "canon/*",
+      "id": "no_stale_cap_in_current_state",
+      "glob": "canon/pricing/overview.md",
       "forbid_regex": "40%|40 ?percent",
-      "description": "superseded cap is gone from the Canon"
+      "description": "superseded cap is absent from current-state documentation"
+    },
+    {
+      "id": "decision_history_preserved",
+      "glob": "canon/decisions/*.md",
+      "min_matching_files": 2,
+      "must_regex": "40",
+      "description": "immutable predecessor and successor decisions remain"
     },
     {
       "id": "campaigns_documented",
-      "glob": "canon/*",
+      "glob": "canon/pricing/overview.md",
       "must_regex": "(?i)campaign",
       "description": "campaign domain knowledge is in the Canon"
     },
     {
       "id": "no_changelog_style",
-      "glob": "canon/*",
+      "glob": "canon/pricing/overview.md",
       "forbid_regex": "(?i)\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
       "description": "Canon stays current-state after ten sessions of churn"
     },
@@ -44,6 +51,10 @@
       "forbid_regex": "\\bfloat\\b|(?<!/)/(?!/)\\s*100\\b",
       "description": "standards held across the whole chain"
     }
+  ],
+  "preserve": [
+    {"snapshot": "promo_40_predecessor"},
+    {"snapshot": "promo_decisions_after_supersession", "exact_set": true}
   ],
   "holdout": {
     "dir": "holdout",

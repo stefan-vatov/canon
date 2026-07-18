@@ -14,8 +14,8 @@ usage:
               [--guidance ../canon-core.md] [--no-judge] [--min-delta 0.02]
 
 env:
-  IMPROVER_CMD  command reading the improver prompt on stdin, printing the
-                revised guidance on stdout (default: claude -p)
+  IMPROVER_CMD  required command reading the improver prompt on stdin and
+                printing revised guidance on stdout
   EVAL_MODEL    pin the agent model (forwarded to adapters)
   JUDGE_CMD     judge invocation (forwarded to judge.sh)
 
@@ -58,6 +58,8 @@ def run_eval(guidance, scenario, harness, runs, judge):
         cmd.append("--no-judge")
     proc = subprocess.run(cmd, capture_output=True, text=True)
     sys.stdout.write(proc.stdout)
+    if proc.returncode != 0:
+        raise RuntimeError(f"run-eval.sh failed for {scenario}:\n{proc.stderr[-1000:]}")
     match = re.search(r"^results: (.+)$", proc.stdout, re.M)
     if not match:
         raise RuntimeError(f"run-eval.sh produced no results dir for {scenario}:\n{proc.stderr[-1000:]}")
@@ -66,6 +68,10 @@ def run_eval(guidance, scenario, harness, runs, judge):
 
 def combined_score(result_dir):
     summary = json.loads((result_dir / "summary.json").read_text())
+    if not summary.get("complete"):
+        raise RuntimeError(f"incomplete eval result: {result_dir}")
+    if not summary.get("pass_all_required"):
+        raise RuntimeError(f"eval failed a required integrity/correctness gate: {result_dir}")
     parts = [v for v in (summary.get("mechanical_mean"), summary.get("judge_mean"))
              if v is not None]
     return sum(parts) / len(parts) if parts else 0.0
@@ -80,7 +86,7 @@ def gather_failures(result_dirs):
             checks = load_json(run / "checks.json")
             if checks:
                 for c in checks["checks"]:
-                    if not c["pass"]:
+                    if c.get("outcome") != "unsupported" and not c["pass"]:
                         lines.append(f"[{scenario}] check '{c['id']}': {c['detail'] or 'failed'}")
             judge = load_json(run / "judge.json")
             if judge:
@@ -121,6 +127,11 @@ def propose(improver_cmd, guidance_text, failures, score):
     ])
     proc = subprocess.run(improver_cmd, shell=True, input=prompt,
                           capture_output=True, text=True, timeout=600)
+    if proc.returncode != 0:
+        detail = proc.stderr.strip()[-1000:] or "no error output"
+        raise RuntimeError(
+            f"improver command failed with exit code {proc.returncode}: {detail}"
+        )
     text = proc.stdout.strip()
     if text.startswith("```"):
         text = re.sub(r"^```[^\n]*\n", "", text)
@@ -147,7 +158,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenarios", required=True,
                     help="comma-separated scenario names")
-    ap.add_argument("--harness", default="claude")
+    ap.add_argument("--harness", default="codex")
     ap.add_argument("--runs", type=int, default=3)
     ap.add_argument("--iterations", type=int, default=3)
     ap.add_argument("--guidance", default=str(ROOT / "canon-core.md"))
@@ -155,11 +166,13 @@ def main():
     ap.add_argument("--min-delta", type=float, default=0.02,
                     help="candidate must beat best by at least this much")
     ap.add_argument("--improver-cmd", default=None,
-                    help="overrides IMPROVER_CMD env (default: claude -p)")
+                    help="overrides the required IMPROVER_CMD env")
     args = ap.parse_args()
 
     import os
-    improver_cmd = args.improver_cmd or os.environ.get("IMPROVER_CMD", "claude -p")
+    improver_cmd = args.improver_cmd or os.environ.get("IMPROVER_CMD")
+    if not improver_cmd:
+        ap.error("set IMPROVER_CMD or pass --improver-cmd")
     scenarios = [s.strip() for s in args.scenarios.split(",") if s.strip()]
     judge = not args.no_judge
 
@@ -180,7 +193,13 @@ def main():
     for i in range(1, args.iterations + 1):
         failures = gather_failures(best_dirs)
         print(f"\n== iteration {i}: proposing (against {len(failures)} failure signals) ==")
-        candidate_text = propose(improver_cmd, best_text, failures, best_score)
+        try:
+            candidate_text = propose(improver_cmd, best_text, failures, best_score)
+        except RuntimeError as exc:
+            print(f"== iteration {i}: PROPOSAL FAILED: {exc} ==")
+            history.append({"iteration": i, "kind": "proposal_failed",
+                            "error": str(exc), "kept": False})
+            continue
         candidate_path = opt_dir / f"iter-{i}-candidate.md"
         candidate_path.write_text(candidate_text)
 
@@ -191,8 +210,15 @@ def main():
                             "problems": problems, "kept": False})
             continue
 
-        score, dirs, per = evaluate(candidate_path, scenarios,
-                                    args.harness, args.runs, judge)
+        try:
+            score, dirs, per = evaluate(candidate_path, scenarios,
+                                        args.harness, args.runs, judge)
+        except RuntimeError as exc:
+            print(f"== iteration {i}: REJECTED after eval: {exc} ==")
+            history.append({"iteration": i, "kind": "rejected",
+                            "stage": "evaluation", "error": str(exc),
+                            "kept": False})
+            continue
         kept = score >= best_score + args.min_delta
         print(f"== iteration {i}: score {score:.3f} vs best {best_score:.3f} "
               f"-> {'KEPT' if kept else 'discarded'} ==")

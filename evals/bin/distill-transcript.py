@@ -2,17 +2,15 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""Distill an agent transcript into a compact, ordered action log for the judge.
+"""Distill a transcript into a compact, ordered action log for the judge.
 
-Claude Code emits stream-json (one JSON event per line) that is enormously
-verbose — a single session can be 150KB+, so raw byte-truncation feeds the
-judge almost nothing but the init event. This extracts the signal the judge
-actually needs: the ordered sequence of tool calls (with key inputs),
-assistant text, and brief results, so evidence like "read canon/manifest.md
-before grepping code" survives.
+The supported stream-JSON event shape is distilled into tool calls, assistant
+text, and brief results so ordering evidence survives. Plain-text transcripts
+are passed through. Other JSON event shapes produce ``(no events parsed)``;
+in particular, Codex JSON is currently available to the mechanical routing
+checker but is not yet rendered into the qualitative judge transcript.
 
-Plain-text transcripts (e.g. the codex adapter) are passed through, truncated
-to a generous budget. Usage: distill-transcript.py FILE [max_chars]
+Usage: distill-transcript.py FILE [max_chars]
 """
 import json
 import sys
@@ -83,7 +81,7 @@ def main():
         events = distill_stream_json(text.splitlines())
         rendered = "\n".join(events) if events else "(no events parsed)"
     else:
-        rendered = text  # plain text (e.g. codex)
+        rendered = text  # plain-text adapters
 
     if len(rendered) > MAX:
         # keep head and tail — first actions and final state both matter

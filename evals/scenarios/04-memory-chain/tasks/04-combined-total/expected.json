@@ -8,6 +8,7 @@
       "description": "function exists"
     }
   ],
+  "preserve": [{"snapshot": "promo_40_predecessor", "exact_set": true}],
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t04"

@@ -2,9 +2,11 @@
 
 You are revising a guidance file ("Project Canon") that is injected into AI
 coding agents' context. The guidance instructs agents to maintain a `canon/`
-directory as authoritative project memory: read it before exploring code,
-keep it accurate after meaningful changes, treat running code as outranking
-documents.
+directory as authoritative project memory: read its manifest before broad
+exploration, load only task-routed files, and keep descriptive Canon accurate
+after authorized changes. Verified code describes current behavior; human-owned
+standards and active explicit decisions remain normative when implementation
+drifts.
 
 Below you will find the current guidance file and the failures observed when
 agents ran under it in an evaluation harness.
@@ -20,15 +22,17 @@ Hard constraints:
   the evaluation tasks or fixtures (module names, function names, domain
   words from the failures). Encoding eval answers into the guidance is
   cheating and the candidate will be rejected.
-- Keep the mandatory Canon structure (overview.md, glossary.md, standards.md,
-  manifest.md, decisions/, plans/, scratch/, domain dirs), the freshness
-  frontmatter convention, and the context budget rule intact.
-- Stay under 170 lines. Longer guidance dilutes compliance; prefer
-  strengthening or repositioning an existing rule over adding new ones.
+- Keep the core Canon structure (overview.md, glossary.md, standards.md,
+  manifest.md, decisions/, scratch/, plus task-relevant plans or domain files),
+  the freshness frontmatter convention, and the context budget rule intact.
+- Preserve external authority and explicit write scope, the conjunctive
+  retention test, deterministic routing, Git-derived freshness, and immutable
+  decision supersession. Never weaken those controls to improve a score.
+- Target fewer than 170 lines and never exceed the optimizer's 200-line hard
+  ceiling. Prefer strengthening or repositioning an existing rule over adding
+  new lines.
 - If there are no failures, tighten wording and cut the weakest or most
   redundant lines instead.
 
 Output ONLY the new file content. No markdown fences, no commentary, no
 preamble.
-
-Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>

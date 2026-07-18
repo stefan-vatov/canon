@@ -1,108 +1,199 @@
 #!/usr/bin/env bash
-# Run one eval scenario N times against a harness and score the results.
-#
-# usage: evals/bin/run-eval.sh --scenario 02-feature [--harness claude|codex|pi]
-#                              [--runs N] [--guidance FILE] [--no-judge]
-#
-# Scenario shapes:
-#   single-session: scenarios/<name>/task.md + expected.json
-#   multi-session:  scenarios/<name>/tasks/NN-<step>/task.md — each step runs
-#                   as a FRESH agent session in the same workspace (this is
-#                   how cross-session Canon memory is exercised); a step may
-#                   carry its own expected.json, and the scenario root
-#                   expected.json is checked after the final step.
-#
-# env: EVAL_MODEL  pin the agent model (passed to the adapter)
-#      JUDGE_CMD   override the judge invocation (default: claude -p)
+# Run one immutable, attributable eval batch.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 EVALS="$ROOT/evals"
 
-SCENARIO="" HARNESS="claude" RUNS=1 JUDGE=1
+SCENARIO="" HARNESS="codex" RUNS=1 JUDGE=1
 GUIDANCE="$ROOT/canon-core.md"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --scenario) SCENARIO="$2"; shift 2;;
-    --harness)  HARNESS="$2"; shift 2;;
-    --runs)     RUNS="$2"; shift 2;;
+    --harness) HARNESS="$2"; shift 2;;
+    --runs) RUNS="$2"; shift 2;;
     --guidance) GUIDANCE="$2"; shift 2;;
     --no-judge) JUDGE=0; shift;;
     *) echo "unknown arg: $1" >&2; exit 1;;
   esac
 done
 
-if [[ -z "$SCENARIO" ]]; then
-  echo "usage: run-eval.sh --scenario NAME [--harness claude|codex|pi] [--runs N] [--guidance FILE] [--no-judge]" >&2
-  echo "scenarios:" >&2; ls "$EVALS/scenarios" >&2
-  exit 1
+if ! [[ "$SCENARIO" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+  echo "--scenario must be one directory name" >&2; exit 1
+fi
+if ! [[ "$HARNESS" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+  echo "--harness must be one adapter name" >&2; exit 1
+fi
+if ! [[ "$RUNS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "--runs must be a positive integer" >&2; exit 1
+fi
+if [[ "$JUDGE" == 1 && -z "${JUDGE_CMD:-}" ]]; then
+  echo "JUDGE_CMD is required when judging is enabled" >&2; exit 1
 fi
 
 SCEN_DIR="$EVALS/scenarios/$SCENARIO"
-ADAPTER="$EVALS/adapters/$HARNESS.sh"
+ADAPTER_SOURCE="$EVALS/adapters/$HARNESS.sh"
 [[ -d "$SCEN_DIR" ]] || { echo "no such scenario: $SCENARIO" >&2; exit 1; }
-[[ -x "$ADAPTER" ]] || { echo "no such adapter: $ADAPTER" >&2; exit 1; }
-GUIDANCE="$(cd "$(dirname "$GUIDANCE")" && pwd)/$(basename "$GUIDANCE")"
+[[ -x "$ADAPTER_SOURCE" ]] || { echo "no such adapter: $HARNESS" >&2; exit 1; }
+[[ -f "$GUIDANCE" && ! -L "$GUIDANCE" ]] || { echo "guidance must be a regular file" >&2; exit 1; }
+uv run --script "$EVALS/bin/provenance.py" validate-inputs \
+  --root "$ROOT" --scenario-dir "$SCEN_DIR" --guidance "$GUIDANCE"
+GUIDANCE="$(cd "$(dirname "$GUIDANCE")" && pwd -P)/$(basename "$GUIDANCE")"
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
-# include PID so concurrent runs of the same scenario+harness in the same
-# second don't collide on one output dir (git-init config-lock race).
 OUT="$EVALS/results/$STAMP-$SCENARIO-$HARNESS-$$"
+PRIVATE_STATE="$(mktemp -d "${TMPDIR:-/tmp}/canon-eval-state.XXXXXX")"
+FROZEN_SCENARIO="$PRIVATE_STATE/scenario"
+FROZEN_EVALUATOR="$PRIVATE_STATE/evaluator"
+FROZEN_GUIDANCE="$PRIVATE_STATE/guidance.md"
+cp -R "$SCEN_DIR" "$FROZEN_SCENARIO"
+cp "$GUIDANCE" "$FROZEN_GUIDANCE"
+mkdir -p "$FROZEN_EVALUATOR/evals" "$FROZEN_EVALUATOR/tools"
+cp -R "$EVALS/bin" "$EVALS/adapters" "$EVALS/judge" "$FROZEN_EVALUATOR/evals/"
+cp "$EVALS/rubric.md" "$FROZEN_EVALUATOR/evals/rubric.md"
+cp "$ROOT/tools/canonlib.py" "$FROZEN_EVALUATOR/tools/canonlib.py"
+ADAPTER="$FROZEN_EVALUATOR/evals/adapters/$HARNESS.sh"
+PROVENANCE="$FROZEN_EVALUATOR/evals/bin/provenance.py"
+CHECKER="$FROZEN_EVALUATOR/evals/bin/check.py"
+JUDGE_SCRIPT="$FROZEN_EVALUATOR/evals/bin/judge.sh"
+SUMMARIZER="$FROZEN_EVALUATOR/evals/bin/summarize.py"
 mkdir -p "$OUT"
-cp "$GUIDANCE" "$OUT/guidance-used.md"
+cp "$FROZEN_GUIDANCE" "$OUT/guidance-used.md"
+
+JUDGE_REQUEST=requested
+[[ "$JUDGE" == 0 ]] && JUDGE_REQUEST=skipped
+uv run --script "$PROVENANCE" batch \
+  --out "$OUT" --root "$ROOT" --scenario-dir "$FROZEN_SCENARIO" \
+  --scenario "$SCENARIO" --guidance "$OUT/guidance-used.md" \
+  --guidance-source "$GUIDANCE" --harness "$HARNESS" \
+  --adapter "$ADAPTER_SOURCE" --runs "$RUNS" --model "${EVAL_MODEL:-}" \
+  --reasoning "${EVAL_REASONING:-}" --judge "$JUDGE_REQUEST" \
+  --judge-command "${JUDGE_CMD:-}"
+BATCH_ID="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1]))["batch_id"])' "$OUT/manifest.json")"
 echo "results: $OUT"
 
-run_check() { # workdir expected_json out_json [transcript_dir]
-  uv run --script "$EVALS/bin/check.py" \
-    --workdir "$1" --expected "$2" --out "$3" \
-    ${4:+--transcript-dir "$4"} || echo "warn: check.py failed" >&2
+BATCH_FINALIZED=0
+finalize() {
+  local status=failed
+  [[ "$BATCH_FINALIZED" == 1 ]] && status=completed
+  if [[ -f "$OUT/manifest.json" && ! -f "$OUT/batch-receipt.json" ]]; then
+    uv run --script "$PROVENANCE" batch-finish \
+      --out "$OUT" --status "$status" >/dev/null 2>&1 || true
+  fi
+  rm -rf "$PRIVATE_STATE"
 }
+trap finalize EXIT
 
+OVERALL_FAILED=0
 for i in $(seq 1 "$RUNS"); do
   RUN="$OUT/run-$i"
   WORK="$RUN/workspace"
-  mkdir -p "$RUN"
-  cp -R "$SCEN_DIR/fixture" "$WORK"
+  STATE="$PRIVATE_STATE/state-run-$i"
+  STATE_KEY="$(uv run python -c 'import secrets; print(secrets.token_hex(32))')"
+  mkdir -p "$RUN" "$STATE"
+  cp -R "$FROZEN_SCENARIO/fixture" "$WORK"
 
-  export WORKDIR="$WORK" GUIDANCE_FILE="$GUIDANCE"
+  export WORKDIR="$WORK" GUIDANCE_FILE="$FROZEN_GUIDANCE"
+  AGENT_STATUS=completed
+  JUDGE_STATUS=skipped
+  RUN_FAILED=0
+  CHECK_FILES=()
 
-  # Guidance is installed before the baseline commit so it never shows in the
-  # agent's diff.
-  "$ADAPTER" install
-  git -C "$WORK" init -q --template=  # empty template: avoids hook-sample copy race under parallel runs
+  if ! "$ADAPTER" install; then
+    AGENT_STATUS=failed; RUN_FAILED=1
+  fi
+  git -C "$WORK" init -q --template=
   git -C "$WORK" -c user.email=eval@local -c user.name=eval add -A
-  git -C "$WORK" -c user.email=eval@local -c user.name=eval commit -qm baseline
+  git -C "$WORK" -c user.email=eval@local -c user.name=eval \
+    -c commit.gpgsign=false commit -qm baseline
+  BASELINE="$(git -C "$WORK" rev-parse HEAD)"
+  uv run --script "$PROVENANCE" run-start \
+    --run "$RUN" --index "$i" --batch-id "$BATCH_ID" --baseline "$BASELINE"
 
-  if [[ -d "$SCEN_DIR/tasks" ]]; then
-    # Multi-session chain: one fresh agent session per task step.
-    for STEP_DIR in "$SCEN_DIR"/tasks/*/; do
+  run_check() { # expected_json out_json
+    local expected_json="$1" out_json="$2"
+    if uv run --script "$CHECKER" \
+      --workdir "$WORK" --expected "$expected_json" --out "$out_json" \
+      --transcript-dir "$RUN" --baseline "$BASELINE" \
+      --state-dir "$STATE" --state-key "$STATE_KEY"; then
+      CHECK_FILES+=("$out_json")
+    else
+      RUN_FAILED=1
+    fi
+  }
+
+  if [[ -d "$FROZEN_SCENARIO/tasks" ]]; then
+    for STEP_DIR in "$FROZEN_SCENARIO"/tasks/*/; do
       STEP="$(basename "$STEP_DIR")"
-      export TASK_FILE="$STEP_DIR/task.md" TRANSCRIPT="$RUN/transcript-$STEP.txt"
+      PRIVATE_TASK="$PRIVATE_STATE/task-$i-$STEP.md"
+      cp "$STEP_DIR/task.md" "$PRIVATE_TASK"
+      export TASK_FILE="$PRIVATE_TASK" TRANSCRIPT="$RUN/transcript-$STEP.txt"
       echo "[$SCENARIO/$HARNESS] run $i/$RUNS step $STEP: agent..."
-      "$ADAPTER" run || echo "warn: adapter exited nonzero at $STEP" >&2
+      if ! "$ADAPTER" run; then
+        AGENT_STATUS=failed; RUN_FAILED=1
+      fi
       if [[ -f "$STEP_DIR/expected.json" ]]; then
-        run_check "$WORK" "$STEP_DIR/expected.json" "$RUN/checks-$STEP.json" "$RUN"
+        run_check "$STEP_DIR/expected.json" "$RUN/checks-$STEP.json"
       fi
     done
-    # Stitch per-step transcripts so the judge sees the whole chain.
-    for t in "$RUN"/transcript-*.txt; do
-      printf '\n===== session %s =====\n' "$(basename "$t")"
-      cat "$t"
-    done > "$RUN/transcript.txt"
-    [[ -f "$SCEN_DIR/expected.json" ]] && \
-      run_check "$WORK" "$SCEN_DIR/expected.json" "$RUN/checks.json" "$RUN"
+    : > "$RUN/transcript.txt"
+    for transcript in "$RUN"/transcript-*.txt; do
+      printf '\n===== session %s =====\n' "$(basename "$transcript")" >> "$RUN/transcript.txt"
+      sed -n '1,$p' "$transcript" >> "$RUN/transcript.txt"
+    done
+    [[ -f "$FROZEN_SCENARIO/expected.json" ]] && \
+      run_check "$FROZEN_SCENARIO/expected.json" "$RUN/checks.json"
   else
-    export TASK_FILE="$SCEN_DIR/task.md" TRANSCRIPT="$RUN/transcript.txt"
+    PRIVATE_TASK="$PRIVATE_STATE/task-$i.md"
+    cp "$FROZEN_SCENARIO/task.md" "$PRIVATE_TASK"
+    export TASK_FILE="$PRIVATE_TASK" TRANSCRIPT="$RUN/transcript.txt"
     echo "[$SCENARIO/$HARNESS] run $i/$RUNS: agent..."
-    "$ADAPTER" run || echo "warn: adapter exited nonzero" >&2
-    run_check "$WORK" "$SCEN_DIR/expected.json" "$RUN/checks.json" "$RUN"
+    if ! "$ADAPTER" run; then
+      AGENT_STATUS=failed; RUN_FAILED=1
+    fi
+    run_check "$FROZEN_SCENARIO/expected.json" "$RUN/checks.json"
   fi
 
+  JUDGE_FILE=""
   if [[ "$JUDGE" == 1 ]]; then
     echo "[$SCENARIO/$HARNESS] run $i/$RUNS: judge..."
-    "$EVALS/bin/judge.sh" "$RUN" "$SCEN_DIR" || echo "warn: judge failed" >&2
+    if "$JUDGE_SCRIPT" "$RUN" "$FROZEN_SCENARIO"; then
+      JUDGE_STATUS=completed
+      JUDGE_FILE="$RUN/judge.json"
+    else
+      JUDGE_STATUS=failed; RUN_FAILED=1
+    fi
   fi
+
+  STATE_FILES=()
+  if compgen -G "$STATE/*.json" >/dev/null; then
+    mkdir -p "$RUN/temporal-state"
+    for state_file in "$STATE"/*.json; do
+      cp "$state_file" "$RUN/temporal-state/$(basename "$state_file")"
+      STATE_FILES+=("$RUN/temporal-state/$(basename "$state_file")")
+    done
+  fi
+
+  RUN_STATUS=completed
+  [[ "$RUN_FAILED" == 1 ]] && { RUN_STATUS=failed; OVERALL_FAILED=1; }
+  FINISH_ARGS=(run-finish --run "$RUN" --status "$RUN_STATUS" \
+    --agent-status "$AGENT_STATUS" --judge-status "$JUDGE_STATUS")
+  for check_file in "${CHECK_FILES[@]}"; do FINISH_ARGS+=(--check "$check_file"); done
+  [[ -n "$JUDGE_FILE" ]] && FINISH_ARGS+=(--judge-artifact "$JUDGE_FILE")
+  for state_file in "${STATE_FILES[@]}"; do FINISH_ARGS+=(--state "$state_file"); done
+  uv run --script "$PROVENANCE" "${FINISH_ARGS[@]}"
 done
 
-uv run --script "$EVALS/bin/summarize.py" "$OUT"
+# Retain the frozen inputs only after all evaluated sessions have ended.
+mkdir -p "$OUT/inputs"
+cp -R "$FROZEN_SCENARIO" "$OUT/inputs/scenario"
+cp -R "$FROZEN_EVALUATOR" "$OUT/inputs/evaluator"
+
+if [[ "$OVERALL_FAILED" == 0 ]]; then
+  BATCH_FINALIZED=1
+fi
+uv run --script "$PROVENANCE" batch-finish \
+  --out "$OUT" --status "$([[ "$BATCH_FINALIZED" == 1 ]] && echo completed || echo failed)"
+uv run --script "$SUMMARIZER" "$OUT"
+[[ "$OVERALL_FAILED" == 0 ]]

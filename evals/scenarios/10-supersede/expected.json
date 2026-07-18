@@ -1,11 +1,19 @@
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "max_canon_lines": 250,
-  "required_files": ["canon/overview.md","canon/glossary.md","canon/standards.md","canon/manifest.md","canon/api/overview.md"],
+  "required_files": ["canon/overview.md","canon/glossary.md","canon/standards.md","canon/manifest.md","canon/api/overview.md","canon/decisions/api-default-page-size-50.md","canon/decisions/api-default-page-size-100.md"],
   "allowed_change_globs": ["*.py","test_*.py","canon/*"],
   "rules": [
     {"id":"current_is_100","glob":"canon/api/overview.md","must_regex":"100","description":"current default is 100"},
-    {"id":"no_stale_50_current","glob":"canon/api/overview.md","forbid_regex":"default[^.]*\\b50\\b|\\b50\\b[^.]*default","description":"50 not presented as the current default in current-state doc"}
+    {"id":"no_stale_50_current","glob":"canon/api/overview.md","forbid_regex":"default[^.]*\\b50\\b|\\b50\\b[^.]*default","description":"50 not presented as current"},
+    {"id":"predecessor_identity_and_contents","glob":"canon/decisions/api-default-page-size-50.md","must_regex":"(?si)50.*payload|payload.*50","description":"named predecessor and rationale survive"},
+    {"id":"successor_contents","glob":"canon/decisions/api-default-page-size-100.md","must_regex":"(?si)100.*faster|faster.*100","description":"named successor retains supplied rationale"},
+    {"id":"supersession_survives","glob":"canon/decisions/api-default-page-size-100.md","must_regex":"(?si)(supersed|retired|replaced).*api-default-page-size-50\\.md|api-default-page-size-50\\.md.*(supersed|retired|replaced)","description":"final state retains predecessor link and supersession"},
+    {"id":"no_spurious_decision","glob":"canon/decisions/*.md","min_matching_files":2,"max_matching_files":2,"description":"session three did not invent a decision"}
+  ],
+  "preserve": [
+    {"snapshot": "page_size_50_predecessor"},
+    {"snapshot": "page_size_decisions_after_supersession", "exact_set": true}
   ],
   "holdout": {"dir":"holdout","test_cmd":"uv run python -m unittest holdout_t10f"}
 }

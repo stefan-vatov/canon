@@ -4,7 +4,7 @@
 # ///
 """canon doctor: mechanical health checks for a canon/ directory.
 
-usage: canon-doctor.py [--root DIR] [--json]
+usage: canon-doctor.py [--root DIR] [--json] [--strict]
 
 Checks (error -> exit 1, warn -> reported only):
 
@@ -14,10 +14,9 @@ Checks (error -> exit 1, warn -> reported only):
   line-caps        permanent files stay under 250 lines               error
   scratch-ignored  canon/scratch/ is git-ignored                      error
   changelog-smell  dates / "previously" / "added" phrasing in         warn
-                   permanent files (current-state rule)
-  staleness        domain files whose frontmatter `sources` changed   warn
-                   since their `verified` commit, or domain files
-                   missing frontmatter entirely
+                   current-state files (immutable decisions exempt)
+  staleness        dirty, missing, indeterminate, or committed source warn
+                   changes newer than the latest domain-file refresh
 
 Designed for CI or pre-commit in any repo that carries a Canon.
 """
@@ -28,16 +27,27 @@ import subprocess
 import sys
 from pathlib import Path
 
+from canonlib import (
+    contained_regular_file,
+    manifest_route_issues,
+    missing_manifest_routes,
+)
+
 REQUIRED = ["overview.md", "glossary.md", "standards.md", "manifest.md"]
 MAX_LINES = 250
+MAX_BYTES = 64 * 1024
 CHANGELOG_RE = re.compile(r"(?i)\bpreviously\b|\b20\d\d-\d\d-\d\d\b|\bwe (?:added|changed|removed)\b")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+FULL_COMMIT_ID_RE = re.compile(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})")
 
 
 def git(root, *args):
-    proc = subprocess.run(["git", "-C", str(root), *args],
-                          capture_output=True, text=True)
-    return proc.returncode, proc.stdout.strip()
+    try:
+        proc = subprocess.run(["git", "-C", str(root), *args],
+                              capture_output=True, text=True)
+    except OSError as exc:
+        return 127, "", str(exc)
+    return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
 
 
 def permanent_files(canon):
@@ -51,14 +61,26 @@ def parse_frontmatter(text):
         return None
     fm = {}
     for line in match.group(1).splitlines():
-        if ":" not in line:
+        if not line.strip() or line.lstrip().startswith("#"):
             continue
+        if line[:1].isspace() or ":" not in line:
+            return None
         key, _, value = line.partition(":")
+        key = key.strip()
+        if not key or key in fm:
+            return None
         value = value.strip()
         if value.startswith("[") and value.endswith("]"):
-            fm[key.strip()] = [v.strip() for v in value[1:-1].split(",") if v.strip()]
+            items = []
+            for item in value[1:-1].split(","):
+                item = item.strip().strip("'\"")
+                if item:
+                    items.append(item)
+            fm[key] = items
         else:
-            fm[key.strip()] = value
+            if value.startswith(("[", "{")) or value.endswith(("]", "}")):
+                return None
+            fm[key] = value.strip("'\"")
     return fm
 
 
@@ -66,6 +88,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=".")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--strict", action="store_true",
+                    help="return nonzero for warnings as well as errors")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
@@ -77,45 +101,52 @@ def main():
 
     if not canon.is_dir():
         add("structure", "error", "no canon/ directory")
-        return report(findings, args.json)
+        return report(findings, args.json, args.strict)
 
     for name in REQUIRED:
-        if not (canon / name).is_file():
+        path = canon / name
+        if not path.is_file():
             add("structure", "error", f"missing canon/{name}")
+        elif path.is_symlink():
+            add("structure", "error", f"canon/{name} must not be a symlink")
 
     files = permanent_files(canon)
     manifest = canon / "manifest.md"
     if manifest.is_file():
         text = manifest.read_text()
-        for p in files:
-            rel = str(p.relative_to(canon))
-            if p != manifest and rel not in text and p.name not in text:
-                add("manifest", "error", f"{rel} not referenced in manifest.md")
-        for link in re.findall(r"\]\(([^)#]+)\)", text):
-            if not link.startswith(("http://", "https://")) \
-                    and not (canon / link).exists():
-                add("manifest", "error", f"manifest links to missing file: {link}")
+        for rel in missing_manifest_routes(files, canon, text):
+            add("manifest", "error", f"{rel} not referenced in manifest.md")
+        for issue in manifest_route_issues(canon, text):
+            add("manifest", "error", f"unsafe or missing route: {issue}")
 
     for p in files:
+        if p.is_symlink():
+            add("structure", "error", f"{p.relative_to(canon)} must not be a symlink")
+            continue
         body = p.read_text(errors="replace")
         rel = str(p.relative_to(canon))
         n = len(body.splitlines())
         if n > MAX_LINES:
             add("line-caps", "error", f"{rel} has {n} lines (max {MAX_LINES})")
-        content = FRONTMATTER_RE.sub("", body)
-        for hit in set(CHANGELOG_RE.findall(content)):
-            add("changelog-smell", "warn", f"{rel} contains changelog-style text: {hit!r}")
+        size = p.stat().st_size
+        if size > MAX_BYTES:
+            add("size-caps", "error", f"{rel} has {size} bytes (max {MAX_BYTES})")
+        if p.relative_to(canon).parts[0] != "decisions":
+            content = FRONTMATTER_RE.sub("", body)
+            for hit in set(CHANGELOG_RE.findall(content)):
+                add("changelog-smell", "warn", f"{rel} contains changelog-style text: {hit!r}")
 
-    rc, _ = git(root, "rev-parse", "--git-dir")
+    rc, _, _ = git(root, "rev-parse", "--git-dir")
     in_git = rc == 0
     if in_git:
-        rc, _ = git(root, "check-ignore", "-q", str(canon / "scratch" / "x"))
-        if rc != 0:
+        rc, _, err = git(root, "check-ignore", "-q", str(canon / "scratch" / "x"))
+        if rc == 1:
             add("scratch-ignored", "error", "canon/scratch/ is not git-ignored")
+        elif rc != 0:
+            add("scratch-ignored", "error", f"could not verify scratch ignore: {err or 'git failed'}")
 
-    # Staleness: domain files (anything outside the four core files) should
-    # carry frontmatter; if sources changed since `verified`, flag.
-    core_names = set(REQUIRED)
+    rc, _, _ = git(root, "rev-parse", "--verify", "HEAD^{commit}") if in_git else (1, "", "")
+    has_history = in_git and rc == 0
     for p in files:
         rel_parts = p.relative_to(canon).parts
         is_domain = len(rel_parts) > 1 and rel_parts[0] not in ("decisions", "plans")
@@ -127,27 +158,102 @@ def main():
             add("staleness", "warn", f"{rel} has no sources/verified frontmatter")
             continue
         if not in_git:
+            add("staleness", "warn", f"{rel}: history indeterminate outside Git")
             continue
         verified = fm["verified"]
-        rc, _ = git(root, "cat-file", "-e", f"{verified}^{{commit}}")
-        if rc != 0:
-            add("staleness", "warn", f"{rel}: verified commit {verified!r} not found")
-            continue
         sources = fm["sources"] if isinstance(fm["sources"], list) else [fm["sources"]]
-        rc, out = git(root, "log", "--oneline", f"{verified}..HEAD", "--", *sources)
-        if rc == 0 and out:
-            changed = out.splitlines()
-            add("staleness", "warn",
-                f"{rel} is stale: {len(changed)} commit(s) touched "
-                f"{', '.join(sources)} since {verified}")
+        if not isinstance(verified, str) or not FULL_COMMIT_ID_RE.fullmatch(verified):
+            add("staleness", "warn", f"{rel}: history indeterminate; verified must be a full immutable hexadecimal commit id")
+            continue
+        if not sources or not all(isinstance(source, str) and source.strip() for source in sources):
+            add("staleness", "warn", f"{rel}: sources must contain repository-relative paths")
+            continue
+        domain_rel = str(p.relative_to(root))
+        rc, _, err = git(root, "ls-files", "--error-unmatch", "--", domain_rel)
+        if rc != 0:
+            add("staleness", "warn", f"{rel}: domain file is not tracked; freshness is indeterminate ({err or 'git failed'})")
+            continue
+        if not has_history:
+            add("staleness", "warn", f"{rel}: history indeterminate in unborn repository")
+            continue
+        rc, resolved, err = git(root, "rev-parse", "--verify", f"{verified}^{{commit}}")
+        if rc != 0:
+            add("staleness", "warn", f"{rel}: history indeterminate; verified commit {verified!r} not found ({err or 'git failed'})")
+            continue
+        if resolved.lower() != verified.lower():
+            add("staleness", "warn", f"{rel}: history indeterminate; verified must identify the full commit id")
+            continue
+        rc, _, err = git(root, "merge-base", "--is-ancestor", verified, "HEAD")
+        if rc == 1:
+            add("staleness", "warn", f"{rel}: history indeterminate; {verified!r} is not an ancestor of HEAD")
+            continue
+        if rc != 0:
+            add("staleness", "warn", f"{rel}: history indeterminate; ancestry check failed: {err or 'git failed'}")
+            continue
+        for source in sources:
+            source = source.strip()
+            safe, detail = contained_regular_file(root, source)
+            if not safe:
+                add("staleness", "warn", f"{rel}: invalid source {source!r}: {detail}")
+                continue
+            ignored_rc, _, ignored_err = git(root, "check-ignore", "-q", "--", source)
+            if ignored_rc == 0:
+                add("staleness", "warn", f"{rel}: ignored source cannot be verified: {source}")
+                continue
+            if ignored_rc != 1:
+                add("staleness", "warn", f"{rel}: source ignore check failed: {ignored_err or 'git failed'}")
+                continue
+            rc, dirty, err = git(root, "status", "--porcelain=v1", "--untracked-files=all", "--", source)
+            if rc != 0:
+                add("staleness", "warn", f"{rel}: history indeterminate; source status failed: {err or 'git failed'}")
+                continue
+            if dirty:
+                add("staleness", "warn", f"{rel} is stale: source has staged or unstaged changes: {source}")
+                continue
+            rc, source_history, err = git(
+                root, "rev-list", "--full-history", "--topo-order",
+                f"{verified}..HEAD", "--", source,
+            )
+            if rc != 0:
+                add("staleness", "warn", f"{rel}: history indeterminate; source traversal failed: {err or 'git failed'}")
+                continue
+            source_commits = [commit for commit in source_history.splitlines() if commit]
+            if not source_commits:
+                continue
+            rc, domain_history, err = git(
+                root, "rev-list", "--full-history", "--topo-order",
+                f"{verified}..HEAD", "--", domain_rel,
+            )
+            if rc != 0:
+                add("staleness", "warn", f"{rel}: history indeterminate; Canon traversal failed: {err or 'git failed'}")
+                continue
+            domain_commits = [commit for commit in domain_history.splitlines() if commit]
+            if not domain_commits:
+                add("staleness", "warn", f"{rel} is stale: {source} changed after {verified} without a Canon refresh")
+                continue
+            uncovered = []
+            for source_commit in source_commits:
+                covered = False
+                for domain_commit in domain_commits:
+                    ancestor_rc, _, _ = git(
+                        root, "merge-base", "--is-ancestor", source_commit, domain_commit
+                    )
+                    if ancestor_rc == 0:
+                        covered = True
+                        break
+                if not covered:
+                    uncovered.append(source_commit)
+            if uncovered:
+                add("staleness", "warn", f"{rel} is stale: {source} has {len(uncovered)} source change(s) after its latest Canon refresh")
 
-    return report(findings, args.json)
+    return report(findings, args.json, args.strict)
 
 
-def report(findings, as_json):
+def report(findings, as_json, strict=False):
     errors = [f for f in findings if f["severity"] == "error"]
+    failed = bool(errors or (strict and findings))
     if as_json:
-        print(json.dumps({"ok": not errors, "findings": findings}, indent=2))
+        print(json.dumps({"ok": not failed, "strict": strict, "findings": findings}, indent=2))
     else:
         if not findings:
             print("canon doctor: all checks passed")
@@ -156,7 +262,7 @@ def report(findings, as_json):
         if findings:
             print(f"canon doctor: {len(errors)} error(s), "
                   f"{len(findings) - len(errors)} warning(s)")
-    return 1 if errors else 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

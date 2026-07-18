@@ -1,7 +1,13 @@
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "rules": [
-    {"id":"clamp_impl","glob":"pagination.py","must_regex":"def clamp_page_size\\(","description":"function exists"}
+    {"id":"clamp_impl","glob":"pagination.py","must_regex":"def clamp_page_size\\(","description":"function exists"},
+    {"id":"no_spurious_decision","glob":"canon/decisions/*.md","min_matching_files":2,"max_matching_files":2,"description":"routine implementation creates no third decision"},
+    {"id":"supersession_survives","glob":"canon/decisions/api-default-page-size-100.md","must_regex":"(?i)supersed|retired|replaced","description":"session three preserves supersession history"}
+  ],
+  "preserve": [
+    {"snapshot": "page_size_50_predecessor"},
+    {"snapshot": "page_size_decisions_after_supersession", "exact_set": true}
   ],
   "holdout": {"dir":"holdout","test_cmd":"uv run python -m unittest holdout_t10c"}
 }

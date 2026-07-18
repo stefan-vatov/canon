@@ -19,5 +19,9 @@
       "must_regex": "(?i)campaign",
       "description": "campaign behavior documented in the Canon"
     }
+  ],
+  "preserve": [
+    {"snapshot": "promo_40_predecessor"},
+    {"snapshot": "promo_decisions_after_supersession", "exact_set": true}
   ]
 }

@@ -12,5 +12,9 @@
       "forbid_regex": "(?i)handover",
       "description": "session scraps stay out of permanent Canon files"
     }
+  ],
+  "preserve": [
+    {"snapshot": "promo_40_predecessor"},
+    {"snapshot": "promo_decisions_after_supersession", "exact_set": true}
   ]
 }

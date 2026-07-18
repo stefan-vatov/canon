@@ -26,6 +26,14 @@
       "description": "campaign definition retains the shared expiry date"
     }
   ],
+  "capture": [
+    {
+      "id": "promo_40_predecessor",
+      "glob": "canon/decisions/*.md",
+      "exact_count": 1,
+      "must_regex": "(?si)(40.*fixed|fixed.*40)"
+    }
+  ],
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t01"

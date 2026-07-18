@@ -1,7 +1,140 @@
-# Baseline Reference Scores
+# Evaluation and adoption ledger
 
-Reference numbers that candidate guidance must beat. Re-baseline whenever
-the guidance, a scenario, the judge prompt, or the agent model changes.
+This file preserves historical experiments and adoption decisions. There is
+no comparable behavioral baseline for the current revision yet. Establish a
+new one whenever any comparison key changes, including guidance, scenario,
+harness/adapter, worker model or reasoning, judge command/prompt, run count,
+source state, or attested evaluator inputs.
+
+## 2026-07-18 — integrity hardening pass: GPT synthesis ADOPTED
+
+External frozen-base identifier: `161d77d316bc79bc5a3486fe308e260ef66ae993`.
+That object is not retained in this repository, so the supervisor result is
+narrative historical evidence rather than a reproducible current baseline. Six isolated
+candidates used the evolutionary-workflow labels, but every implementation
+worker and reviewer in this pass was GPT-based; no Claude or LiteLLM model was
+invoked. The frozen adversarial supervisor was 0/8 on the base and 8/8 on all
+six candidates, proving it was a useful floor but not a sufficient winner
+test.
+
+| label | actual backend | ephemeral commit | supervisor | independent hard-gate review |
+|---|---|---|---:|---:|
+| GLM | GPT-5.6 Sol ultra | `48fe38e` | 8/8 | 64/100, reject |
+| Deepseek | GPT-5.6 Terra max | `118b470` | 8/8 | 52/100, reject |
+| MiniMax | GPT-5.6 Sol ultra | `79fc952` | 8/8 | 62/100, reject |
+| Kimi | GPT-5.6 Sol ultra | `51d9752` | 8/8 | 74/100, reject |
+| GPT 5.5 high | GPT-5.6 Sol ultra | `056fdf6` | 8/8 | 72/100, seed |
+| GPT Spark | GPT-5.6 Sol ultra | `7fd3c19` | 8/8 | 70/100, reject |
+
+Every raw candidate had at least one ship blocker hidden by the common probe:
+failed runs could be marked complete; malformed judges could disappear from a
+mean; provenance could downgrade to legacy semantics; manifest/source symlinks
+could escape roots; or temporal "immutability" was only a regex. The adopted
+result is therefore a reviewed synthesis, not an unchanged candidate.
+The candidate hashes name commits created in isolated temporary clones; they
+are experiment identifiers and are not guaranteed reachable from this
+repository's permanent Git refs.
+
+Adopted changes:
+
+- compact guidance with explicit authority/write scope, a four-part retention
+  test, deterministic two-pass routing, atomic freshness semantics, and
+  byte-immutable decision supersession.
+- exact contained manifest/source paths, symbolic-anchor rejection, full-DAG
+  source coverage, dirty/ignored/missing-source handling, byte caps, and a
+  strict doctor mode;
+- schema-v2 batch/run receipts with terminal status, SHA-256 artifact lineage,
+  strict check schemas, bounded judge values, retained declared inputs, and
+  immutable-baseline diffs;
+- authenticated cross-session path/byte snapshots for scenarios 04 and 10,
+  with temporal violations marked required;
+- successful structured-read routing evidence, explicit unsupported telemetry,
+  disposable holdout workspaces, network-denied macOS test execution, and
+  explicit sandbox configuration elsewhere;
+- non-destructive install documentation for existing agent configuration.
+
+Deterministic validation: supervisor 8/8, repository regressions 9/9, portable
+ambient-signing stub batch complete, Python/shell/JSON validation clean, and
+all generated artifacts fresh. A live paid-model confirmatory batch was not run
+after the final hardening, so no behavioral model-score claim is made for this
+revision.
+
+Known attestation limits: judge validation does not yet require the exact full
+rubric criterion set, so its denominator is not mechanically fixed. Evaluator
+lineage also omits `distill-transcript.py` and the imported `tools/canonlib.py`.
+Treat judge output and toolchain identity as attributable but not yet fully
+attested until those gaps are closed.
+
+Read-only production audit: Ember Rhythm was never modified. It demonstrated
+the need for migration-safe enforcement: one real manifest omission
+(`architecture/workouts-strong-parity.md`), two oversized Canon files, legacy
+freshness metadata, and existing project-specific agent instructions that must
+not be overwritten.
+
+## 2026-07-17 — evolution pass 1: durable-decision boundary ADOPTED
+
+Six frozen-base candidates targeted the remaining `10-supersede` gradient.
+Each valid candidate ran six three-session chains: runs 1–3 used GPT-5.6 Terra
+at medium reasoning and runs 4–6 used GPT-5.6 Sol at high reasoning. Judges
+used the same GPT mix; transcript-only criteria were null.
+
+| candidate | mechanical mean | judge mean | result |
+|-----------|----------------:|-----------:|--------|
+| current @ dcd109d | 0.994 | 0.849 | baseline |
+| GLM | 0.983 | 0.817 | rejected |
+| Deepseek | — | — | invalid: isolation/scope failure |
+| MiniMax | — | — | invalid: task transport failure |
+| Kimi | — | — | invalid: isolation/scope failure |
+| GPT 5.5 high (GPT-5.6 Sol runtime) | 1.000 | 0.983 | runner-up |
+| GPT Spark (GPT-5.6 Terra runtime) | 1.000 | 1.000 | **adopted** |
+
+The adopted candidate also won within each pinned worker/judge stratum:
+
+| stratum (n=3) | baseline mean mech/judge (floor) | adopted mean mech/judge (floor) |
+|---------------|----------------------------------:|---------------------------------:|
+| GPT-5.6 Terra medium | 1.000 / 0.846 (0.750) | 1.000 / 1.000 (1.000) |
+| GPT-5.6 Sol high | 0.989 / 0.852 (0.778) | 1.000 / 1.000 (1.000) |
+
+Both GPT candidates were mechanically perfect. Terra won the qualitative gate:
+all six runs preserved immutable decision history and recorded only supplied
+rationale. The Sol variant had one immutable-history rewrite. (Three initial
+judge deductions were corrected on review: one treated task-supplied rationale
+as invented, and two wrongly required domain freshness metadata on decision
+records.) The adopted 181-line guidance narrows decision records to explicit,
+authoritative, durable human choices; excludes modal wording in routine tasks
+and inferred design choices; records only supplied rationale/alternatives; and
+requires superseding records plus current-state links that expose only the
+active decision.
+
+Post-review controls covered both sides of the new boundary. A focused
+same-batch routine-requirement A/B (six baseline and six adopted-trigger runs,
+using the same Terra/Sol split) asked agents to implement a modal `must`/`never`
+page-size validator. All 12 implementations and test suites passed; baseline
+created a spurious decision record in 6/6 runs, while adopted guidance created
+one in 0/6 and still refreshed current-state Canon in 6/6.
+
+An initial three-chain supersession smoke exposed a real floor failure: one
+agent overwrote the predecessor record, but the old checker still reported
+12/12. The final wording now forbids editing, deleting, renaming, or reusing an
+existing record path. The generic checker gained `min_matching_files`, and
+scenario 10 now requires distinct predecessor and successor files. It correctly
+rescored the bad run at 12/13. On the exact final 181-line guidance, three fresh
+chains each preserved two decision files, passed 13/13 mechanical checks, and
+scored 1.000 with strict qualitative judges.
+
+A read-only production audit of `ember-rhythm` supported the boundary: the
+live install has no decision records despite durable project choices, while
+routine modal requirements are common and ambiguous. The audit also found
+separate future gradients—an older installed guidance bundle, unbounded Canon
+context, incomplete manifest routing, and a same-commit freshness blind spot.
+None were mixed into this single-variable pass. This pass made no writes to the
+production repository; its pre-existing dirty checkout was left untouched.
+
+Kimi/ZAI/MiniMax target-model cells were cut off as invalid after the LiteLLM
+collaboration bridge repeatedly dropped or misrouted task payloads. Two partial
+baseline chains showed Kimi at 5/6 and ZAI at 6/6 through supersession, but the
+matrix was incomplete and is not adoption evidence. Treat those cells as
+transport failures, not model-quality measurements.
 
 ## 2026-06-11 — canon-core.md @ 202feaf, codex / gpt-5.5 / high reasoning
 
@@ -258,5 +391,3 @@ Prior history: pre-adoption baseline 0.955 (01-bootstrap + 06-decisions,
 1 run, 2026-06-10); optimizer round 1 kept +0.022 (repo-root .gitignore
 instruction + decision-citation discipline), re-validated, adopted at
 202feaf.
-
-Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>

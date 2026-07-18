@@ -8,6 +8,10 @@
       "description": "helper exists"
     }
   ],
+  "preserve": [
+    {"snapshot": "promo_40_predecessor"},
+    {"snapshot": "promo_decisions_after_supersession", "exact_set": true}
+  ],
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t06"
