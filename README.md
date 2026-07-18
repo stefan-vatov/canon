@@ -178,6 +178,18 @@ missing or unsafe routed files, line and byte caps, ignored scratch state,
 changelog-style prose, and Git-derived freshness. Errors always return
 nonzero. Warnings return nonzero only with `--strict`.
 
+## Compact an overgrown Canon
+
+Use [`$compact-canon`](.codex/skills/compact-canon/SKILL.md) for an on-demand,
+repository-wide Canon cleanup. It inventories all permanent Canon knowledge,
+identifies overlap and reconstructible detail, preserves standards and immutable
+decisions, and verifies the result. Ask for a `dry run` to receive candidates
+and projected savings without changing the repository.
+
+The skill is intentionally separate from the generated Canon instructions. It
+must be invoked when a full compaction pass is wanted; ordinary Canon upkeep
+remains incremental.
+
 ## Maintain this repository
 
 `canon-core.md` is the source of the shared Canon section. Generated files
@@ -216,6 +228,7 @@ templates/                     # Codex base prompt and static config
 dist/                          # generated agent artifacts
 tools/build.py                 # artifact generator
 tools/canon-doctor.py          # repository validator
+.codex/skills/compact-canon/   # on-demand Canon compaction skill
 evals/                         # guidance measurement harness
 tests/                         # deterministic regression suite
 ```

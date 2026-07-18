@@ -1,0 +1,4 @@
+interface:
+  display_name: "Compact Canon"
+  short_description: "Audit and tighten overgrown project memory"
+  default_prompt: "Use $compact-canon to audit and safely compact this repository’s Canon without losing durable decisions."
