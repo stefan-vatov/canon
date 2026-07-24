@@ -1,12 +1,11 @@
 # Evaluation and adoption ledger
 
-This file preserves historical experiments and adoption decisions. There is
-no comparable behavioral baseline for the current revision yet. Establish a
-new one whenever any comparison key changes, including guidance, scenario,
-harness/adapter, worker model or reasoning, judge command/prompt, run count,
-source state, or attested evaluator inputs.
+This file preserves historical experiments and adoption decisions. Results are
+comparable only when every comparison key matches, including guidance,
+scenario, harness/adapter, worker model and reasoning, judge command/prompt,
+run count, source state, and attested evaluator inputs.
 
-## 2026-07-24 — invariant-first release candidate, behavioral adoption pending
+## 2026-07-24 — invariant-first release: LIVE BASELINE ESTABLISHED
 
 Direct production feedback found the prior Canon slightly net harmful during
 large behavior-preserving extractions. The useful dependency, ownership,
@@ -29,16 +28,137 @@ and fixtures:
 - scenario 05 replaced by a behavior-preserving extraction that penalizes
   Canon edits, while scenario 08 now rejects function-level canonization.
 
-All earlier behavioral scores are incomparable because the guidance, rubric,
-scenario set, and evaluator inputs changed. No live paid-model batch has been
-run on this revision, so this entry is not an adoption decision. Deterministic
-validation establishes release-candidate integrity only: generated artifacts
-stabilize on a second build; 54 repository regressions pass; all nine seeded
-fixtures pass the strict doctor and their unit tests; 24 source JSON contracts
-parse; shell entry points pass ShellCheck and syntax validation; and a stub
-batch completes with the unchanged workspace correctly failing its required
-gate. The next matched paid wave must satisfy the playbook's adoption gate
-before this revision is labeled adopted.
+### Live panel
+
+Six isolated live workers evaluated the same five discriminating scenarios.
+`05-impact` used three runs; `02-feature`, `08-routing`, `09-abstention`, and
+the three-session `10-supersede` used one run each. The independent judge for
+every scored batch was
+`openrouter/google/gemini-3.1-pro-preview:high` through Pi. Final round-two
+source was `af76a5dec1a1651ff08861de8c701733206009b5`; every retained summary
+records `source_dirty: false`.
+
+The evolutionary-workflow panel labels map to the actual pinned Codex
+backends as follows: `GPT 5.5 high` used `gpt-5.6-sol` at high reasoning, and
+`GPT Spark` used `gpt-5.6-terra` at medium reasoning. The table names the
+actual workers; bundle lists retain the panel labels.
+
+The table reports run-weighted means and the lowest batch mean as the observed
+floor. A required pass count is stricter than either mean.
+
+| rank | exact worker | harness | required batches | mechanical mean / floor | judge mean / floor |
+|---:|---|---|---:|---:|---:|
+| 1= | `gpt-5.6-sol`, high | Codex | 5/5 | 1.000 / 1.000 | 1.000 / 1.000 |
+| 1= | `gpt-5.6-terra`, medium | Codex | 5/5 | 1.000 / 1.000 | 1.000 / 1.000 |
+| 3 | `zai/glm-5.1:medium` | Pi | 4/5 | 0.992 / 0.944 | 0.915 / 0.818 |
+| 4 | `minimax/MiniMax-M3:medium` | Pi | 3/5 | 0.968 / 0.867 | 0.852 / 0.500 |
+| 5 | `deepseek/deepseek-v4-pro:medium` | Pi | 3/5 | 0.972 / 0.870 | 0.812 / 0.636 |
+| 6 | `openrouter/moonshotai/kimi-k2.5:medium` | Pi | 2/5 | 0.918 / 0.750 | 0.808 / 0.667 |
+
+Selected round-two bundle IDs, in `05/02/08/09/10` order:
+
+- GLM: `20260724-162917-05-impact-pi-88339`,
+  `20260724-164007-02-feature-pi-7460`,
+  `20260724-164407-08-routing-pi-11473`,
+  `20260724-164615-09-abstention-pi-12892`,
+  `20260724-164719-10-supersede-pi-13355`;
+- DeepSeek: `20260724-162922-05-impact-pi-88569`,
+  `20260724-163246-02-feature-pi-94418`,
+  `20260724-163400-08-routing-pi-96235`,
+  `20260724-163505-09-abstention-pi-98555`,
+  `20260724-163552-10-supersede-pi-146`;
+- MiniMax: `20260724-165524-05-impact-pi-17496`,
+  `20260724-170910-02-feature-pi-23860`,
+  `20260724-171820-08-routing-pi-26882`,
+  `20260724-172159-09-abstention-pi-28102`,
+  `20260724-172313-10-supersede-pi-29106`;
+- Kimi: `20260724-162942-05-impact-pi-89125`,
+  `20260724-163448-02-feature-pi-97881`,
+  `20260724-163616-08-routing-pi-548`,
+  `20260724-163909-09-abstention-pi-5786`,
+  `20260724-164059-10-supersede-pi-8345`;
+- GPT 5.5 high: `20260724-163547-05-impact-codex-99575`,
+  `20260724-164527-02-feature-codex-12227`,
+  `20260724-164841-08-routing-codex-14040`,
+  `20260724-165049-09-abstention-codex-15133`,
+  `20260724-165142-10-supersede-codex-15622`;
+- GPT Spark: `20260724-163007-05-impact-codex-89906`,
+  `20260724-163451-02-feature-codex-98075`,
+  `20260724-163620-08-routing-codex-722`,
+  `20260724-163725-09-abstention-codex-2746`,
+  `20260724-163822-10-supersede-codex-3876`.
+
+Each abbreviated ID expands beneath the corresponding worker directory in
+`evals/results/live-20260724-invariant-first/round2/`.
+
+The capable Codex tiers passed every required gate and every judge criterion.
+The weaker tiers are retained as negative baselines, not relabeled successes:
+their misses were incomplete durable-contract updates, fabricated missing
+policy, malformed decision metadata, omitted current-state updates, or broken
+historical routing. Missing routing telemetry remained `unsupported` and did
+not count as a pass.
+
+Round-one results at `62257de4861e91f3f4dc1aeded992eb08ad02ffe`
+identified three evaluator false positives and three general guidance gaps.
+Those scores are not compared numerically because both the evaluator and judge
+changed. The accepted corrections:
+
+- distinguish validation filenames and comments from implementation
+  inventories and executable float use;
+- verify Python public bindings and integer-only arithmetic semantically;
+- preserve complete supplied contracts and abstain when product policy is
+  absent;
+- require list-shaped supersession metadata, an explicit current-state rule,
+  immutable predecessors, and labeled historical manifest routes;
+- define validation metadata as repository-root-relative evidence paths.
+
+The strengthened supersession scenario then ran on all six workers at
+`a49f5f1`: GPT 5.5 high, GPT Spark, and MiniMax passed at 1.000/1.000;
+GLM scored 0.929/0.923, DeepSeek 0.857/0.538, and Kimi 0.821/0.833.
+The corresponding bundle IDs are
+`20260724-173854-10-supersede-codex-40447`,
+`20260724-173901-10-supersede-codex-40707`,
+`20260724-173834-10-supersede-pi-40223`,
+`20260724-173821-10-supersede-pi-40054`,
+`20260724-173828-10-supersede-pi-40140`, and
+`20260724-173840-10-supersede-pi-40328` under the archived `supersession/`
+worker directories.
+On exact final revision
+`1bd88410250d61ef2c028a133b9d4d8a5f31a6a5`, GPT Spark again passed
+1.000/1.000. GLM correctly used repository-root-relative validation evidence
+but still removed an explicitly required historical route, scoring
+0.893/0.917; that is recorded as model non-compliance rather than another
+guidance ambiguity. Final-confirm bundle IDs are
+`20260724-175257-10-supersede-codex-53467` for GPT Spark and
+`20260724-175250-10-supersede-pi-53380` for GLM.
+
+### Release decision and evidence boundary
+
+The invariant-first implementation is approved for release. This is an
+absolute cross-model readiness decision, not a matched A/B improvement claim:
+no numerical comparison is made against the retired inventory-first guidance.
+Use a capable tier for high-risk Canon migrations and decision supersession;
+the weaker-model rows quantify why.
+
+Deterministic release evidence on the final revision: generated artifacts are
+fresh on a second build; 55 repository regressions pass; all ten active fixture
+test suites pass; all nine seeded Canon fixtures pass the strict doctor at the
+Git baseline; 24 scenario JSON contracts parse; Python and shell syntax,
+ShellCheck, and whitespace validation pass. Two independent final reviewers
+approved the guidance, evaluator, route parser, and generated artifacts after
+their findings were corrected.
+
+Raw artifacts are preserved in this release machine's working copy under
+`evals/results/live-20260724-invariant-first/`. They are Git-ignored by design
+and are not distributed with this commit; a fresh checkout has only this
+ledger, not the 43 MB receipt archive.
+Transport-only failures were excluded: Claude authentication was revoked, the
+Kimi collaboration bridge had no quota, one GPT orchestration worker abandoned
+yielded processes, and one MiniMax runner applied a premature cutoff. The
+actual Kimi worker ran successfully through Pi/OpenRouter; GPT and MiniMax
+batches were rerun under direct supervision. The project provenance boundary
+still applies: retained receipts attest selected evaluator inputs but do not
+cryptographically bind every runtime executable, transcript, or workspace.
 
 ## 2026-07-18 — integrity hardening pass: GPT synthesis ADOPTED
 

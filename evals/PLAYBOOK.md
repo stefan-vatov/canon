@@ -30,10 +30,15 @@ The current worktree contains the invariant-first rework:
   it with two templates to write five files under `dist/`.
 
 The July 18 integrity work remains in place, but its model scores predate the
-new guidance, rubric, and scenario set. **No live paid-model batch has been run
-after the invariant-first rework.** Treat all earlier scores in
-`BASELINES.md` as historical and incomparable. The next paid run must establish
-the behavioral baseline for this revision.
+new guidance, rubric, and scenario set. A live six-worker baseline was
+established on 2026-07-24 with GPT 5.6 Sol, GPT 5.6 Terra, GLM 5.1, DeepSeek
+V4 Pro, MiniMax M3, and Kimi K2.5, all judged by Gemini 3.1 Pro at high
+reasoning. The evolutionary-workflow labels `GPT 5.5 high` and `GPT Spark`
+refer to the pinned GPT 5.6 Sol/high and GPT 5.6 Terra/medium workers,
+respectively. Both capable Codex tiers passed every required batch at 1.000
+mechanical and judge means; weaker-tier failures remain recorded rather than
+being averaged away. See `BASELINES.md` for exact revisions, paths, floors,
+known transport failures, and the final supersession confirmations.
 
 ## Prerequisites and pins
 
@@ -116,7 +121,7 @@ print(f"validated {len(paths)} scenario JSON files")
 PY
 ```
 
-The first command currently ends with `Ran 9 tests` and `OK`. It invokes no
+The first command currently ends with `Ran 55 tests` and `OK`. It invokes no
 model. The other commands validate Python syntax, shell syntax, and all
 scenario JSON.
 
