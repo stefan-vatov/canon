@@ -102,9 +102,9 @@ def normalize_route(target: str) -> str | None:
     return route
 
 
-def manifest_routes(text: str) -> set[str]:
-    """Return safe, one-link routes with an explicit retrieval condition."""
-    routes: set[str] = set()
+def manifest_route_records(text: str) -> list[tuple[str, str]]:
+    """Return safe routes and their visible lines after Markdown exclusions."""
+    records: list[tuple[str, str]] = []
     without_comments = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
     visible_lines: list[str] = []
     in_fence = False
@@ -138,8 +138,13 @@ def manifest_routes(text: str) -> set[str]:
             continue
         route = normalize_route(match.group("angle") or match.group("plain"))
         if route:
-            routes.add(route)
-    return routes
+            records.append((route, line))
+    return records
+
+
+def manifest_routes(text: str) -> set[str]:
+    """Return safe, one-link routes with an explicit retrieval condition."""
+    return {route for route, _line in manifest_route_records(text)}
 
 
 def markdown_link_targets(text: str) -> list[str]:

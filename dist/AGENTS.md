@@ -168,8 +168,9 @@ decision's path and bytes are immutable. To supersede it, create a new record
 with a `supersedes` list, preserve the predecessor unchanged, and in the same
 change update the smallest owning current-state page to state the active rule
 or value explicitly. Route the current page and active record from the
-manifest; keep the predecessor only as clearly labeled decision history. A
-challenge is not a supersession.
+manifest, and retain every predecessor's manifest route clearly labeled as
+historical decision context. Supersession never leaves a normative predecessor
+unrouted. A challenge is not a supersession.
 
 ## Workflow
 

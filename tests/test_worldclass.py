@@ -486,6 +486,9 @@ class EvalIntegrityTests(unittest.TestCase):
         impact = json.loads(
             (ROOT / "evals/scenarios/05-impact/expected.json").read_text()
         )
+        supersede = json.loads(
+            (ROOT / "evals/scenarios/10-supersede/expected.json").read_text()
+        )
 
         feature_inventory = next(
             rule for rule in feature["rules"] if rule["id"] == "no_changelog_style"
@@ -558,6 +561,65 @@ class EvalIntegrityTests(unittest.TestCase):
             CHECK_MODULE.has_python_public_binding(
                 "from note_validation import MAX_NOTE_LENGTH as PRIVATE_LIMIT\n",
                 "MAX_NOTE_LENGTH",
+            )
+        )
+
+        historical_route = next(
+            rule
+            for rule in supersede["rules"]
+            if rule["id"] == "historical_predecessor_routed"
+        )["manifest_labeled_route"]
+        self.assertTrue(
+            CHECK_MODULE.has_labeled_manifest_route(
+                "- [Historical page size](decisions/api-default-page-size-50.md)"
+                " — read when reviewing pagination decisions\n",
+                historical_route["path"],
+                historical_route["label_regex"],
+            )
+        )
+        self.assertTrue(
+            CHECK_MODULE.has_labeled_manifest_route(
+                '- [Decision history](<decisions/api-default-page-size-50.md>'
+                ' "retired default") — read when tracing pagination\n',
+                historical_route["path"],
+                historical_route["label_regex"],
+            )
+        )
+        self.assertTrue(
+            CHECK_MODULE.has_labeled_manifest_route(
+                "- [Decision history]"
+                "(decisions/api-default-page-size-50.md#rationale)"
+                " — read when tracing pagination\n",
+                historical_route["path"],
+                historical_route["label_regex"],
+            )
+        )
+        self.assertFalse(
+            CHECK_MODULE.has_labeled_manifest_route(
+                "- [Page size](decisions/api-default-page-size-50.md)"
+                " — read for the current default\n",
+                historical_route["path"],
+                historical_route["label_regex"],
+            )
+        )
+        self.assertFalse(
+            CHECK_MODULE.has_labeled_manifest_route(
+                "<!--\n"
+                "- [Decision history](decisions/api-default-page-size-50.md)"
+                " — read when tracing pagination\n"
+                "-->\n",
+                historical_route["path"],
+                historical_route["label_regex"],
+            )
+        )
+        self.assertFalse(
+            CHECK_MODULE.has_labeled_manifest_route(
+                "```markdown\n"
+                "- [Decision history](decisions/api-default-page-size-50.md)"
+                " — read when tracing pagination\n"
+                "```\n",
+                historical_route["path"],
+                historical_route["label_regex"],
             )
         )
 

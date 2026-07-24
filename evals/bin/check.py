@@ -38,7 +38,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
-from canonlib import contained_regular_file  # noqa: E402
+from canonlib import contained_regular_file, manifest_route_records  # noqa: E402
 
 
 PYTHON_FLOAT_LITERAL_RE = re.compile(
@@ -146,6 +146,14 @@ def has_python_public_binding(text, name):
                 if bound_name == name:
                     return True
     return False
+
+
+def has_labeled_manifest_route(text, route, label_regex):
+    """Return whether one valid manifest route line labels the requested context."""
+    return any(
+        candidate == route and re.search(label_regex, visible_line)
+        for candidate, visible_line in manifest_route_records(text)
+    )
 
 
 def _canon_transcript_path(raw):
@@ -495,6 +503,18 @@ def main():
             ok = any(has_python_public_binding(content, name) for content in contents.values())
             if not ok:
                 detail = f"no file matching {rule['glob']} binds public name {name!r}"
+        if ok and rule.get("manifest_labeled_route"):
+            spec = rule["manifest_labeled_route"]
+            route, label_regex = spec["path"], spec["label_regex"]
+            ok = any(
+                has_labeled_manifest_route(content, route, label_regex)
+                for content in contents.values()
+            )
+            if not ok:
+                detail = (
+                    f"no file matching {rule['glob']} routes {route!r} "
+                    f"with label /{label_regex}/"
+                )
         add(
             f"rule:{rule['id']}",
             ok,

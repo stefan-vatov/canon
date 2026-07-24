@@ -9,6 +9,7 @@
     {"id":"predecessor_identity_and_contents","glob":"canon/decisions/api-default-page-size-50.md","must_regex":"(?si)50.*payload|payload.*50","description":"named predecessor and rationale survive"},
     {"id":"successor_contents","glob":"canon/decisions/api-default-page-size-100.md","must_regex":"(?si)100.*faster|faster.*100","description":"named successor retains supplied rationale"},
     {"id":"supersession_survives","glob":"canon/decisions/api-default-page-size-100.md","must_regex":"(?si)(supersed|retired|replaced).*api-default-page-size-50\\.md|api-default-page-size-50\\.md.*(supersed|retired|replaced)","description":"final state retains predecessor link and supersession"},
+    {"id":"historical_predecessor_routed","glob":"canon/manifest.md","manifest_labeled_route":{"path":"decisions/api-default-page-size-50.md","label_regex":"(?i)\\b(?:histor|retir|supersed|previous)"},"description":"the predecessor remains routed as labeled decision history"},
     {"id":"no_spurious_decision","glob":"canon/decisions/*.md","min_matching_files":2,"max_matching_files":2,"description":"session three did not invent a decision"}
   ],
   "preserve": [

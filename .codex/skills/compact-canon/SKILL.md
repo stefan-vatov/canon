@@ -140,7 +140,8 @@ Create an operation ledger before editing. Then:
 9. For an explicitly authorized supersession, make `supersedes` a non-empty
    list of predecessor decision paths, preserve those records byte-for-byte,
    and update the owning current-state page to state the active rule or value
-   explicitly.
+   explicitly. Keep each predecessor routed from the manifest as clearly
+   labeled historical decision context.
 
 Use patch-based edits. Preserve pre-existing user changes. Parallel workers,
 when explicitly authorized, must own disjoint paths; reserve shared indexes

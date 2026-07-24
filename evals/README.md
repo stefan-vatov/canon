@@ -525,7 +525,10 @@ also set `"forbid_python_floats": true` to reject float/complex literals,
 `float`, and true division without mistaking comments or strings for code, or
 `"python_public_binding": "NAME"` to require a top-level assignment or import
 that exposes that module name. Behavioral holdouts should still verify the
-bound value and contract.
+bound value and contract. A rule may use `manifest_labeled_route` with `path`
+and `label_regex` fields to require a valid manifest route carrying an
+independent context label; it uses the same route parser as the Canon doctor
+instead of approximating Markdown with a second regular expression.
 
 Additional contract blocks:
 
