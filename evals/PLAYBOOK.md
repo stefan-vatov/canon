@@ -149,8 +149,8 @@ from pathlib import Path
 
 summary = json.loads((Path(sys.argv[1]) / "summary.json").read_text())
 assert summary.get("complete") is True, summary
-assert summary.get("pass_all_required") is True, summary
-print("stub provenance smoke passed")
+assert summary.get("pass_all_required") is False, summary
+print("stub provenance smoke passed; required behavior gate failed as expected")
 PY
 ```
 
