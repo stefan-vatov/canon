@@ -123,8 +123,10 @@ Create an operation ledger before editing. Then:
    ---
    ```
 
-   Do not invent scopes, validation, or relationships. Missing automation is
-   evidence debt to report.
+   Do not invent scopes, validation, or relationships. Validation entries are
+   existing regular, non-symlink files named from the repository root, never
+   paths relative to the Canon page. Missing automation is evidence debt to
+   report.
 4. Put each cross-cutting fact in one owning page and link from intentional
    exceptions. Never copy whole policy tables between pages.
 5. Move operational guidance to existing development docs when separately

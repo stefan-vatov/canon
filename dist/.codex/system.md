@@ -370,6 +370,9 @@ Every new permanent page begins with simple front matter:
 
 `status` is required and is one of `normative`, `reference`, `draft`, or
 `deprecated`. `scope`, `validation`, and `related` are optional string lists.
+Each `validation` entry is an existing regular, non-symlink file named by a
+safe repository-root-relative path; unlike Canon links, it is never resolved
+relative to the page.
 On a successor decision, `supersedes` is a required non-empty string list of
 local Markdown paths to immutable predecessor decisions; it is never a scalar.
 A deprecated non-decision page names its replacement with `replaced_by`.

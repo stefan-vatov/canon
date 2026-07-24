@@ -76,6 +76,8 @@ related:
 `status` is `normative`, `reference`, `draft`, or `deprecated`. Normative pages
 must be routed from the manifest. Legacy `sources` lists and `verified` commit
 hashes are rejected: they created documentation churn without proving truth.
+Validation entries name existing regular, non-symlink files with
+repository-root-relative paths, never paths relative to the Canon page.
 Successor decisions use `supersedes` as a non-empty list of local predecessor
 decision paths, while current-state architecture pages state the active rule
 or value explicitly. Predecessors remain manifest-routed as clearly labeled
