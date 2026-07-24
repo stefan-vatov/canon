@@ -85,7 +85,9 @@ signals, never deletion proof.
 - Preserve the `standards.md` body verbatim by default. An explicit migration
   may add schema front matter; a semantic rewrite requires human direction.
 - Preserve supplied rationale, rejected alternatives, numeric limits,
-  exceptions, negations, and uncertainty exactly in meaning.
+  exceptions, invalid cases, error behavior, negations, and uncertainty
+  exactly in meaning. Preserve the whole durable contract, not a representative
+  subset.
 - Keep `manifest.md` and `standards.md`. Keep every normative page routed.
   Each route has exactly one local Markdown link and an explicit, non-empty
   `read when ...` or `read for ...` condition.
@@ -94,6 +96,9 @@ signals, never deletion proof.
   owner and expiry condition where practical.
 - Do not archive deleted bloat into another permanent page or scratch.
 - A smaller Canon is not automatically better. Set no deletion quota.
+- Never fill a policy gap by guessing a value, rule, exception, owner, or
+  rationale. Abstain on the policy-dependent edit and report the exact missing
+  authority.
 
 ## Apply the invariant-first model
 
@@ -132,6 +137,10 @@ Create an operation ledger before editing. Then:
    routine implementation detail.
 8. Leave uncertain norms and immutable history unchanged and list them under
    `Abstained`.
+9. For an explicitly authorized supersession, make `supersedes` a non-empty
+   list of predecessor decision paths, preserve those records byte-for-byte,
+   and update the owning current-state page to state the active rule or value
+   explicitly.
 
 Use patch-based edits. Preserve pre-existing user changes. Parallel workers,
 when explicitly authorized, must own disjoint paths; reserve shared indexes

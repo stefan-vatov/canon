@@ -8,6 +8,7 @@ class HoldoutImpact(unittest.TestCase):
         notes._reset()
 
     def test_existing_cap_unchanged(self):
+        self.assertEqual(notes.MAX_NOTE_LENGTH, 280)
         notes.create_note("x" * 280)
         with self.assertRaises(ValueError):
             notes.create_note("x" * 281)

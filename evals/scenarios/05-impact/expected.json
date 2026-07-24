@@ -28,8 +28,8 @@
     {
       "id": "public_contract_preserved",
       "glob": "notes.py",
-      "must_regex": "MAX_NOTE_LENGTH\\s*=\\s*280",
-      "description": "the behavior-preserving refactor keeps the public limit"
+      "python_public_binding": "MAX_NOTE_LENGTH",
+      "description": "the behavior-preserving refactor keeps or re-exports the public limit"
     },
     {
       "id": "canon_remains_invariant_only",

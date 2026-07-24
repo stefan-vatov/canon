@@ -21,7 +21,7 @@
     {
       "id": "no_floats",
       "glob": "payments.py",
-      "forbid_regex": "\\bfloat\\b|\\d\\.\\d",
+      "forbid_python_floats": true,
       "description": "standards.md: money is integer cents, floats forbidden"
     },
     {
@@ -45,7 +45,7 @@
     {
       "id": "no_changelog_style",
       "glob": "canon/architecture/payments.md",
-      "forbid_regex": "(?i)\\badded\\b|\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b|payments\\.py|_reset",
+      "forbid_regex": "(?i)\\badded\\b|\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b|(?<![A-Za-z0-9_])payments\\.py|_reset",
       "description": "Canon stays current-state, not a changelog"
     },
     {

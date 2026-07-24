@@ -33,14 +33,14 @@
     {
       "id": "no_floats",
       "glob": "billingcore.py",
-      "forbid_regex": "\\bfloat\\b|\\d\\.\\d",
+      "forbid_python_floats": true,
       "description": "standards: integer cents/bps only"
     },
     {
       "id": "no_implementation_inventory",
       "glob": "canon/architecture/pricing.md",
       "must_regex": "(?i)250 basis points",
-      "forbid_regex": "(?i)apply_platform_fee|billingcore\\.py|sources:|verified:",
+      "forbid_regex": "(?i)apply_platform_fee|(?<![A-Za-z0-9_])billingcore\\.py|sources:|verified:",
       "description": "the established invariant needs no Canon edit for a new implementation"
     }
   ],

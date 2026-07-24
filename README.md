@@ -76,6 +76,9 @@ related:
 `status` is `normative`, `reference`, `draft`, or `deprecated`. Normative pages
 must be routed from the manifest. Legacy `sources` lists and `verified` commit
 hashes are rejected: they created documentation churn without proving truth.
+Successor decisions use `supersedes` as a non-empty list of local predecessor
+decision paths, while current-state architecture pages state the active rule
+or value explicitly.
 
 ## Canon impact
 
@@ -90,6 +93,11 @@ Every implementation change gets one classification:
 Before editing Canon, finish: `Canon changed because the system must now
 guarantee that ...`. If the reason is only that a file or symbol moved, leave
 Canon alone.
+
+When a guarantee changes, record its complete durable contract: supplied
+boundaries, invalid cases, error behavior, numeric limits, exceptions, and
+negations. When a required policy is absent, report the gap instead of
+guessing, implementing, testing, or canonizing a value.
 
 ## Quick start
 

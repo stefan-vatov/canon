@@ -520,7 +520,12 @@ Canon doctor, fixture tests, holdouts, authenticated `capture`/`preserve`, and
 scorable routing checks. Line/byte caps affect the score. Diff scope is soft
 by default and becomes required when a contract sets
 `"diff_scope_required": true`. Content rules are required by default; mark an
-explicitly diagnostic rule with `"required": false`.
+explicitly diagnostic rule with `"required": false`. Python content rules may
+also set `"forbid_python_floats": true` to reject float/complex literals,
+`float`, and true division without mistaking comments or strings for code, or
+`"python_public_binding": "NAME"` to require a top-level assignment or import
+that exposes that module name. Behavioral holdouts should still verify the
+bound value and contract.
 
 Additional contract blocks:
 

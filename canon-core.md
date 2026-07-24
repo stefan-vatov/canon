@@ -90,7 +90,8 @@ Every new permanent page begins with simple front matter:
 
 `status` is required and is one of `normative`, `reference`, `draft`, or
 `deprecated`. `scope`, `validation`, and `related` are optional string lists.
-`supersedes` names immutable predecessor decisions from a successor record.
+On a successor decision, `supersedes` is a required non-empty string list of
+local Markdown paths to immutable predecessor decisions; it is never a scalar.
 A deprecated non-decision page names its replacement with `replaced_by`.
 Do not retrofit metadata by modifying an existing immutable decision. A
 validator may grandfather only byte-identical decision records present at its
@@ -149,12 +150,24 @@ checks prove dependency topology, schemas prove data shape, and code supplies
 the implementation. A missing check is evidence debt to report, not a reason
 to duplicate implementation detail in prose.
 
+When Canon changes, preserve the complete durable contract—not a representative
+subset. Include every human-supplied boundary, invalid case, error behavior,
+numeric limit, exception, and negation that future implementations must honor.
+
+Do not guess missing product policy, numeric limits, exceptions, ownership, or
+rationale. If implementation depends on a durable rule absent from explicit
+human direction and routed authority, stop the policy-dependent work and
+report the exact gap. Do not choose a value, implement or test the guess, or
+promote it into Canon.
+
 Create a decision record only when a human explicitly states a durable choice.
 Record the choice plus only supplied rationale and rejected alternatives. A
 decision's path and bytes are immutable. To supersede it, create a new record
-with `supersedes`, preserve the predecessor unchanged, and route the active
-record plus clearly labeled historical context from the manifest. A challenge
-is not a supersession.
+with a `supersedes` list, preserve the predecessor unchanged, and in the same
+change update the smallest owning current-state page to state the active rule
+or value explicitly. Route the current page and active record from the
+manifest; keep the predecessor only as clearly labeled decision history. A
+challenge is not a supersession.
 
 ## Workflow
 

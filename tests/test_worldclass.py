@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -14,6 +16,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from canonlib import manifest_routes  # noqa: E402
+
+CHECK_SPEC = importlib.util.spec_from_file_location(
+    "canon_eval_check",
+    ROOT / "evals/bin/check.py",
+)
+assert CHECK_SPEC is not None and CHECK_SPEC.loader is not None
+CHECK_MODULE = importlib.util.module_from_spec(CHECK_SPEC)
+CHECK_SPEC.loader.exec_module(CHECK_MODULE)
 
 
 def run(*args: str, cwd: Path, check: bool = True):
@@ -463,6 +473,93 @@ class EvalIntegrityTests(unittest.TestCase):
             self.assertTrue(essential["required"])
             self.assertFalse(essential["pass"])
             self.assertFalse(payload["required_pass"])
+
+    def test_scenario_rules_distinguish_evidence_from_implementation_inventory(
+        self,
+    ) -> None:
+        feature = json.loads(
+            (ROOT / "evals/scenarios/02-feature/expected.json").read_text()
+        )
+        routing = json.loads(
+            (ROOT / "evals/scenarios/08-routing/expected.json").read_text()
+        )
+        impact = json.loads(
+            (ROOT / "evals/scenarios/05-impact/expected.json").read_text()
+        )
+
+        feature_inventory = next(
+            rule for rule in feature["rules"] if rule["id"] == "no_changelog_style"
+        )["forbid_regex"]
+        self.assertIsNone(
+            re.search(feature_inventory, "validation:\n  - test_payments.py\n")
+        )
+        self.assertIsNotNone(re.search(feature_inventory, "Source: payments.py\n"))
+
+        routing_inventory = next(
+            rule
+            for rule in routing["rules"]
+            if rule["id"] == "no_implementation_inventory"
+        )["forbid_regex"]
+        self.assertIsNone(
+            re.search(routing_inventory, "validation:\n  - test_billingcore.py\n")
+        )
+        self.assertIsNotNone(
+            re.search(routing_inventory, "Implemented in billingcore.py\n")
+        )
+
+        no_floats = next(
+            rule for rule in routing["rules"] if rule["id"] == "no_floats"
+        )
+        self.assertTrue(no_floats["forbid_python_floats"])
+        self.assertEqual(
+            CHECK_MODULE.python_float_signals(
+                'marker = "#"; fee = amount * 250 // 10_000  # 2.5%\n'
+            ),
+            [],
+        )
+        self.assertTrue(
+            CHECK_MODULE.python_float_signals(
+                'marker = "#"; fee = amount * 0.025\n'
+            )
+        )
+        self.assertTrue(CHECK_MODULE.python_float_signals("fee = amount * .025\n"))
+        self.assertTrue(CHECK_MODULE.python_float_signals("fee = amount * 25e-3\n"))
+        self.assertTrue(CHECK_MODULE.python_float_signals("fee = float(amount)\n"))
+        self.assertTrue(
+            CHECK_MODULE.python_float_signals("fee = amount * 250 / 10_000\n")
+        )
+        self.assertTrue(
+            CHECK_MODULE.python_float_signals(
+                "fee = amount * 250\nfee /= 10_000\n"
+            )
+        )
+        self.assertTrue(CHECK_MODULE.python_float_signals("fee = amount + 0j\n"))
+        self.assertEqual(CHECK_MODULE.python_float_signals("mask = 0xDEAD\n"), [])
+
+        public_contract = next(
+            rule
+            for rule in impact["rules"]
+            if rule["id"] == "public_contract_preserved"
+        )
+        self.assertEqual(public_contract["python_public_binding"], "MAX_NOTE_LENGTH")
+        self.assertTrue(
+            CHECK_MODULE.has_python_public_binding(
+                "from note_validation import MAX_NOTE_LENGTH, validate_note_text\n",
+                "MAX_NOTE_LENGTH",
+            )
+        )
+        self.assertTrue(
+            CHECK_MODULE.has_python_public_binding(
+                "MAX_NOTE_LENGTH = 280\n",
+                "MAX_NOTE_LENGTH",
+            )
+        )
+        self.assertFalse(
+            CHECK_MODULE.has_python_public_binding(
+                "from note_validation import MAX_NOTE_LENGTH as PRIVATE_LIMIT\n",
+                "MAX_NOTE_LENGTH",
+            )
+        )
 
     def test_authenticated_temporal_snapshot_detects_rewrite(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

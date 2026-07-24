@@ -19,9 +19,11 @@ checks.json with one pass/fail entry per check. Checks:
                         encode requirements stated in earlier sessions
 """
 import argparse
+import ast
 import fnmatch
 import hashlib
 import hmac
+import io
 import json
 import os
 import platform
@@ -31,11 +33,21 @@ import stat
 import subprocess
 import sys
 import tempfile
+import tokenize
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from canonlib import contained_regular_file  # noqa: E402
+
+
+PYTHON_FLOAT_LITERAL_RE = re.compile(
+    r"(?:"
+    r"(?:\d[\d_]*\.[\d_]*|\.[\d_]+)(?:[eE][+-]?[\d_]+)?"
+    r"|"
+    r"\d[\d_]*[eE][+-]?[\d_]+"
+    r")(?:[jJ])?\Z"
+)
 
 
 def git(workdir, *args):
@@ -83,6 +95,57 @@ def matching_files(workdir, glob):
         and ".git" not in p.relative_to(workdir).parts
         and fnmatch.fnmatch(str(p.relative_to(workdir)), glob)
     )
+
+
+def python_float_signals(text):
+    """Return lexical float use without treating comments or strings as code."""
+    signals = []
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(text).readline)
+        for token in tokens:
+            if token.type == tokenize.NAME and token.string == "float":
+                signals.append(f"line {token.start[0]}: float")
+            elif (
+                token.type == tokenize.NUMBER
+                and (
+                    PYTHON_FLOAT_LITERAL_RE.fullmatch(token.string)
+                    or token.string.lower().endswith("j")
+                )
+            ):
+                signals.append(f"line {token.start[0]}: {token.string}")
+    except (IndentationError, tokenize.TokenError) as exc:
+        signals.append(f"unparseable Python: {exc}")
+    try:
+        tree = ast.parse(text)
+    except SyntaxError as exc:
+        signals.append(f"unparseable Python: {exc}")
+    else:
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, (ast.BinOp, ast.AugAssign))
+                and isinstance(node.op, ast.Div)
+            ):
+                signals.append(f"line {node.lineno}: true division")
+    return signals
+
+
+def has_python_public_binding(text, name):
+    """Return whether a module binds ``name`` at top level."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return False
+    for node in tree.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(target, ast.Name) and target.id == name for target in targets):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                bound_name = alias.asname or alias.name
+                if bound_name == name:
+                    return True
+    return False
 
 
 def _canon_transcript_path(raw):
@@ -415,6 +478,23 @@ def main():
                     if re.search(rule["forbid_regex"], c)]
             ok = not hits
             detail = f"/{rule['forbid_regex']}/ found in: {', '.join(hits)}" if hits else ""
+        if ok and rule.get("forbid_python_floats"):
+            hits = {}
+            for path, content in contents.items():
+                signals = python_float_signals(content)
+                if signals:
+                    hits[str(path.relative_to(work))] = signals
+            ok = not hits
+            if hits:
+                detail = "Python float use found: " + "; ".join(
+                    f"{path} ({', '.join(signals)})"
+                    for path, signals in hits.items()
+                )
+        if ok and rule.get("python_public_binding"):
+            name = rule["python_public_binding"]
+            ok = any(has_python_public_binding(content, name) for content in contents.values())
+            if not ok:
+                detail = f"no file matching {rule['glob']} binds public name {name!r}"
         add(
             f"rule:{rule['id']}",
             ok,
