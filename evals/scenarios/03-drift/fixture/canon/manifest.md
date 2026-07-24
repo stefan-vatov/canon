@@ -1,7 +1,7 @@
+---
+status: reference
+---
 # Canon Manifest
 
-- [overview.md](overview.md) — project orientation
-- [glossary.md](glossary.md) — domain terms
-- [standards.md](standards.md) — binding project rules
-- client/
-  - [client/overview.md](client/overview.md) — client domain
+- [Standards](standards.md) — read for project-wide implementation rules
+- [HTTP client guarantees](architecture/http-client.md) — read when changing retry or error behavior

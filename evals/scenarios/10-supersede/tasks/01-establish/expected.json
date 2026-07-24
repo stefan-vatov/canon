@@ -4,6 +4,7 @@
   "rules": [
     {"id":"impl","glob":"pagination.py","must_regex":"def default_page_size\\(","description":"function exists"},
     {"id":"decision","glob":"canon/decisions/api-default-page-size-50.md","must_regex":"(?si)50.*payload|payload.*50","description":"predecessor identity, value, and rationale recorded"},
+    {"id":"decision_metadata","glob":"canon/decisions/api-default-page-size-50.md","must_regex":"(?s)status:\\s*normative.*scope:","forbid_regex":"(?m)^(?:sources|verified):","description":"new decisions use compact metadata"},
     {"id":"one_decision","glob":"canon/decisions/*.md","max_matching_files":1,"description":"session one creates only its stated decision"}
   ],
   "capture": [

@@ -1,3 +1,7 @@
+---
+status: normative
+scope: [project-wide]
+---
 # Standards
 
 - Money is integer cents; dates are datetime.date. No floats.

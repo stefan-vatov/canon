@@ -1,3 +1,7 @@
+---
+status: normative
+scope: [project-wide]
+---
 # Standards
 
 Binding rules for all code in this repository. These hold under deadline

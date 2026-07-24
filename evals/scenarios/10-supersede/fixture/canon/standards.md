@@ -1,3 +1,7 @@
+---
+status: normative
+scope: [project-wide]
+---
 # Standards
 
 - Page sizes are positive integers.

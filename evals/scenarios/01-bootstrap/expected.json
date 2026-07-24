@@ -2,10 +2,8 @@
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "max_canon_lines": 250,
   "required_files": [
-    "canon/overview.md",
-    "canon/glossary.md",
-    "canon/standards.md",
-    "canon/manifest.md"
+    "canon/manifest.md",
+    "canon/standards.md"
   ],
   "allowed_change_globs": [
     "wordstats.py",
@@ -31,6 +29,13 @@
       "glob": ".gitignore",
       "must_regex": "canon/scratch",
       "description": "canon/scratch/ is git-ignored as the guidance requires"
+    },
+    {
+      "id": "compact_status_metadata",
+      "glob": "canon/*.md",
+      "must_regex": "status:\\s*(?:reference|normative)",
+      "forbid_regex": "(?m)^(?:sources|verified):",
+      "description": "bootstrap uses compact metadata without source inventories"
     }
   ]
 }

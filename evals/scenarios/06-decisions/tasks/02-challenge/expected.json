@@ -8,6 +8,16 @@
       "description": "the original record still carries the rationale"
     }
   ],
+  "preserve": [
+    {
+      "snapshot": "utc_decision_record",
+      "exact_set": true
+    },
+    {
+      "snapshot": "code_after_decision",
+      "exact_set": true
+    }
+  ],
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t06c"

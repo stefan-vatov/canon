@@ -20,6 +20,18 @@
       "description": "the record captures that an alternative was rejected"
     }
   ],
+  "capture": [
+    {
+      "id": "utc_decision_record",
+      "glob": "canon/decisions/*.md",
+      "exact_count": 1,
+      "must_regex": "(?si)utc.*(?:local|timezone)|(?:local|timezone).*utc"
+    },
+    {
+      "id": "code_after_decision",
+      "glob": "*.py"
+    }
+  ],
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t06d"

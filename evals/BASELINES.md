@@ -6,6 +6,40 @@ new one whenever any comparison key changes, including guidance, scenario,
 harness/adapter, worker model or reasoning, judge command/prompt, run count,
 source state, or attested evaluator inputs.
 
+## 2026-07-24 — invariant-first release candidate, behavioral adoption pending
+
+Direct production feedback found the prior Canon slightly net harmful during
+large behavior-preserving extractions. The useful dependency, ownership,
+runtime, persistence, and product rules were coupled to manual source
+inventories and Git-anchor freshness checks. Ordinary file moves therefore
+caused documentation churn without changing architecture or behavior.
+
+The release candidate replaces the product model across guidance, generated
+artifacts, doctor, compaction skill, analyzer, public documentation, rubric,
+and fixtures:
+
+- required core reduced to `manifest.md` and `standards.md`, with focused
+  normative pages under `architecture/`;
+- `sources` and `verified` metadata retired in favor of status, package or
+  architectural scope, durable validation evidence, and relationship links;
+- explicit no-impact / clarification / change classification added, with
+  behavior-preserving refactors required to leave Canon untouched;
+- doctor source-to-document staleness coupling removed and replaced with
+  metadata, normative-route, link, validation, scratch, and inventory checks;
+- scenario 05 replaced by a behavior-preserving extraction that penalizes
+  Canon edits, while scenario 08 now rejects function-level canonization.
+
+All earlier behavioral scores are incomparable because the guidance, rubric,
+scenario set, and evaluator inputs changed. No live paid-model batch has been
+run on this revision, so this entry is not an adoption decision. Deterministic
+validation establishes release-candidate integrity only: generated artifacts
+stabilize on a second build; 54 repository regressions pass; all nine seeded
+fixtures pass the strict doctor and their unit tests; 24 source JSON contracts
+parse; shell entry points pass ShellCheck and syntax validation; and a stub
+batch completes with the unchanged workspace correctly failing its required
+gate. The next matched paid wave must satisfy the playbook's adoption gate
+before this revision is labeled adopted.
+
 ## 2026-07-18 — integrity hardening pass: GPT synthesis ADOPTED
 
 External frozen-base identifier: `161d77d316bc79bc5a3486fe308e260ef66ae993`.

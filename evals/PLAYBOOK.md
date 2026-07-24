@@ -6,13 +6,20 @@ and adopt or recover safely. Run every command from the repository root.
 `evals/README.md` documents the harness and scenarios; `BASELINES.md` is the
 durable results ledger; `RESEARCH.md` records the evidence behind scenarios.
 
-## Current state: 2026-07-18
+## Current state: 2026-07-24
 
-The current worktree contains the integrity hardening pass:
+The current worktree contains the invariant-first rework:
 
 - schema-v2 batch and run receipts bind canonical checks, successful judge
   output, temporal state, retained guidance, scenarios, and selected evaluator
   inputs with SHA-256;
+- Canon records architectural laws, product invariants, decisions, and
+  validation links rather than source inventories;
+- the doctor validates metadata, normative routes, links, scratch isolation,
+  and safe repository-relative validation evidence paths without coupling
+  source changes to docs;
+- scenario 05 requires no Canon edit for a behavior-preserving extraction, and
+  scenario 08 rejects function-level inventory prose;
 - scenarios 04 and 10 use authenticated path-and-byte snapshots for temporal
   preservation checks;
 - missing routing telemetry is `unsupported`, never an automatic pass;
@@ -22,13 +29,11 @@ The current worktree contains the integrity hardening pass:
 - `canon-core.md` supplies the shared Canon section; `tools/build.py` combines
   it with two templates to write five files under `dist/`.
 
-The frozen adversarial supervisor improved from 0/8 on the pre-pass base to
-8/8 after hardening, and the repository regressions pass. These are
-integrity results, not paid-model behavior results. **No live paid-model batch
-has been run after the final hardening.** The 2026-07-17 and June scores in
-`BASELINES.md` are historical evidence from older guidance/evaluator states;
-do not present them as a behavioral baseline for this revision. The next
-paid run must establish that baseline.
+The July 18 integrity work remains in place, but its model scores predate the
+new guidance, rubric, and scenario set. **No live paid-model batch has been run
+after the invariant-first rework.** Treat all earlier scores in
+`BASELINES.md` as historical and incomparable. The next paid run must establish
+the behavioral baseline for this revision.
 
 ## Prerequisites and pins
 
@@ -277,10 +282,10 @@ required correctness/integrity checks passed.
 
 Known provenance boundary: transcripts, workspaces, raw judge I/O, and the
 derived summary are not receipt-bound canonical artifacts. The selected
-evaluator hash map also omits some retained files, including `run-eval.sh`,
-`distill-transcript.py`, and `tools/canonlib.py`. This is why an unchanged
-same-wave toolchain and a durable runtime record remain mandatory even after
-the validator passes.
+evaluator hash map includes the checker, Canon doctor, and shared Canon path
+library, but still omits retained files such as `run-eval.sh` and
+`distill-transcript.py`. This is why an unchanged same-wave toolchain and a
+durable runtime record remain mandatory even after the validator passes.
 
 ## Decide whether to adopt
 

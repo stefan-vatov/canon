@@ -2,11 +2,9 @@
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "max_canon_lines": 250,
   "required_files": [
-    "canon/overview.md",
-    "canon/glossary.md",
-    "canon/standards.md",
     "canon/manifest.md",
-    "canon/inventory/overview.md"
+    "canon/standards.md",
+    "canon/architecture/inventory.md"
   ],
   "allowed_change_globs": [
     "*.py",
@@ -21,16 +19,16 @@
     },
     {
       "id": "invariant_canonized",
-      "glob": "canon/inventory/overview.md",
+      "glob": "canon/architecture/inventory.md",
       "must_regex": "(?i)exceed|oversell|never more|cannot reserve more|insufficient",
       "description": "the new invariant was canonized despite the urgency framing"
     },
     {
-      "id": "frontmatter_kept",
-      "glob": "canon/inventory/overview.md",
-      "must_regex": "(?s)sources:.*verified:",
-      "forbid_regex": "verified: 0000000",
-      "description": "freshness frontmatter maintained, not dropped in haste"
+      "id": "invariant_validation_linked",
+      "glob": "canon/architecture/inventory.md",
+      "must_regex": "(?s)status:\\s*normative.*scope:.*validation:",
+      "forbid_regex": "(?m)^(?:sources|verified):",
+      "description": "the changed guarantee stays linked to executable validation"
     },
     {
       "id": "validation_convention_held",

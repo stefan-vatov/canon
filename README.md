@@ -2,7 +2,7 @@
 
 # Project Canon
 
-**Repo-scoped guidance that keeps AI project memory authoritative, current, and bounded.**
+**Compact architectural laws and product invariants for coding agents.**
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Artifact](https://img.shields.io/badge/artifact-agent_config-2f6f4e.svg)
@@ -12,33 +12,101 @@
 
 </div>
 
-Project Canon gives coding agents a maintained `canon/` directory for durable
-project knowledge. The agent reads `canon/manifest.md` before broad source
-exploration, loads only task-routed files, and updates affected knowledge during
-authorized implementation work.
+Project Canon gives repository-scoped coding agents a small, durable record of
+the rules that must survive implementation churn:
 
-Verified code is primary evidence of current behavior. Human-owned standards
-and active explicit decisions remain normative when implementation drifts.
-During an authorized write task, descriptive Canon must be corrected to match
-verified behavior.
+> Canon explains why the system is shaped this way and what must remain true.
+> Code, schemas, package manifests, build graphs, and generated reports explain
+> where the implementation currently lives.
+
+Canon is not a manually synchronized mirror of the repository. File moves,
+renames, helper extraction, test refactors, and new instances of an established
+pattern should normally produce `Canon impact: none`.
+
+## What Canon owns
+
+Canon is authoritative for:
+
+- package ownership and dependency direction;
+- public contract and user-visible behavior;
+- persistence, migration, retry, timeout, interruption, and lifecycle policy;
+- security, privacy, and platform guarantees;
+- required validation at risky boundaries;
+- explicit architectural decisions and supplied rationale.
+
+Canon does not maintain:
+
+- source-file, export, class, helper, schema, or test inventories;
+- current file locations, line numbers, barrel contents, or test shards;
+- temporary migration status or completed-work summaries;
+- facts already expressed by types, manifests, schemas, build graphs, or
+  generated reports.
+
+Documentation states the requirement. Tests and policy checks prove it. Code
+supplies the implementation.
+
+## Repository Canon shape
+
+```text
+canon/
+    manifest.md          # compact concern-to-page router
+    standards.md         # project-wide architectural laws
+    architecture/        # focused subsystem and product invariants
+    decisions/           # immutable explicit human decisions
+    scratch/             # ignored, temporary, non-authoritative work
+```
+
+Only `manifest.md` and `standards.md` are required files. Canon grows when a
+durable invariant needs an owner, not whenever the source tree grows.
+
+Every new permanent page uses compact metadata:
+
+```yaml
+---
+status: normative
+scope:
+  - "@example/persistence"
+validation:
+  - tests/architecture/test_dependency_policy.py
+related:
+  - ./runtime-services.md
+---
+```
+
+`status` is `normative`, `reference`, `draft`, or `deprecated`. Normative pages
+must be routed from the manifest. Legacy `sources` lists and `verified` commit
+hashes are rejected: they created documentation churn without proving truth.
+
+## Canon impact
+
+Every implementation change gets one classification:
+
+| Classification | Meaning | Canon action |
+|---|---|---|
+| No impact | Guarantees, ownership, contracts, and validation stay unchanged | Do not edit Canon |
+| Clarification | The intended rule is unchanged but materially ambiguous | Clarify the owning rule |
+| Change | A durable guarantee, boundary, behavior, risk policy, or required check changes | Update the smallest owning page |
+
+Before editing Canon, finish: `Canon changed because the system must now
+guarantee that ...`. If the reason is only that a file or symbol moved, leave
+Canon alone.
 
 ## Quick start
 
-This path installs Canon for an agent that reads `AGENTS.md`. For existing
-instruction files, Codex system-prompt installation, upgrades, rollback, or
-uninstall, use [INSTALL.md](INSTALL.md).
+This installs the generated `AGENTS.md` integration into a repository that
+does not already have one. For managed merges, upgrades, rollback, uninstall,
+or full Codex system-prompt installation, use [INSTALL.md](INSTALL.md).
 
 ### Prerequisites
 
 - A Git repository that will receive Canon.
-- A checkout of this repository.
-- An agent that reads `AGENTS.md`, or one of the supported integration files.
-- [`uv`](https://docs.astral.sh/uv/) when running the doctor, build, or eval tools.
+- A clean checkout of this repository.
+- An agent that reads one of the supported integration files.
+- [`uv`](https://docs.astral.sh/uv/) for build and validation tools.
 
 ### 1. Install the guidance
 
-Replace both paths. The first two commands canonicalize each Git root, including
-linked worktrees:
+Replace both paths:
 
 ```sh
 CANON="$(git -C /absolute/path/to/canon rev-parse --show-toplevel)" || exit 1
@@ -54,9 +122,6 @@ export CANON TARGET
     echo "generated Canon artifacts were stale" >&2
     exit 1
   }
-  FRESHNESS="$(uv run --script "$CANON/tools/build.py")"
-  printf '%s\n' "$FRESHNESS"
-  ! printf '%s\n' "$FRESHNESS" | grep -q '^wrote'
   CANON_REF="$(git -C "$CANON" rev-parse HEAD)"
   if test -e "$TARGET/AGENTS.md" || test -L "$TARGET/AGENTS.md"; then
     echo "refusing existing target: $TARGET/AGENTS.md" >&2
@@ -68,180 +133,109 @@ export CANON TARGET
 )
 ```
 
-The block intentionally refuses to overwrite an existing `AGENTS.md`.
-Follow the managed-merge procedure in [INSTALL.md](INSTALL.md) when the target
-already contains agent instructions.
-
-Do not run the install concurrently with another process that can modify
-`AGENTS.md`. Keep the printed revision with the target change; upgrades and
-uninstalls use it to prove ownership.
+The block refuses to overwrite an existing instruction file. Follow the
+managed-merge procedure in [INSTALL.md](INSTALL.md) when one already exists.
 
 ### 2. Bootstrap the repository Canon
 
-Start a new agent session from `$TARGET` and give it this request:
+Start a fresh agent session from the target repository:
 
 ```text
-Set up Project Canon in this repository. Preserve all existing project
-instructions. Create the four core Canon files, decisions/ and scratch/, add
-canon/scratch/ to the repository-root .gitignore, and route every permanent
-Canon Markdown file except manifest.md. Inspect only enough of the repository
-to write accurate core orientation; do not invent standards, policies,
-decisions, rationale, or domain claims. Report anything that still needs
-human input.
+Set up Project Canon in this repository. Preserve all existing instructions.
+Create canon/manifest.md with status: reference and canon/standards.md with
+status: normative. Create canon/architecture/, canon/decisions/, and
+canon/scratch/, and add canon/scratch/ to the repository-root .gitignore.
+Do not invent standards, decisions, architecture, rationale, or domain terms.
+Do not create source-file inventories or sources/verified metadata. Report
+anything that still needs human input.
 ```
 
-This explicit request authorizes Canon setup. The guidance does not treat
-ordinary feature work, reviews, or audits as permission to create Canon.
-
-### 3. Verify the result
+### 3. Verify it
 
 ```sh
 uv run --script "$CANON/tools/canon-doctor.py" \
   --root "$TARGET" --strict
 ```
 
-Exit `0` means no errors or warnings. Without `--strict`, warnings are printed
-but do not make the command fail. Resolve or consciously migrate every warning
-before using strict mode as a CI gate.
+Exit `0` means the structure, metadata, normative routes, links, validation
+references, scratch boundary, and size limits pass.
 
-## Choose an integration
+## Supported integrations
 
-For an absent target, every generated path mirrors its default destination.
-Managed merges may give the Canon-owned prompt a distinct name.
+| Agent or harness | Source | Default destination |
+|---|---|---|
+| Codex or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
+| Claude Code | `dist/CLAUDE.md` | `CLAUDE.md` |
+| Pi | `dist/.pi/APPEND_SYSTEM.md` | `.pi/APPEND_SYSTEM.md` |
+| Codex full system prompt | `dist/.codex/` | `.codex/` |
 
-| Agent or harness | Source | Destination | Use when |
-|---|---|---|---|
-| Codex or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` | Recommended general integration |
-| Codex full system prompt | `dist/.codex/` | `.codex/` | Experimental; only with a pinned, verified base prompt |
-| Pi | `dist/.pi/APPEND_SYSTEM.md` | `.pi/APPEND_SYSTEM.md` | Pi loads a project append-system prompt |
-| Claude Code | `dist/CLAUDE.md` | `CLAUDE.md` | The target uses a project `CLAUDE.md` |
+All variants contain the same generated Canon contract. The full Codex prompt
+also vendors `templates/codex-base.md` and is release-sensitive; prefer
+`AGENTS.md` unless you test against the exact Codex CLI release.
 
-All variants contain the same generated Canon section. The full Codex system
-artifact also includes `templates/codex-base.md`; its config is copied from
-`templates/codex-config.toml`. Never copy a whole directory over an existing
-`.codex/` or `.pi/` directory. The full Codex system prompt replaces the model
-instructions file with a vendored base prompt and is not release-agnostic.
-Treat it as experimental; use `AGENTS.md` unless you have synchronized and
-tested that template against the exact Codex CLI release you deploy.
+## Normal agent workflow
 
-Project `.codex/config.toml` settings load only after Codex trusts the
-repository. If you choose the full system prompt, accept the trust prompt in a
-fresh session and verify the configured prompt is loaded before relying on it.
+The installed guidance directs an agent to:
 
-## Use Canon during normal work
+1. read `canon/manifest.md` and only the relevant routed pages;
+2. exclude `canon/scratch/` from normal context;
+3. identify applicable invariants and validation;
+4. implement and test the requested work;
+5. classify Canon impact and edit Canon only for a clarification or change;
+6. report `Canon impact: none` or the exact invariant updated.
 
-There is no Canon launcher. Start the agent from the repository root and make
-the normal task request. The installed guidance directs it to:
+The manifest is a router, not a catalog. Each route has exactly one local
+Markdown link and an explicit, non-empty `read when ...` or `read for ...`
+condition. A well-routed agent should usually load one or two Canon pages,
+while loading any additional routed authority that jointly governs the task
+instead of treating the usual count as a cap.
 
-1. read `canon/manifest.md` before broad exploration;
-2. load only routes whose hooks match the task and likely touched paths;
-3. read `canon/standards.md` before changing code;
-4. make and test the smallest authorized change;
-5. retain only durable knowledge that passes the retention test; and
-6. check freshness, manifest coverage, and decision immutability before ending.
+## Validate and compact
 
-Reviews, explanations, plans, status checks, and audits remain read-only unless
-the user explicitly authorizes repository changes.
-
-## Canon structure
-
-```text
-canon/
-    overview.md              # short project orientation
-    glossary.md              # durable domain terms
-    standards.md             # human-owned normative rules
-    manifest.md              # exact routes and read conditions
-    decisions/               # immutable explicit human decisions
-    plans/                   # provisional plans, when needed
-    scratch/                 # ignored notes and handovers
-    [domain]/overview.md     # focused descriptive knowledge
-```
-
-Every permanent Canon Markdown file except `manifest.md` has one exact manifest
-route. Descriptive domain files declare repository-relative `sources` and an
-immutable pre-change `verified` commit. Permanent files stay at most 250 lines
-and 64 KiB. Temporary analysis and completed-work notes belong in
-`canon/scratch/`.
-
-## Validate a repository
-
-Run the doctor from the Canon checkout or with an absolute script path:
+The doctor is dependency-free Python:
 
 ```sh
 uv run --script tools/canon-doctor.py --root /absolute/path/to/target
 uv run --script tools/canon-doctor.py --root /absolute/path/to/target --json
 uv run --script tools/canon-doctor.py --root /absolute/path/to/target --strict
+uv run --script tools/canon-doctor.py --root /absolute/path/to/target \
+  --baseline <trusted-pre-migration-commit> --strict
 ```
 
-The doctor checks required structure, exact and contained manifest routes,
-missing or unsafe routed files, line and byte caps, ignored scratch state,
-changelog-style prose, and Git-derived freshness. Errors always return
-nonzero. Warnings return nonzero only with `--strict`.
+Without `--baseline`, existing decisions are still checked against `HEAD` for
+byte immutability, but invalid historical metadata is not grandfathered.
+Supply `--baseline` only with the reviewed commit recorded before migrating a
+legacy Canon; keep that commit pinned in subsequent validation.
 
-## Compact an overgrown Canon
-
-Use [`$compact-canon`](.codex/skills/compact-canon/SKILL.md) for an on-demand,
-repository-wide Canon cleanup. It inventories all permanent Canon knowledge,
-identifies overlap and reconstructible detail, preserves standards and immutable
-decisions, and verifies the result. Ask for a `dry run` to receive candidates
-and projected savings without changing the repository.
-
-The skill is intentionally separate from the generated Canon instructions. It
-must be invoked when a full compaction pass is wanted; ordinary Canon upkeep
-remains incremental.
+Use [`$compact-canon`](.codex/skills/compact-canon/SKILL.md) for an on-demand
+audit or migration of an overgrown Canon. It identifies repeated rules,
+implementation inventories, legacy metadata, routing gaps, and reconstructible
+prose while preserving human standards and immutable decisions. Ask for a
+`dry run` to receive candidates without changing files.
 
 ## Maintain this repository
 
-`canon-core.md` is the source of the shared Canon section. Generated files
-under `dist/` must not be edited directly.
-
-After changing `canon-core.md` or a template:
+`canon-core.md` is the source of every generated agent artifact under `dist/`.
+After changing the core or a template:
 
 ```sh
 uv run --script tools/build.py
 uv run --script tools/build.py
-uv run python -m unittest discover -s tests -v
+PYTHONDONTWRITEBYTECODE=1 \
+  uv run python -m unittest discover -s tests -p 'test_*.py' -v
 git diff --check
 ```
 
-The second build should report every artifact as `fresh`. Review the generated
-diff in the same change as its source, then require the deterministic suite to
-finish with `OK`.
+The second build must report every artifact as `fresh`.
 
-To evaluate a guidance change with agents, follow [evals/README.md](evals/README.md).
-To run an adoption round, use [evals/PLAYBOOK.md](evals/PLAYBOOK.md).
+## Documentation
 
-## Documentation map
+- [INSTALL.md](INSTALL.md) — safe installation, merge, upgrade, rollback, and
+  uninstall procedures.
+- [canon-core.md](canon-core.md) — exact shared agent contract.
+- [evals/README.md](evals/README.md) — evaluation harness and scenarios.
+- [evals/PLAYBOOK.md](evals/PLAYBOOK.md) — improvement and adoption runbook.
+- [evals/BASELINES.md](evals/BASELINES.md) — experiment history.
 
-- [INSTALL.md](INSTALL.md) — install, merge, verify, upgrade, rollback, and uninstall.
-- [canon-core.md](canon-core.md) — exact agent operating instructions.
-- [evals/README.md](evals/README.md) — eval reference, commands, artifacts, and troubleshooting.
-- [evals/PLAYBOOK.md](evals/PLAYBOOK.md) — current improvement and adoption runbook.
-- [evals/BASELINES.md](evals/BASELINES.md) — durable experiment and adoption history.
-- [evals/RESEARCH.md](evals/RESEARCH.md) — research basis and untested frontiers.
-
-## Repository scope
-
-```text
-canon-core.md                  # source of the shared Canon section
-templates/                     # Codex base prompt and static config
-dist/                          # generated agent artifacts
-tools/build.py                 # artifact generator
-tools/canon-doctor.py          # repository validator
-.codex/skills/compact-canon/   # on-demand Canon compaction skill
-evals/                         # guidance measurement harness
-tests/                         # deterministic regression suite
-```
-
-Consumer use needs Git and the selected agent. The maintenance tools use `uv`
-and Python standard-library code. Agent evaluations additionally require the
-selected agent CLI, explicit model configuration, and an execution sandbox;
-see the eval prerequisites before running them.
-
-## Credit
-
-Forked from [fjzeit's original concept](https://github.com/fjzeit/lode).
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+Project Canon is MIT licensed and originated as a fork of
+[fjzeit's concept](https://github.com/fjzeit/lode).

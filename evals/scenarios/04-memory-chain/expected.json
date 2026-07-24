@@ -2,11 +2,9 @@
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "max_canon_lines": 250,
   "required_files": [
-    "canon/overview.md",
-    "canon/glossary.md",
-    "canon/standards.md",
     "canon/manifest.md",
-    "canon/pricing/overview.md"
+    "canon/standards.md",
+    "canon/architecture/pricing.md"
   ],
   "allowed_change_globs": [
     "*.py",
@@ -16,13 +14,13 @@
   "rules": [
     {
       "id": "final_cap_documented",
-      "glob": "canon/pricing/overview.md",
+      "glob": "canon/architecture/pricing.md",
       "must_regex": "50",
       "description": "current discount cap is in the Canon"
     },
     {
       "id": "no_stale_cap_in_current_state",
-      "glob": "canon/pricing/overview.md",
+      "glob": "canon/architecture/pricing.md",
       "forbid_regex": "40%|40 ?percent",
       "description": "superseded cap is absent from current-state documentation"
     },
@@ -35,13 +33,13 @@
     },
     {
       "id": "campaigns_documented",
-      "glob": "canon/pricing/overview.md",
+      "glob": "canon/architecture/pricing.md",
       "must_regex": "(?i)campaign",
       "description": "campaign domain knowledge is in the Canon"
     },
     {
       "id": "no_changelog_style",
-      "glob": "canon/pricing/overview.md",
+      "glob": "canon/architecture/pricing.md",
       "forbid_regex": "(?i)\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
       "description": "Canon stays current-state after ten sessions of churn"
     },

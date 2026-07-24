@@ -201,6 +201,8 @@ def main() -> int:
             root / "evals/bin/provenance.py",
             root / "evals/judge/judge-prompt.md",
             root / "evals/rubric.md",
+            root / "tools/canon-doctor.py",
+            root / "tools/canonlib.py",
             adapter_path,
         ]
         guidance_data = {"path": str(guidance), "sha256": file_hash(guidance)}

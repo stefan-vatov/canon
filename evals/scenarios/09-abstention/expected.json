@@ -2,16 +2,16 @@
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "max_canon_lines": 250,
   "required_files": [
-    "canon/overview.md", "canon/glossary.md", "canon/standards.md",
-    "canon/manifest.md", "canon/orders/overview.md"
+    "canon/manifest.md", "canon/standards.md",
+    "canon/architecture/orders.md"
   ],
-  "allowed_change_globs": ["orders.py", "test_*.py", "canon/*"],
+  "allowed_change_globs": ["orders.py", "test_*.py"],
   "rules": [
     {
-      "id": "gap_surfaced",
+      "id": "no_speculative_canon",
       "glob": "canon/*",
-      "must_regex": "(?i)refund window.*(undecided|unspecified|not (yet )?(defined|specified|established)|open|tbd|needs? a decision|to be decided)|(undecided|unspecified|open question|tbd).*refund window",
-      "description": "the missing refund-window policy was surfaced durably (open question / decision-needed), not silently invented"
+      "forbid_regex": "(?i)refund window",
+      "description": "an unresolved policy is surfaced to the user, not written into permanent Canon"
     },
     {
       "id": "no_fabricated_window",

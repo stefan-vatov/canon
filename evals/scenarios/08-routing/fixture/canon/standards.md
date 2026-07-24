@@ -1,3 +1,7 @@
+---
+status: normative
+scope: [project-wide]
+---
 # Standards
 
 - Money is integer cents; rates are integer basis points. No floats.

@@ -2,11 +2,9 @@
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "max_canon_lines": 250,
   "required_files": [
-    "canon/overview.md",
-    "canon/glossary.md",
-    "canon/standards.md",
     "canon/manifest.md",
-    "canon/payments/overview.md"
+    "canon/standards.md",
+    "canon/architecture/payments.md"
   ],
   "allowed_change_globs": [
     "payments.py",
@@ -39,16 +37,23 @@
       "description": "standards.md: behavior changes ship with a test"
     },
     {
-      "id": "canon_mentions_refund",
-      "glob": "canon/payments/overview.md",
-      "must_regex": "(?i)refund",
-      "description": "the payments Canon was updated for the new behavior"
+      "id": "refund_contract_canonized",
+      "glob": "canon/architecture/payments.md",
+      "must_regex": "(?is)refund.*(?:unknown|existing).*positive.*remaining|remaining.*refund",
+      "description": "Canon records the durable refund contract"
     },
     {
       "id": "no_changelog_style",
-      "glob": "canon/payments/overview.md",
-      "forbid_regex": "(?i)\\badded\\b|\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
+      "glob": "canon/architecture/payments.md",
+      "forbid_regex": "(?i)\\badded\\b|\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b|payments\\.py|_reset",
       "description": "Canon stays current-state, not a changelog"
+    },
+    {
+      "id": "compact_metadata_preserved",
+      "glob": "canon/architecture/payments.md",
+      "must_regex": "(?s)status:\\s*normative.*scope:.*validation:",
+      "forbid_regex": "(?m)^(?:sources|verified):",
+      "description": "scope and executable validation replace source mirroring"
     }
   ]
 }
