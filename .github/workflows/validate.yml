@@ -1,0 +1,56 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Verify generated artifacts
+        run: uv run --script tools/build.py
+
+      - name: Reject generated drift
+        run: git diff --exit-code -- dist/
+
+      - name: Run regression suite
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: uv run python -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Validate seeded Canon fixtures
+        run: |
+          for fixture in evals/scenarios/*/fixture; do
+            if test -f "$fixture/canon/manifest.md"; then
+              if test "$fixture" = \
+                "evals/scenarios/09-abstention/fixture"; then
+                uv run --script tools/canon-doctor.py \
+                  --root "$fixture" --baseline HEAD --strict
+              else
+                uv run --script tools/canon-doctor.py \
+                  --root "$fixture" --strict
+              fi
+              (
+                cd "$fixture"
+                PYTHONDONTWRITEBYTECODE=1 \
+                  uv run python -m unittest discover -s . -p 'test_*.py'
+              )
+            fi
+          done
+
+      - name: Validate shell entry points
+        run: bash -n evals/bin/*.sh evals/adapters/*.sh

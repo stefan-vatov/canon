@@ -1,19 +1,26 @@
-name: validate
+name: build-artifacts
+
+# Regenerate dist/ from canon-core.md on merge to main and commit any drift.
+# The commit carries [skip ci] so it does not re-trigger this workflow.
 
 on:
-  pull_request:
   push:
     branches: [main]
+    paths:
+      - canon-core.md
+      - templates/**
+      - tools/build.py
+      - .github/workflows/build-artifacts.yml
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: validate-${{ github.ref }}
-  cancel-in-progress: true
+  group: build-artifacts-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  test:
+  regenerate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,36 +28,19 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Verify generated artifacts
+      - name: Regenerate dist/ from canon-core.md
         run: uv run --script tools/build.py
 
-      - name: Reject generated drift
-        run: git diff --exit-code -- dist/
-
-      - name: Run regression suite
-        env:
-          PYTHONDONTWRITEBYTECODE: "1"
-        run: uv run python -m unittest discover -s tests -p 'test_*.py' -v
-
-      - name: Validate seeded Canon fixtures
+      - name: Commit regenerated artifacts if they drifted
         run: |
-          for fixture in evals/scenarios/*/fixture; do
-            if test -f "$fixture/canon/manifest.md"; then
-              if test "$fixture" = \
-                "evals/scenarios/09-abstention/fixture"; then
-                uv run --script tools/canon-doctor.py \
-                  --root "$fixture" --baseline HEAD --strict
-              else
-                uv run --script tools/canon-doctor.py \
-                  --root "$fixture" --strict
-              fi
-              (
-                cd "$fixture"
-                PYTHONDONTWRITEBYTECODE=1 \
-                  uv run python -m unittest discover -s . -p 'test_*.py'
-              )
-            fi
-          done
+          if git diff --quiet -- dist/; then
+            echo "dist/ already in sync — nothing to commit."
+            exit 0
+          fi
+          git config user.name "canon-bot"
+          git config user.email "noreply@users.noreply.github.com"
+          git add dist/
+          git commit -m "chore(dist): regenerate artifacts from canon-core.md [skip ci]
 
-      - name: Validate shell entry points
-        run: bash -n evals/bin/*.sh evals/adapters/*.sh
+          Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+          git push
