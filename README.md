@@ -246,7 +246,7 @@ The second build must report every artifact as `fresh`.
 - [canon-core.md](canon-core.md) — exact shared agent contract.
 - [evals/README.md](evals/README.md) — evaluation harness and scenarios.
 - [evals/PLAYBOOK.md](evals/PLAYBOOK.md) — improvement and adoption runbook.
-- [evals/BASELINES.md](evals/BASELINES.md) — experiment history.
+- [evals/BASELINES.md](evals/BASELINES.md) — compact evaluation adoption ledger.
 
 Project Canon is MIT licensed and originated as a fork of
 [fjzeit's concept](https://github.com/fjzeit/lode).

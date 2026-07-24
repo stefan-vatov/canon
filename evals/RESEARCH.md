@@ -5,7 +5,7 @@ sources reviewed on 2026-06-14 about long-horizon agent memory and long-context
 degradation.
 The snapshot is historical evidence, not the current eval runbook; use
 [PLAYBOOK.md](PLAYBOOK.md) for current operations and [BASELINES.md](BASELINES.md)
-for adoption history.
+for adoption decisions.
 
 ## Failure-mode taxonomy in the cited benchmarks
 

@@ -4,7 +4,7 @@ This playbook shows you how to run an attributable Canon evaluation, compare a
 guidance candidate with the current core, validate the resulting artifacts,
 and adopt or recover safely. Run every command from the repository root.
 `evals/README.md` documents the harness and scenarios; `BASELINES.md` is the
-durable results ledger; `RESEARCH.md` records the evidence behind scenarios.
+compact adoption ledger; `RESEARCH.md` records the evidence behind scenarios.
 
 ## Current state: 2026-07-24
 
@@ -37,8 +37,8 @@ reasoning. The evolutionary-workflow labels `GPT 5.5 high` and `GPT Spark`
 refer to the pinned GPT 5.6 Sol/high and GPT 5.6 Terra/medium workers,
 respectively. Both capable Codex tiers passed every required batch at 1.000
 mechanical and judge means; weaker-tier failures remain recorded rather than
-being averaged away. See `BASELINES.md` for exact revisions, paths, floors,
-known transport failures, and the final supersession confirmations.
+being averaged away. See `BASELINES.md` for the decision, comparison key,
+result floors, evidence boundary, and final supersession confirmation.
 
 ## Prerequisites and pins
 
@@ -94,9 +94,10 @@ The manifest records the requested worker model/reasoning and a hash of the
 judge command string. It does not resolve or authenticate the actual provider,
 model, CLI version, executable contents, credentials, or ambient configuration.
 It also does not attest the OS, `uv`/Git versions, sandbox wrapper or unsafe
-host-execution mode. Record material runtime identities and environment details
-in `BASELINES.md`, and run comparisons from a dedicated unchanged worktree and
-toolchain.
+host-execution mode. Retain material runtime identities and environment details
+with the raw bundle. Put only decision-relevant pins and limitations in the
+compact `BASELINES.md` entry, and run comparisons from a dedicated unchanged
+worktree and toolchain.
 
 ## Run the deterministic integrity gate
 
@@ -311,9 +312,11 @@ following:
 6. The diff is general guidance, not encoded fixture answers, and every change
    is explainable from observed failures.
 
-Record wins, losses, exact worker/judge identities, CLI versions, run counts,
-bundle paths, per-run floors, means, and known limitations in `BASELINES.md`.
-Result directories are git-ignored; the baseline ledger is the durable record.
+Retain raw bundles with exact runtime details. Record only the decision,
+comparison key, decisive passes or floors, artifact-set key, and known
+limitations in `BASELINES.md`; follow its entry template and do not paste
+transcripts or exhaustive bundle lists. Result directories are Git-ignored,
+so arrange durable external storage when the receipts must outlive one machine.
 
 ### Apply an accepted candidate and rebuild
 
@@ -350,9 +353,9 @@ git status --short -- canon-core.md dist/ evals/BASELINES.md
 ```
 
 The first build may print `wrote`; the second must print only `fresh`. Include
-`canon-core.md`, all changed generated files under `dist/`, and the
-`BASELINES.md` record in the same reviewed change. Never edit generated files
-by hand.
+`canon-core.md`, all changed generated files under `dist/`, and the compact
+`BASELINES.md` adoption entry in the same reviewed change. Never edit generated
+files by hand.
 
 ## Use the optimizer for proposals only
 

@@ -4,7 +4,7 @@ This guide shows you how to run, judge, verify, compare, optimize, and recover
 Project Canon evaluation batches from the repository root.
 
 Use [PLAYBOOK.md](PLAYBOOK.md) for the adoption discipline,
-[BASELINES.md](BASELINES.md) for the result history, and
+[BASELINES.md](BASELINES.md) for durable adoption decisions, and
 [RESEARCH.md](RESEARCH.md) for the evidence behind the harder scenarios.
 
 ## What a batch records
@@ -31,7 +31,7 @@ A completed bundle contains the tested `guidance-used.md`, `manifest.json`,
 `batch-receipt.json`, frozen inputs under `inputs/`, per-run workspaces,
 transcripts, checks, receipts, temporal snapshots, optional judge artifacts,
 and `summary.json`. Results are Git-ignored; record durable conclusions in
-`BASELINES.md`.
+`BASELINES.md`, not raw run inventories.
 
 ## Prerequisites
 
@@ -389,7 +389,7 @@ stub optimization score as behavioral evidence.
 `canon-core.md`. Follow [PLAYBOOK.md](PLAYBOOK.md): evaluate the proposal in a
 same-wave paired run, pass the capable-tier and holdout gates, then adopt the
 accepted bundle's hash-validated `guidance-used.md`. Rebuild twice and record
-the result in `BASELINES.md`.
+the compact decision in `BASELINES.md`.
 
 ## Recover a failed or interrupted batch
 
