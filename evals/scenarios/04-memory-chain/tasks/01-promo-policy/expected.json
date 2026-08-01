@@ -17,7 +17,7 @@
       "id": "terminology_canonized",
       "glob": "canon/architecture/pricing.md",
       "must_regex": "(?si)promo.*campaign|campaign.*promo",
-      "description": "promo and campaign terms recorded in the glossary"
+      "description": "promo and campaign terms recorded in the pricing architecture page"
     },
     {
       "id": "expiry_in_campaign_definition",

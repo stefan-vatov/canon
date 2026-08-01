@@ -22,7 +22,7 @@ STATUSES = {"normative", "reference", "draft", "deprecated"}
 LEGACY_FIELDS = {"sources", "verified"}
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]{2,}")
 MANIFEST_LINK_RE = re.compile(
-    r"\[[^\]\n]+\]\(\s*(?:<(?P<angle>[^>]+)>|(?P<plain>[^\s)]+))"
+    r"\[[^\]\n]+\]\(\s*(?:<(?P<angle>[^>\n]{1,1024})>|(?P<plain>[^\s)]{1,1024}))"
     r"(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*\)"
 )
 SOURCE_REFERENCE_RE = re.compile(
@@ -72,6 +72,16 @@ def strip_inline_code(text: str) -> str:
         cursor = opener_end
         closing_end = None
         while cursor < len(text):
+            if text[cursor] == "\n":
+                line_end = text.find("\n", cursor + 1)
+                if line_end == -1:
+                    line_end = len(text)
+                if not text[cursor + 1 : line_end].strip():
+                    # A blank line ends the paragraph; a code span cannot
+                    # continue across it, so the opener is a literal backtick.
+                    break
+                cursor += 1
+                continue
             if text[cursor] != "`":
                 cursor += 1
                 continue
@@ -351,20 +361,22 @@ def permanent_markdown(canon: Path) -> tuple[list[Path], list[str]]:
 
 
 def normalize_route(target: str) -> str | None:
-    target = unquote(target.strip().strip("<>"))
-    if not target or "\\" in target or "\x00" in target:
+    # Mirrors tools/canonlib.py resolve_canon_reference for a link written in
+    # manifest.md at the Canon root, so this inventory and the doctor agree.
+    raw = unquote(target.strip().strip("<>"))
+    if not raw or "\\" in raw or "\x00" in raw:
         return None
-    parsed = urlsplit(target)
-    if parsed.scheme or parsed.netloc or target.startswith(("/", "~")):
+    parsed = urlsplit(raw)
+    if parsed.scheme or parsed.netloc or raw.startswith(("/", "~")):
         return None
-    route = posixpath.normpath(parsed.path)
-    if route.startswith("canon/"):
-        route = route.removeprefix("canon/")
-    route = route.removeprefix("./")
+    if not parsed.path or not parsed.path.endswith(".md"):
+        return None
+    candidate = parsed.path.removeprefix("canon/")
+    route = posixpath.normpath(candidate).removeprefix("./")
     if (
         not route
         or route in (".", "..")
-        or route.startswith("../")
+        or route.startswith(("../", "/"))
         or not route.endswith(".md")
     ):
         return None
@@ -372,11 +384,19 @@ def normalize_route(target: str) -> str | None:
 
 
 def visible_manifest_lines(text: str) -> list[str]:
+    # Mirrors tools/canonlib.py visible_markdown_text: fence state takes
+    # priority over comment state, and comments are tracked across lines.
     lines = []
-    without_comments = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
     in_fence = False
     fence_marker = ""
-    for line in without_comments.splitlines():
+    in_comment = False
+    for line in text.splitlines():
+        if in_comment:
+            end = line.find("-->")
+            if end == -1:
+                continue
+            in_comment = False
+            line = line[end + 3 :]
         fence = re.match(r"(`{3,}|~{3,})", line.lstrip())
         if fence:
             marker = fence.group(1)
@@ -387,8 +407,24 @@ def visible_manifest_lines(text: str) -> list[str]:
                 in_fence = False
                 fence_marker = ""
             continue
-        if not in_fence:
-            lines.append(line)
+        if in_fence:
+            continue
+        segments: list[str] = []
+        rest = line
+        while True:
+            start = rest.find("<!--")
+            if start == -1:
+                segments.append(rest)
+                break
+            segments.append(rest[:start])
+            # Search from start + 2 so the empty forms <!--> and <!--->
+            # close immediately instead of swallowing the rest of the page.
+            end = rest.find("-->", start + 2)
+            if end == -1:
+                in_comment = True
+                break
+            rest = rest[end + 3 :]
+        lines.append("".join(segments))
     return lines
 
 

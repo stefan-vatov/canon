@@ -11,12 +11,18 @@ from urllib.parse import unquote, urlsplit
 # Markdown inline links with a plain or angle-bracket destination and optional
 # title. This intentionally does not pretend to be a full Markdown parser; a
 # malformed or ambiguous route is rejected instead of guessed.
-MARKDOWN_LINK_RE = re.compile(
-    r"\]\(\s*(?:<(?P<angle>[^>]+)>|(?P<plain>[^\s)]+))"
+MANIFEST_LINK_RE = re.compile(
+    r"\[[^\]\n]+\]\(\s*(?:<(?P<angle>[^>\n]{1,1024})>|(?P<plain>[^\s)]{1,1024}))"
     r"(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*\)"
 )
-MANIFEST_LINK_RE = re.compile(
-    r"\[[^\]\n]+\]\(\s*(?:<(?P<angle>[^>]+)>|(?P<plain>[^\s)]+))"
+# Page-body links are matched more permissively than manifest routes: empty
+# labels, one level of nested brackets, and labels wrapping a single line
+# are all real CommonMark links whose broken targets must still be reported.
+# Labels never span a blank line, so a stray bracket in one paragraph cannot
+# turn later prose into a link.
+BODY_LINK_RE = re.compile(
+    r"\[(?:[^\[\]\n]|\n(?![ \t]*\n)|\[[^\[\]\n]*\])*\]"
+    r"\(\s*(?:<(?P<angle>[^>\n]{1,1024})>|(?P<plain>[^\s)]{1,1024}))"
     r"(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*\)"
 )
 
@@ -45,6 +51,16 @@ def _strip_inline_code(text: str) -> str:
         cursor = opener_end
         closing_end = None
         while cursor < len(text):
+            if text[cursor] == "\n":
+                line_end = text.find("\n", cursor + 1)
+                if line_end == -1:
+                    line_end = len(text)
+                if not text[cursor + 1 : line_end].strip():
+                    # A blank line ends the paragraph; a code span cannot
+                    # continue across it, so the opener is a literal backtick.
+                    break
+                cursor += 1
+                continue
             if text[cursor] != "`":
                 cursor += 1
                 continue
@@ -80,36 +96,30 @@ def normalize_route(target: str) -> str | None:
 
     Routes are lexical identifiers first. Filesystem containment and symlink
     checks happen separately so a manifest cannot make an escaping symlink
-    legitimate merely by naming it.
+    legitimate merely by naming it. A route resolves exactly like a page link
+    written in ``manifest.md`` at the Canon root.
     """
-    target = unquote(target.strip().strip("<>"))
-    if not target or "\\" in target or "\x00" in target:
-        return None
-    parsed = urlsplit(target)
-    if parsed.scheme or parsed.netloc or target.startswith(("/", "~")):
-        return None
-    route = posixpath.normpath(parsed.path)
-    if route.startswith("canon/"):
-        route = route.removeprefix("canon/")
-    route = route.removeprefix("./")
-    if (
-        not route
-        or route in (".", "..")
-        or route.startswith("../")
-        or not route.endswith(".md")
-    ):
-        return None
-    return route
+    return resolve_canon_reference(Path("manifest.md"), target)
 
 
-def manifest_route_records(text: str) -> list[tuple[str, str]]:
-    """Return safe routes and their visible lines after Markdown exclusions."""
-    records: list[tuple[str, str]] = []
-    without_comments = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+def visible_markdown_text(text: str) -> str:
+    """Return text without HTML comments, fenced blocks, and code spans.
+
+    Fence state is tracked first so a literal ``<!--`` inside a fenced block
+    cannot swallow the rest of the page, and comment state is tracked across
+    lines so fence-like markers inside a comment stay inert.
+    """
     visible_lines: list[str] = []
     in_fence = False
     fence_marker = ""
-    for line in without_comments.splitlines():
+    in_comment = False
+    for line in text.splitlines():
+        if in_comment:
+            end = line.find("-->")
+            if end == -1:
+                continue
+            in_comment = False
+            line = line[end + 3 :]
         stripped = line.lstrip()
         fence = re.match(r"(`{3,}|~{3,})", stripped)
         if fence:
@@ -123,8 +133,29 @@ def manifest_route_records(text: str) -> list[tuple[str, str]]:
             continue
         if in_fence:
             continue
-        visible_lines.append(line)
-    for line in _strip_inline_code("\n".join(visible_lines)).splitlines():
+        segments: list[str] = []
+        rest = line
+        while True:
+            start = rest.find("<!--")
+            if start == -1:
+                segments.append(rest)
+                break
+            segments.append(rest[:start])
+            # Search from start + 2 so the empty forms <!--> and <!---> close
+            # immediately instead of swallowing the rest of the page.
+            end = rest.find("-->", start + 2)
+            if end == -1:
+                in_comment = True
+                break
+            rest = rest[end + 3 :]
+        visible_lines.append("".join(segments))
+    return _strip_inline_code("\n".join(visible_lines))
+
+
+def manifest_route_records(text: str) -> list[tuple[str, str]]:
+    """Return safe routes and their visible lines after Markdown exclusions."""
+    records: list[tuple[str, str]] = []
+    for line in visible_markdown_text(text).splitlines():
         matches = [
             match
             for match in MANIFEST_LINK_RE.finditer(line)
@@ -148,15 +179,26 @@ def manifest_routes(text: str) -> set[str]:
 
 
 def markdown_link_targets(text: str) -> list[str]:
-    """Return Markdown link destinations in source order."""
+    """Return real Markdown link destinations in source order.
+
+    Comments, fenced blocks, code spans, escapes, and image links are
+    excluded with the same rules the manifest parser applies, so quoted
+    counter-examples never register as live links.
+    """
+    visible = visible_markdown_text(text)
     return [
         match.group("angle") or match.group("plain")
-        for match in MARKDOWN_LINK_RE.finditer(text)
+        for match in BODY_LINK_RE.finditer(visible)
+        if _is_real_link(visible, match.start())
     ]
 
 
 def resolve_canon_reference(page: Path, target: str) -> str | None:
-    """Resolve a local Markdown target to a safe Canon-relative route."""
+    """Resolve a local Markdown target to a safe Canon-relative route.
+
+    This is the single route resolver: the manifest router delegates here via
+    ``normalize_route`` so routing and link checking cannot disagree.
+    """
     raw = unquote(target.strip().strip("<>"))
     if not raw or "\\" in raw or "\x00" in raw:
         return None
@@ -173,7 +215,7 @@ def resolve_canon_reference(page: Path, target: str) -> str | None:
     if (
         not route
         or route in (".", "..")
-        or route.startswith("../")
+        or route.startswith(("../", "/"))
         or not route.endswith(".md")
     ):
         return None
@@ -181,9 +223,14 @@ def resolve_canon_reference(page: Path, target: str) -> str | None:
 
 
 def contained_regular_file(root: Path, relative: str) -> tuple[bool, str]:
-    """Validate a route/source as a non-symlink regular file beneath root."""
+    """Validate a route/source as a non-symlink regular file beneath root.
+
+    ``relative`` is not percent-decoded here: link targets are already
+    decoded exactly once by the route resolvers, and metadata paths are used
+    as written (minus any URL query or fragment suffix).
+    """
     root = root.resolve()
-    raw = unquote(relative.strip())
+    raw = relative.strip()
     parsed = urlsplit(raw)
     route = posixpath.normpath(parsed.path)
     if (
@@ -218,10 +265,10 @@ def contained_regular_file(root: Path, relative: str) -> tuple[bool, str]:
 def missing_manifest_routes(files: list[Path], canon: Path, text: str) -> list[str]:
     routes = manifest_routes(text)
     return sorted(
-        path.relative_to(canon).as_posix()
+        route
         for path in files
-        if path.name != "manifest.md"
-        and path.relative_to(canon).as_posix() not in routes
+        if (route := path.relative_to(canon).as_posix()) != "manifest.md"
+        and route not in routes
     )
 
 

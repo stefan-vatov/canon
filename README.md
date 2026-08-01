@@ -214,7 +214,8 @@ uv run --script tools/canon-doctor.py --root /absolute/path/to/target \
 ```
 
 Without `--baseline`, existing decisions are still checked against `HEAD` for
-byte immutability, but invalid historical metadata is not grandfathered.
+byte immutability, but historical records with invalid metadata, stale
+links, or oversize bodies are not grandfathered.
 Supply `--baseline` only with the reviewed commit recorded before migrating a
 legacy Canon; keep that commit pinned in subsequent validation.
 

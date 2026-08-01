@@ -8,15 +8,16 @@ usage: canon-doctor.py [--root DIR] [--json] [--strict] [--baseline REV]
 
 Checks (error -> exit 1, warn -> reported only):
 
-  structure          required core files exist                         error
-  frontmatter        permanent pages use the compact metadata schema   error
-  manifest           every normative page is routed; routes resolve    error
-  links              local Markdown and metadata links resolve         error
-  validation         declared repository evidence paths safely exist   error
-  line-caps          permanent pages stay within size limits            error
-  scratch-ignored    canon/scratch/ is ignored and never routed         error
-  inventory-smell    prose appears to mirror implementation files       warn
-  changelog-smell    current rules contain dated change narration       warn
+  structure               required core files exist                       error
+  frontmatter             permanent pages use the compact metadata schema error
+  manifest                every normative page is routed; routes resolve  error
+  links                   local Markdown and metadata links resolve       error
+  validation              declared repository evidence paths safely exist error
+  line-caps / size-caps   permanent pages stay within size limits         error
+  decision-immutability   committed decision records keep their bytes     error
+  scratch-ignored         canon/scratch/ is ignored and never routed      error
+  inventory-smell         prose appears to mirror implementation files    warn
+  changelog-smell         current rules contain dated change narration    warn
 
 The doctor deliberately does not compare source-file changes with Canon.
 Behavior-preserving implementation changes have no Canon impact.
@@ -134,6 +135,7 @@ def baseline_decisions(
         "ls-tree",
         "-r",
         "--name-only",
+        "-z",
         revision,
         "--",
         decision_root.as_posix(),
@@ -143,7 +145,7 @@ def baseline_decisions(
 
     result: dict[str, bytes] = {}
     canon_prefix = prefix / "canon"
-    for repository_path in listing.splitlines():
+    for repository_path in filter(None, listing.split("\0")):
         path = Path(repository_path)
         if path.suffix != ".md":
             continue
@@ -473,22 +475,28 @@ def main() -> int:
         if legacy_error:
             add("decision-immutability", "error", legacy_error)
 
+    reported_decisions: set[str] = set()
+
     def verify_decisions(records: dict[str, bytes], label: str) -> set[str]:
         unchanged = set()
         for rel, original in sorted(records.items()):
             path = canon / rel
             if path.is_symlink() or not path.is_file():
-                add(
-                    "decision-immutability",
-                    "error",
-                    f"{rel} existed at {label} but is missing or unsafe",
-                )
+                if rel not in reported_decisions:
+                    reported_decisions.add(rel)
+                    add(
+                        "decision-immutability",
+                        "error",
+                        f"{rel} existed at {label} but is missing or unsafe",
+                    )
             elif path.read_bytes() != original:
-                add(
-                    "decision-immutability",
-                    "error",
-                    f"{rel} differs from its immutable bytes at {label}",
-                )
+                if rel not in reported_decisions:
+                    reported_decisions.add(rel)
+                    add(
+                        "decision-immutability",
+                        "error",
+                        f"{rel} differs from its immutable bytes at {label}",
+                    )
             else:
                 unchanged.add(rel)
         return unchanged
@@ -515,23 +523,26 @@ def main() -> int:
             add("structure", "error", f"{rel} must not be a symlink")
             continue
         body = path.read_text(errors="replace")
-        line_count = len(body.splitlines())
-        if line_count > MAX_LINES:
-            add(
-                "line-caps",
-                "error",
-                f"{rel} has {line_count} lines (max {MAX_LINES})",
-            )
-        size = path.stat().st_size
-        if size > MAX_BYTES:
-            add("size-caps", "error", f"{rel} has {size} bytes (max {MAX_BYTES})")
-
-        frontmatter = parse_frontmatter(body)
-        metadata[path] = frontmatter
         is_decision = relative.parts[0] == "decisions"
+        # A grandfathered decision's bytes are immutable, so schema, cap, and
+        # link findings against it could never be repaired; skip them all.
         is_grandfathered_decision = is_decision and rel in legacy_unchanged
         if is_grandfathered_decision:
             grandfathered_decisions.add(rel)
+        if not is_grandfathered_decision:
+            line_count = len(body.splitlines())
+            if line_count > MAX_LINES:
+                add(
+                    "line-caps",
+                    "error",
+                    f"{rel} has {line_count} lines (max {MAX_LINES})",
+                )
+            size = path.stat().st_size
+            if size > MAX_BYTES:
+                add("size-caps", "error", f"{rel} has {size} bytes (max {MAX_BYTES})")
+
+        frontmatter = parse_frontmatter(body)
+        metadata[path] = frontmatter
         if frontmatter is None:
             if is_decision:
                 normative_files.append(path)
@@ -564,9 +575,9 @@ def main() -> int:
                 )
             elif status == "normative":
                 normative_files.append(path)
-            if path.name == "manifest.md" and status != "reference":
+            if rel == "manifest.md" and status != "reference":
                 add("frontmatter", "error", "manifest.md must have status: reference")
-            if path.name == "standards.md" and status != "normative":
+            if rel == "standards.md" and status != "normative":
                 add("frontmatter", "error", "standards.md must have status: normative")
             if is_decision and status not in (None, "normative"):
                 add(
@@ -688,8 +699,9 @@ def main() -> int:
                     "warn",
                     f"{rel} appears to enumerate {len(source_references)} implementation files",
                 )
-        for issue in markdown_link_issues(canon, path, body):
-            add("links", "error", f"{rel}: {issue}")
+        if not is_grandfathered_decision:
+            for issue in markdown_link_issues(canon, path, body):
+                add("links", "error", f"{rel}: {issue}")
 
     supersession_graph: dict[str, set[str]] = {}
     for path, frontmatter in metadata.items():

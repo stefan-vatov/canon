@@ -26,7 +26,7 @@
     {
       "id": "invariant_validation_linked",
       "glob": "canon/architecture/inventory.md",
-      "must_regex": "(?s)status:\\s*normative.*scope:.*validation:",
+      "must_regex": "(?sm)(?=.*^status:\\s*normative)(?=.*^scope:)(?=.*^validation:)",
       "forbid_regex": "(?m)^(?:sources|verified):",
       "description": "the changed guarantee stays linked to executable validation"
     },

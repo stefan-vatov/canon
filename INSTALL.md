@@ -598,8 +598,9 @@ changelog-style prose.
 For a migrated Canon with legacy decision records, add
 `--baseline "$MIGRATION_BASE"` to every normal and strict doctor invocation.
 Keep that reviewed commit reachable; the doctor uses it only to grandfather
-unchanged historical decision metadata and still protects every decision
-present at the current `HEAD`.
+unchanged historical decision records — their legacy metadata, stale links,
+and oversize bodies are all waived, since immutable bytes could never be
+repaired — and still protects every decision present at the current `HEAD`.
 
 Then run the release gate:
 
