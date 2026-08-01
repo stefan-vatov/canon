@@ -39,9 +39,9 @@ test -z "$(git -C "$CANON" status --porcelain --untracked-files=all)" || {
   printf 'Generated artifacts were stale at the selected revision\n' >&2
   exit 1
 }
-FRESHNESS="$(uv run --script "$CANON/tools/build.py")" || exit 1
-printf '%s\n' "$FRESHNESS"
-if printf '%s\n' "$FRESHNESS" | grep -q '^wrote'; then
+BUILD_OUTPUT="$(uv run --script "$CANON/tools/build.py")" || exit 1
+printf '%s\n' "$BUILD_OUTPUT"
+if printf '%s\n' "$BUILD_OUTPUT" | grep -q '^wrote'; then
   printf 'Generated artifacts did not stabilize after rebuild\n' >&2
   exit 1
 fi
@@ -59,21 +59,12 @@ locally.
 | Agent | Source artifact | Target path |
 |---|---|---|
 | Claude Code | `dist/CLAUDE.md` | `CLAUDE.md` |
-| Codex or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
-| Codex full system prompt (experimental) | `dist/.codex/system.md` and `dist/.codex/config.toml` | `.codex/` |
-| Pi | `dist/.pi/APPEND_SYSTEM.md` | `.pi/APPEND_SYSTEM.md` |
+| Codex, Pi, or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
 
-For Codex, choose either `AGENTS.md` or the full system-prompt integration.
-Installing both repeats the same Canon guidance. For tools not listed here,
-use `AGENTS.md` only when that tool's current documentation says it loads the
-file.
-
-The full Codex system artifact replaces the model instructions file with a
-vendored base prompt and is therefore coupled to a Codex release. It is an
-experimental integration, not a release-agnostic default. Prefer `AGENTS.md`
-unless you have synchronized and tested `templates/codex-base.md` against the
-exact Codex CLI release you deploy. Project `.codex/config.toml` also loads only
-after Codex trusts the repository.
+Canon ships exclusively as repository instruction files. Pi 0.83 and later
+loads a project `AGENTS.md` natively, so Pi uses the `AGENTS.md` integration
+with no Pi-specific file. For tools not listed here, use `AGENTS.md` only when
+that tool's current documentation says it loads the file.
 
 Every `dist/` artifact is generated. Never edit `dist/` in the Canon checkout.
 
@@ -97,7 +88,7 @@ for your agent.
 )
 ```
 
-### Codex with `AGENTS.md`
+### Codex, Pi, or another `AGENTS.md` reader
 
 ```sh
 (
@@ -109,50 +100,6 @@ for your agent.
   fi
   cp "$CANON/dist/AGENTS.md" "$destination"
   cmp -s "$CANON/dist/AGENTS.md" "$destination"
-)
-```
-
-### Codex with the full system prompt
-
-Use this only after accepting the version-coupling warning above and only when
-the entire `.codex/` directory is absent:
-
-```sh
-(
-  set -eu
-  destination="$TARGET/.codex"
-  if test -e "$destination" || test -L "$destination"; then
-    printf 'Refusing existing target: %s\n' "$destination" >&2
-    exit 1
-  fi
-  mkdir "$destination"
-  trap 'rm -rf "$destination"' EXIT
-  trap 'exit 1' HUP INT TERM
-  cp "$CANON/dist/.codex/config.toml" "$destination/config.toml"
-  cp "$CANON/dist/.codex/system.md" "$destination/system.md"
-  cmp -s "$CANON/dist/.codex/config.toml" "$destination/config.toml"
-  cmp -s "$CANON/dist/.codex/system.md" "$destination/system.md"
-  trap - EXIT HUP INT TERM
-)
-```
-
-### Pi
-
-```sh
-(
-  set -eu
-  destination="$TARGET/.pi/APPEND_SYSTEM.md"
-  test ! -L "$TARGET/.pi" || {
-    printf 'Refusing symlinked directory: %s\n' "$TARGET/.pi" >&2
-    exit 1
-  }
-  mkdir -p "$TARGET/.pi"
-  if test -e "$destination" || test -L "$destination"; then
-    printf 'Refusing existing target: %s\n' "$destination" >&2
-    exit 1
-  fi
-  cp "$CANON/dist/.pi/APPEND_SYSTEM.md" "$destination"
-  cmp -s "$CANON/dist/.pi/APPEND_SYSTEM.md" "$destination"
 )
 ```
 
@@ -174,11 +121,8 @@ BACKUP_DIR="$(
   trap 'exit 1' HUP INT TERM
 
   for path in \
-    "$TARGET/.codex" \
-    "$TARGET/.pi" \
     "$TARGET/AGENTS.md" \
-    "$TARGET/CLAUDE.md" \
-    "$TARGET/.pi/APPEND_SYSTEM.md"
+    "$TARGET/CLAUDE.md"
   do
     test ! -L "$path" || {
       printf 'Refusing symlinked integration path: %s\n' "$path" >&2
@@ -190,16 +134,6 @@ BACKUP_DIR="$(
     cp -p "$TARGET/AGENTS.md" "$backup/AGENTS.md"
   test ! -e "$TARGET/CLAUDE.md" || \
     cp -p "$TARGET/CLAUDE.md" "$backup/CLAUDE.md"
-
-  if test -e "$TARGET/.codex"; then
-    cp -Rp "$TARGET/.codex" "$backup/.codex"
-  fi
-
-  if test -e "$TARGET/.pi/APPEND_SYSTEM.md"; then
-    mkdir -p "$backup/.pi"
-    cp -p "$TARGET/.pi/APPEND_SYSTEM.md" \
-      "$backup/.pi/APPEND_SYSTEM.md"
-  fi
 
   trap - EXIT HUP INT TERM
   printf '%s\n' "$backup"
@@ -216,9 +150,9 @@ the target repository or commit it.
 
 ## Merge into an existing instruction file
 
-Use a delimited managed block for an existing `AGENTS.md`, `CLAUDE.md`, Pi
-append-system file, or custom Codex system prompt. Repository-specific text
-stays outside the block. Future upgrades replace only the block.
+Use a delimited managed block for an existing `AGENTS.md` or `CLAUDE.md`.
+Repository-specific text stays outside the block. Future upgrades replace only
+the block.
 
 Define this helper in the current shell:
 
@@ -280,210 +214,13 @@ canon_merge_block "$TARGET/AGENTS.md" "$CANON/dist/AGENTS.md"
 
 # Existing CLAUDE.md
 canon_merge_block "$TARGET/CLAUDE.md" "$CANON/dist/CLAUDE.md"
-
-# Existing Pi append-system file
-canon_merge_block \
-  "$TARGET/.pi/APPEND_SYSTEM.md" \
-  "$CANON/dist/.pi/APPEND_SYSTEM.md"
 ```
 
 The helper refuses symlinks, missing files, duplicate markers, and unmatched
 markers. Review the resulting diff before continuing:
 
 ```sh
-git -C "$TARGET" diff -- AGENTS.md CLAUDE.md .pi/APPEND_SYSTEM.md
-```
-
-## Merge into an existing `.codex/`
-
-Never copy a directory over an existing `.codex/`. Back up the directory first,
-then use the case that matches its configuration. The backup preflight refuses
-a symlinked `.codex/`; do not bypass that containment check.
-
-### Existing `.codex/` with no `config.toml`
-
-Install a separate Canon-owned system prompt and create only the missing
-configuration file. Existing `.codex/` contents remain untouched.
-
-```sh
-(
-  set -eu
-  codex="$TARGET/.codex"
-  prompt="$codex/canon-system.md"
-  config="$codex/config.toml"
-  if test -L "$codex" || test ! -d "$codex"; then
-    printf 'Refusing missing, symlinked, or non-directory path: %s\n' "$codex" >&2
-    exit 1
-  fi
-  if test -e "$config" || test -L "$config"; then
-    printf 'config.toml already exists; use the next section\n' >&2
-    exit 1
-  fi
-  if test -e "$prompt" || test -L "$prompt"; then
-    printf 'canon-system.md already exists; refusing overwrite\n' >&2
-    exit 1
-  fi
-  trap 'rm -f "$prompt" "$config"' EXIT
-  trap 'exit 1' HUP INT TERM
-  cp "$CANON/dist/.codex/system.md" "$prompt"
-  printf '%s\n' 'model_instructions_file = "canon-system.md"' > "$config"
-  cmp -s "$CANON/dist/.codex/system.md" "$prompt"
-  trap - EXIT HUP INT TERM
-)
-```
-
-Record that this procedure created `config.toml`; uninstall uses that fact to
-decide whether an empty configuration file may be removed.
-
-### Existing `config.toml` without `model_instructions_file`
-
-First confirm the key is absent. No output means this case applies:
-
-```sh
-grep -nE "^[[:space:]]*(model_instructions_file|'model_instructions_file'|\"model_instructions_file\")[[:space:]]*=" \
-  "$TARGET/.codex/config.toml" || true
-```
-
-Define this helper. It inserts the Canon key before the first TOML table, so it
-is a top-level setting, and refuses any existing key:
-
-```sh
-canon_add_codex_key() {
-  python3 - "$1" <<'PY'
-from pathlib import Path
-import os
-import re
-import stat
-import sys
-import tempfile
-
-target = Path(sys.argv[1])
-needle = 'model_instructions_file = "canon-system.md"'
-pattern = re.compile(
-    r"(?m)^\s*(?:model_instructions_file|\"model_instructions_file\"|"
-    r"'model_instructions_file')\s*="
-)
-
-if target.is_symlink() or not target.is_file():
-    raise SystemExit(f"refusing non-regular config: {target}")
-original = target.read_text(encoding="utf-8")
-if pattern.search(original):
-    raise SystemExit("model_instructions_file already exists; refusing duplicate key")
-
-merged = needle + "\n\n" + original
-descriptor, temporary_name = tempfile.mkstemp(
-    prefix=f".{target.name}.canon-", dir=target.parent
-)
-try:
-    with os.fdopen(descriptor, "w", encoding="utf-8") as temporary:
-        temporary.write(merged)
-    os.chmod(temporary_name, stat.S_IMODE(target.stat().st_mode))
-    os.replace(temporary_name, target)
-finally:
-    if os.path.exists(temporary_name):
-        os.unlink(temporary_name)
-PY
-}
-```
-
-Then install the separate prompt and add the key:
-
-```sh
-(
-  set -eu
-  codex="$TARGET/.codex"
-  prompt="$codex/canon-system.md"
-  if test -L "$codex" || test ! -d "$codex"; then
-    printf 'Refusing missing, symlinked, or non-directory path: %s\n' "$codex" >&2
-    exit 1
-  fi
-  if test -e "$prompt" || test -L "$prompt"; then
-    printf 'canon-system.md already exists; refusing overwrite\n' >&2
-    exit 1
-  fi
-  trap 'rm -f "$prompt"' EXIT
-  trap 'exit 1' HUP INT TERM
-  cp "$CANON/dist/.codex/system.md" "$prompt"
-  canon_add_codex_key "$TARGET/.codex/config.toml"
-  cmp -s "$CANON/dist/.codex/system.md" "$prompt"
-  trap - EXIT HUP INT TERM
-)
-```
-
-### Existing `config.toml` with `model_instructions_file`
-
-Keep the existing key and merge Canon into the system prompt it already names.
-Do not replace the configured prompt.
-
-```sh
-grep -nE "^[[:space:]]*(model_instructions_file|'model_instructions_file'|\"model_instructions_file\")[[:space:]]*=" \
-  "$TARGET/.codex/config.toml"
-```
-
-Codex resolves a relative `model_instructions_file` from the `.codex/` folder
-containing `config.toml`, so the shipped configuration uses `system.md`.
-The resolver below accepts one unescaped, single-line quoted path and refuses
-ambiguous TOML instead of copying configuration text into the shell. This
-matches the common Codex form while failing safely for advanced TOML syntax:
-
-```sh
-canon_codex_system_path() {
-  python3 - "$1" <<'PY'
-from pathlib import Path
-import re
-import sys
-
-config = Path(sys.argv[1])
-if config.is_symlink() or not config.is_file():
-    raise SystemExit(f"refusing missing, symlinked, or non-file config: {config}")
-codex = config.parent
-if codex.is_symlink() or not codex.is_dir():
-    raise SystemExit(f"refusing symlinked or non-directory path: {codex}")
-codex = codex.resolve(strict=True)
-
-key = r"(?:model_instructions_file|\"model_instructions_file\"|'model_instructions_file')"
-assignment = re.compile(
-    rf"^\s*{key}\s*=\s*([\"'])([^\"'\\\n]+)\1\s*(?:#.*)?$"
-)
-matches = []
-for line in config.read_text(encoding="utf-8").splitlines():
-    if re.match(r"^\s*\[", line):
-        break
-    match = assignment.match(line)
-    if match:
-        matches.append(match.group(2))
-if len(matches) != 1:
-    raise SystemExit("refusing absent, duplicate, escaped, or non-simple top-level path")
-
-raw = Path(matches[0])
-candidate = raw if raw.is_absolute() else codex / raw
-if candidate.is_symlink() or not candidate.is_file():
-    raise SystemExit(f"refusing missing, symlinked, or non-file prompt: {candidate}")
-resolved = candidate.resolve(strict=True)
-try:
-    resolved.relative_to(codex)
-except ValueError:
-    raise SystemExit(f"refusing prompt outside .codex/: {resolved}")
-print(resolved)
-PY
-}
-
-SYSTEM_PATH="$(canon_codex_system_path "$TARGET/.codex/config.toml")" || exit 1
-
-canon_merge_block "$SYSTEM_PATH" "$CANON/dist/AGENTS.md"
-```
-
-If the configured prompt resolves outside `.codex/`, the containment check
-refuses it. Use the `AGENTS.md` integration or perform a separately reviewed
-manual merge; do not weaken the check in a copy-paste install.
-
-These path and trust semantics come from the official
-[Codex project-config documentation](https://developers.openai.com/codex/config-advanced#project-config-files-codexconfigtoml).
-
-Review both files after any `.codex/` merge:
-
-```sh
-git -C "$TARGET" diff -- .codex/config.toml .codex
+git -C "$TARGET" diff -- AGENTS.md CLAUDE.md
 ```
 
 ## Verify the integration wiring
@@ -499,25 +236,8 @@ test "$(grep -Fxc '<!-- BEGIN PROJECT CANON -->' "$MERGED_FILE")" -eq 1
 test "$(grep -Fxc '<!-- END PROJECT CANON -->' "$MERGED_FILE")" -eq 1
 ```
 
-For a separate prompt added to an existing `.codex/`, verify its bytes and the
-exact relative key:
-
-```sh
-cmp -s \
-  "$CANON/dist/.codex/system.md" \
-  "$TARGET/.codex/canon-system.md"
-grep -Fxn 'model_instructions_file = "canon-system.md"' \
-  "$TARGET/.codex/config.toml"
-```
-
-If Canon was merged into an existing configured prompt, run the marker check
-with `MERGED_FILE="$SYSTEM_PATH"`. Inspect the surrounding repository-specific
-text as well; byte comparison applies only to Canon-owned whole files.
-
-For the full Codex integration, open a fresh session from the target root.
-Trust the project only after reviewing it. Codex ignores project `.codex/`
-configuration in untrusted repositories, so the absence of a startup warning
-about ignored project configuration is part of the load check.
+Inspect the surrounding repository-specific text as well; byte comparison
+applies only to Canon-owned whole files.
 
 ## Bootstrap Canon in the first session
 
@@ -630,8 +350,8 @@ git -C "$TARGET" diff --cached --no-ext-diff
 listed by `git status` before staging it.
 
 Doctor validates `canon/`; it does not prove that the agent launcher loaded
-`AGENTS.md`, `CLAUDE.md`, `.codex/`, or Pi configuration. The fresh-session
-bootstrap behavior is that end-to-end check.
+`AGENTS.md` or `CLAUDE.md`. The fresh-session bootstrap behavior is that
+end-to-end check.
 
 ## Upgrade Canon
 
@@ -648,9 +368,9 @@ test -z "$(git -C "$CANON" status --porcelain --untracked-files=all)" || {
   printf 'Generated artifacts are stale at the upgrade revision\n' >&2
   exit 1
 }
-FRESHNESS="$(uv run --script "$CANON/tools/build.py")" || exit 1
-printf '%s\n' "$FRESHNESS"
-printf '%s\n' "$FRESHNESS" | grep -q '^wrote' && exit 1
+BUILD_OUTPUT="$(uv run --script "$CANON/tools/build.py")" || exit 1
+printf '%s\n' "$BUILD_OUTPUT"
+printf '%s\n' "$BUILD_OUTPUT" | grep -q '^wrote' && exit 1
 CANON_REF="$(git -C "$CANON" rev-parse HEAD)" || exit 1
 printf 'Upgrading Canon from %s to %s\n' "$INSTALLED_REF" "$CANON_REF"
 ```
@@ -738,54 +458,10 @@ canon_replace_owned \
 canon_replace_owned \
   "$TARGET/CLAUDE.md" dist/CLAUDE.md "$INSTALLED_REF" \
   "$CANON/dist/CLAUDE.md"
-
-# Canon-owned Pi file
-canon_replace_owned \
-  "$TARGET/.pi/APPEND_SYSTEM.md" \
-  dist/.pi/APPEND_SYSTEM.md \
-  "$INSTALLED_REF" \
-  "$CANON/dist/.pi/APPEND_SYSTEM.md"
-```
-
-For a Canon-owned `.codex/` installed into an absent directory, verify both
-owned files before replacing either:
-
-```sh
-canon_assert_owned \
-  "$TARGET/.codex/config.toml" \
-  dist/.codex/config.toml \
-  "$INSTALLED_REF" && \
-canon_assert_owned \
-  "$TARGET/.codex/system.md" \
-  dist/.codex/system.md \
-  "$INSTALLED_REF" && \
-canon_replace_owned \
-  "$TARGET/.codex/config.toml" \
-  dist/.codex/config.toml \
-  "$INSTALLED_REF" \
-  "$CANON/dist/.codex/config.toml" && \
-canon_replace_owned \
-  "$TARGET/.codex/system.md" \
-  dist/.codex/system.md \
-  "$INSTALLED_REF" \
-  "$CANON/dist/.codex/system.md"
-```
-
-For `canon-system.md` installed alongside an existing `.codex/`, its bytes
-come from `dist/.codex/system.md`:
-
-```sh
-canon_replace_owned \
-  "$TARGET/.codex/canon-system.md" \
-  dist/.codex/system.md \
-  "$INSTALLED_REF" \
-  "$CANON/dist/.codex/system.md"
 ```
 
 If an ownership guard refuses a Markdown file, do not overwrite it. Restore the
-backup, identify the local rules, and use the managed-block procedure. Never
-put Markdown markers in `.codex/config.toml`; preserve its TOML and use the
-matching existing-configuration procedure instead.
+backup, identify the local rules, and use the managed-block procedure.
 
 ### Upgrade a managed block
 
@@ -832,42 +508,6 @@ canon_restore_file() {
 # Choose only the integration you are restoring.
 canon_restore_file "$BACKUP_DIR/AGENTS.md" "$TARGET/AGENTS.md"
 canon_restore_file "$BACKUP_DIR/CLAUDE.md" "$TARGET/CLAUDE.md"
-canon_restore_file \
-  "$BACKUP_DIR/.pi/APPEND_SYSTEM.md" \
-  "$TARGET/.pi/APPEND_SYSTEM.md"
-```
-
-To restore an existing `.codex/` exactly while preserving the failed current
-state for inspection:
-
-```sh
-(
-  set -eu
-  backup="$BACKUP_DIR/.codex"
-  destination="$TARGET/.codex"
-  current="$(mktemp -d "${TARGET%/}.canon-rollback-current.XXXXXX")"
-
-  if test -L "$backup" || test ! -d "$backup"; then
-    printf 'Refusing missing, symlinked, or non-directory backup: %s\n' "$backup" >&2
-    exit 1
-  fi
-  if test -L "$destination"; then
-    printf 'Refusing symlinked current path: %s\n' "$destination" >&2
-    exit 1
-  fi
-  if test -e "$destination" && test ! -d "$destination"; then
-    printf 'Refusing non-directory current path: %s\n' "$destination" >&2
-    exit 1
-  fi
-
-  if test -d "$destination"; then
-    mv "$destination" "$current/.codex"
-    printf 'Failed .codex state preserved at %s\n' "$current/.codex"
-  else
-    printf 'No current .codex state to preserve\n'
-  fi
-  cp -Rp "$backup" "$destination"
-)
 ```
 
 If the integration path did not exist before installation, rollback is the
@@ -932,12 +572,6 @@ Run it on the merged target:
 ```sh
 canon_remove_block "$TARGET/AGENTS.md"
 canon_remove_block "$TARGET/CLAUDE.md"
-canon_remove_block "$TARGET/.pi/APPEND_SYSTEM.md"
-
-# Existing Codex system prompt only: first re-define
-# canon_codex_system_path from the install section.
-SYSTEM_PATH="$(canon_codex_system_path "$TARGET/.codex/config.toml")" || exit 1
-canon_remove_block "$SYSTEM_PATH"
 ```
 
 Choose only the command for the installed integration. Review the diff before
@@ -949,7 +583,8 @@ Set `INSTALLED_REF` to the Canon revision currently installed and re-define
 `canon_assert_owned`. Then verify before deleting:
 
 The artifact paths below apply to installations made after this repository
-adopted the `dist/` layout. For an older recorded revision, inspect that
+adopted the `dist/` layout. For an older recorded revision — including a
+retired integration that this repository no longer generates — inspect that
 revision's tree and supply its historical artifact path; a missing path is a
 safe refusal, not permission to delete.
 
@@ -960,97 +595,11 @@ canon_assert_owned "$TARGET/AGENTS.md" dist/AGENTS.md "$INSTALLED_REF" && \
 
 canon_assert_owned "$TARGET/CLAUDE.md" dist/CLAUDE.md "$INSTALLED_REF" && \
   rm "$TARGET/CLAUDE.md"
-
-canon_assert_owned \
-  "$TARGET/.pi/APPEND_SYSTEM.md" \
-  dist/.pi/APPEND_SYSTEM.md \
-  "$INSTALLED_REF" && \
-  rm "$TARGET/.pi/APPEND_SYSTEM.md"
-rmdir "$TARGET/.pi" 2>/dev/null || true
 ```
 
 The guard refuses removal if the file differs from the recorded artifact. Do
 not bypass that refusal: preserve local rules and remove only the Canon text
 through a reviewed merge.
-
-For a Canon-owned `.codex/` installed into an absent directory, verify both
-files before removing either:
-
-```sh
-canon_assert_owned \
-  "$TARGET/.codex/config.toml" \
-  dist/.codex/config.toml \
-  "$INSTALLED_REF" && \
-canon_assert_owned \
-  "$TARGET/.codex/system.md" \
-  dist/.codex/system.md \
-  "$INSTALLED_REF" && \
-rm "$TARGET/.codex/config.toml" "$TARGET/.codex/system.md"
-rmdir "$TARGET/.codex" 2>/dev/null || \
-  printf 'Kept non-empty .codex/ directory\n'
-```
-
-### Remove `canon-system.md` from an existing `.codex/`
-
-First verify the owned prompt against `dist/.codex/system.md` at
-`INSTALLED_REF`. Then remove the exact top-level key Canon added. The helper
-preserves an empty `config.toml`; remove that file afterward only if your
-installation record proves Canon created it:
-
-```sh
-canon_remove_codex_key() {
-  python3 - "$1" <<'PY'
-from pathlib import Path
-import os
-import stat
-import sys
-import tempfile
-
-target = Path(sys.argv[1])
-prefix = 'model_instructions_file = "canon-system.md"\n'
-
-if target.is_symlink() or not target.is_file():
-    raise SystemExit(f"refusing non-regular config: {target}")
-original = target.read_text(encoding="utf-8")
-if not original.startswith(prefix):
-    raise SystemExit("refusing config not prefixed by Canon's exact key")
-
-updated = original[len(prefix):]
-if updated.startswith("\n"):
-    updated = updated[1:]
-
-descriptor, temporary_name = tempfile.mkstemp(
-    prefix=f".{target.name}.canon-", dir=target.parent
-)
-try:
-    with os.fdopen(descriptor, "w", encoding="utf-8") as temporary:
-        temporary.write(updated)
-    os.chmod(temporary_name, stat.S_IMODE(target.stat().st_mode))
-    os.replace(temporary_name, target)
-finally:
-    if os.path.exists(temporary_name):
-        os.unlink(temporary_name)
-PY
-}
-
-# Set to 1 only when the recorded install created config.toml.
-CANON_CREATED_CONFIG=0
-
-(
-  set -eu
-  canon_assert_owned \
-    "$TARGET/.codex/canon-system.md" \
-    dist/.codex/system.md \
-    "$INSTALLED_REF"
-  canon_remove_codex_key "$TARGET/.codex/config.toml"
-  rm "$TARGET/.codex/canon-system.md"
-  if test "$CANON_CREATED_CONFIG" = 1 && \
-      test ! -s "$TARGET/.codex/config.toml"; then
-    rm "$TARGET/.codex/config.toml"
-  fi
-  rmdir "$TARGET/.codex" 2>/dev/null || true
-)
-```
 
 ### Decide separately whether to remove `canon/`
 
@@ -1071,18 +620,11 @@ check.
 The absent-target command found a file or directory. Back it up and use the
 matching merge procedure; do not delete it to make the copy command pass.
 
-### `model_instructions_file already exists`
-
-Keep that key. Resolve its path and merge the managed Canon block into the
-existing system prompt.
-
 ### `Refusing locally modified or ambiguous target`
 
 The whole-file ownership proof failed. Confirm `INSTALLED_REF`. If the file
-is Markdown and contains local rules, preserve them and use a reviewed managed
-block. Never put Markdown markers in `.codex/config.toml`; preserve its TOML
-and follow the existing-configuration procedure. Never force replacement or
-removal.
+contains local rules, preserve them and use a reviewed managed block. Never
+force replacement or removal.
 
 ### Doctor reports warnings but the command succeeds
 
@@ -1105,8 +647,8 @@ explicitly non-exhaustive and materially improve comprehension.
 
 ## For Project Canon maintainers
 
-`dist/` is generated from `canon-core.md`, `templates/codex-base.md`, and
-`templates/codex-config.toml`. After changing a source, run:
+`dist/CLAUDE.md` and `dist/AGENTS.md` are generated from `canon-core.md`.
+After changing the core, run:
 
 ```sh
 uv run --script tools/build.py

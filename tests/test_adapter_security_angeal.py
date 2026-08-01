@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ADAPTERS = {
     "codex": (ROOT / "evals/adapters/codex.sh", Path("AGENTS.md")),
     "claude": (ROOT / "evals/adapters/claude.sh", Path("CLAUDE.md")),
-    "pi": (ROOT / "evals/adapters/pi.sh", Path(".pi/APPEND_SYSTEM.md")),
+    "pi": (ROOT / "evals/adapters/pi.sh", Path("AGENTS.md")),
 }
 PRIVATE_ENV = {
     "JUDGE_CMD", "IMPROVER_CMD", "ROOT", "EVALS", "SCEN_DIR",

@@ -32,7 +32,50 @@ on a machine where the named archive has been retained.
 
 ## Current accepted baseline
 
-### 2026-07-24 — invariant-first guidance adopted
+### 2026-08-01 — minimal AGENTS.md-only guidance adopted
+
+**Question.** After removing every system-prompt delivery path (Canon now
+ships only as generated `CLAUDE.md`/`AGENTS.md`), can a much smaller guidance
+core keep cross-model Canon behavior at the accepted level?
+
+**Decision.** Adopt the 3,511-byte core (36% of the 9,789-byte predecessor).
+Same-wave three-arm comparison (prior core, a 5,193-byte compact candidate,
+and the adopted candidate) plus an absolute cross-model readiness check.
+
+**Comparison key.** Seven isolated worker lanes ran the five discriminating
+scenarios (`02-feature`, `05-impact` ×3 runs, `08-routing`, `09-abstention`,
+three-session `10-supersede`). Matched three-arm lanes: `gpt-5.6-terra`/medium
+(Codex), `zai/glm-5.1:medium` (Pi), `claude-sonnet-5` (Claude Code);
+candidate-only lanes: `gpt-5.6-sol`/high, `deepseek/deepseek-v4-pro:medium`,
+`minimax/MiniMax-M3:medium`, `claude-haiku-4-5`. 70 judged batches, then a
+3-run tie-break wave on `10-supersede` (GLM and Sonnet) that selected a
+sharpened supersession rule. Judge: `claude -p --model claude-opus-5`, pinned
+for the whole wave. Not numerically comparable with the 2026-07-24
+Gemini-judged entry.
+
+**Decisive result.** `gpt-5.6-terra` scored 1.000/1.000 on all five scenarios
+for all three arms; `gpt-5.6-sol` passed 5/5 on the adopted-lineage candidate.
+Every sub-ceiling cell on Claude/Pi lanes failed identically under the prior
+core in the same wave (`02-feature` `refund_contract_canonized`, 0.93/0.86 on
+Sonnet across all three arms), so no measured regression is attributable to
+minimization. Tie-break on `10-supersede` (3 runs/arm): adopted core mean
+0.97/0.97 on GLM and 0.94/0.97 on Sonnet, versus 0.91/0.92 and 0.98/0.92 for
+the prior core; floors 0.91/0.92 on both, matching the prior core's observed
+floor. Long-session compaction runs (04-memory-chain fixture, two forced
+compactions verified per session via `isCompactSummary` events) kept full
+Canon discipline on Sonnet; Haiku missed decision records in long sessions
+under the prior core and the candidate alike — a tier limit, recorded as a
+negative baseline, not a guidance regression.
+
+**Limitations.** Judge/worker family overlap on the Claude lanes; the Kimi
+K2.5 lane was dropped (OpenRouter 402, credits exhausted — the same failure
+discarded an earlier partial wave, rerun entirely under the pinned Claude
+judge); the previously unusable Claude eval adapter was repaired in the same
+change (`--allowedTools` for headless writes). Result bundles under
+`evals/results/20260801-*`; each batch's `guidance-used.md` is the
+adopted-bytes authority.
+
+### 2026-07-24 — invariant-first guidance adopted (superseded)
 
 **Question.** Is the invariant-first rework ready for release across capable
 and weaker live model tiers?

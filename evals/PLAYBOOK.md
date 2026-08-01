@@ -6,7 +6,16 @@ and adopt or recover safely. Run every command from the repository root.
 `evals/README.md` documents the harness and scenarios; `BASELINES.md` is the
 compact adoption ledger; `RESEARCH.md` records the evidence behind scenarios.
 
-## Current state: 2026-07-24
+## Current state: 2026-08-01
+
+The 2026-08-01 adoption replaced the guidance core with a 3,511-byte minimal
+version and removed every system-prompt delivery path: Canon ships only as
+the generated `dist/CLAUDE.md` and `dist/AGENTS.md` repository instruction
+files, the Pi adapter installs `AGENTS.md`, and the Claude adapter pre-allows
+core tools for headless runs. See `BASELINES.md` for the panel, judge change,
+and limits. The state notes below describe the 2026-07-24 rework they built on.
+
+## Prior state: 2026-07-24
 
 The current worktree contains the invariant-first rework:
 
@@ -26,8 +35,9 @@ The current worktree contains the invariant-first rework:
 - holdout tests run in disposable copies; fixture tests run in the per-run
   workspace under the configured test sandbox;
 - deterministic regressions cover Canon validation and eval integrity;
-- `canon-core.md` supplies the shared Canon section; `tools/build.py` combines
-  it with two templates to write five files under `dist/`.
+- `canon-core.md` supplies the shared Canon section; `tools/build.py` writes
+  `dist/CLAUDE.md` and `dist/AGENTS.md` from it. Canon ships only as
+  repository instruction files.
 
 The July 18 integrity work remains in place, but its model scores predate the
 new guidance, rubric, and scenario set. A live six-worker baseline was
@@ -122,8 +132,8 @@ print(f"validated {len(paths)} scenario JSON files")
 PY
 ```
 
-The first command currently ends with `Ran 55 tests` and `OK`. It invokes no
-model. The other commands validate Python syntax, shell syntax, and all
+The first command currently ends with `OK`; the reported test count evolves
+with the suite. It invokes no model. The other commands validate Python syntax, shell syntax, and all
 scenario JSON.
 
 ### Smoke-test the end-to-end plumbing without a model

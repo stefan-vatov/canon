@@ -1,24 +1,21 @@
 #!/usr/bin/env bash
 # Adapter: Pi. Env: WORKDIR, TASK_FILE, GUIDANCE_FILE, TRANSCRIPT.
 # Subcommands: install (place guidance, pre-baseline), run (execute agent).
-# NOTE: verify the headless invocation against your Pi version (`pi --help`);
-# adjust the `run` branch if the flag differs.
+# Guidance ships as AGENTS.md; Pi loads project AGENTS.md natively, so no
+# system-prompt append file is written.
 set -euo pipefail
 
 install_guidance() {
-  python3 - "$GUIDANCE_FILE" "$WORKDIR" <<'PY'
+  python3 - "$GUIDANCE_FILE" "$WORKDIR" "AGENTS.md" <<'PY'
 import os, secrets, shutil, stat, sys
-source, workdir = sys.argv[1:]; flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+source, workdir, target = sys.argv[1:]
+flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
 parts = [p for p in workdir.split(os.sep) if p not in ("", ".")]
 if ".." in parts: raise SystemExit("guidance destination may not contain '..'")
 directory = os.open(os.sep if os.path.isabs(workdir) else ".", flags); temporary = None
 try:
     for part in parts:
         child = os.open(part, flags, dir_fd=directory); os.close(directory); directory = child
-    try: os.mkdir(".pi", 0o755, dir_fd=directory)
-    except FileExistsError: pass
-    child = os.open(".pi", flags, dir_fd=directory); os.close(directory); directory = child
-    target = "APPEND_SYSTEM.md"
     try: target_stat = os.stat(target, dir_fd=directory, follow_symlinks=False)
     except FileNotFoundError: target_stat = None
     if target_stat is not None and not stat.S_ISREG(target_stat.st_mode):

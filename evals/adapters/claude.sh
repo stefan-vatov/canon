@@ -61,9 +61,12 @@ case "${1:-run}" in
     scrub_worker_env
     # stream-json keeps tool calls in the transcript so the judge can verify
     # Canon-read-before-exploration ordering. EVAL_MODEL pins the model.
+    # The workspace is a disposable eval sandbox; pre-allow the core tools so
+    # headless runs are not blocked on interactive permission prompts.
     args=(-p "$agent_prompt")
     [[ -z "$adapter_model" ]] || args+=(--model "$adapter_model")
     claude "${args[@]}" --verbose --output-format stream-json \
+      --allowedTools "Read,Write,Edit,Bash,Glob,Grep" \
       > "$transcript_path" 2>&1
     ;;
   *)

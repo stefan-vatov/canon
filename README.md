@@ -8,7 +8,7 @@
 ![Artifact](https://img.shields.io/badge/artifact-agent_config-2f6f4e.svg)
 ![Claude](https://img.shields.io/badge/claude-CLAUDE.md-555.svg)
 ![Codex](https://img.shields.io/badge/codex-AGENTS.md-555.svg)
-![Pi](https://img.shields.io/badge/pi-append_system-555.svg)
+![Pi](https://img.shields.io/badge/pi-AGENTS.md-555.svg)
 
 </div>
 
@@ -105,8 +105,8 @@ guessing, implementing, testing, or canonizing a value.
 ## Quick start
 
 This installs the generated `AGENTS.md` integration into a repository that
-does not already have one. For managed merges, upgrades, rollback, uninstall,
-or full Codex system-prompt installation, use [INSTALL.md](INSTALL.md).
+does not already have one. For managed merges, upgrades, rollback, or
+uninstall, use [INSTALL.md](INSTALL.md).
 
 ### Prerequisites
 
@@ -175,14 +175,12 @@ references, scratch boundary, and size limits pass.
 
 | Agent or harness | Source | Default destination |
 |---|---|---|
-| Codex or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
+| Codex, Pi, or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
 | Claude Code | `dist/CLAUDE.md` | `CLAUDE.md` |
-| Pi | `dist/.pi/APPEND_SYSTEM.md` | `.pi/APPEND_SYSTEM.md` |
-| Codex full system prompt | `dist/.codex/` | `.codex/` |
 
-All variants contain the same generated Canon contract. The full Codex prompt
-also vendors `templates/codex-base.md` and is release-sensitive; prefer
-`AGENTS.md` unless you test against the exact Codex CLI release.
+Both artifacts contain the same generated Canon contract. Pi 0.83 and later
+loads a project `AGENTS.md` natively, so Pi consumes the `AGENTS.md`
+integration with no Pi-specific file.
 
 ## Normal agent workflow
 
@@ -227,8 +225,8 @@ prose while preserving human standards and immutable decisions. Ask for a
 
 ## Maintain this repository
 
-`canon-core.md` is the source of every generated agent artifact under `dist/`.
-After changing the core or a template:
+`canon-core.md` is the source of both generated agent artifacts under `dist/`:
+`dist/CLAUDE.md` and `dist/AGENTS.md`. After changing the core:
 
 ```sh
 uv run --script tools/build.py
@@ -238,7 +236,7 @@ PYTHONDONTWRITEBYTECODE=1 \
 git diff --check
 ```
 
-The second build must report every artifact as `fresh`.
+The second build must report both artifacts as `fresh`.
 
 ## Documentation
 
