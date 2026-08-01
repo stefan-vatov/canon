@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only inventory for Project Canon compaction."""
+"""Read-only inventory for compact, invariant-first Project Canon repositories."""
 
 from __future__ import annotations
 
@@ -7,22 +7,31 @@ import argparse
 import hashlib
 import json
 import math
+import os
+import posixpath
 import re
-import subprocess
 from collections import Counter, defaultdict
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 
-CORE_FILES = {"overview.md", "glossary.md", "standards.md", "manifest.md"}
-SPECIAL_DIRS = {"decisions", "plans", "scratch"}
 MAX_BYTES = 64 * 1024
 MAX_LINES = 250
+MAX_OVERLAP_PAIRS = 100_000
+STATUSES = {"normative", "reference", "draft", "deprecated"}
+LEGACY_FIELDS = {"sources", "verified"}
 WORD_RE = re.compile(r"[a-z][a-z0-9_-]{2,}")
-LINK_RE = re.compile(r"\[[^\]]+\]\(([^)#?]+\.md)(?:#[^)]+)?\)")
-CANON_PATH_RE = re.compile(r"(?<![A-Za-z0-9_./-])canon/([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.md)")
+MANIFEST_LINK_RE = re.compile(
+    r"\[[^\]\n]+\]\(\s*(?:<(?P<angle>[^>]+)>|(?P<plain>[^\s)]+))"
+    r"(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*\)"
+)
+SOURCE_REFERENCE_RE = re.compile(
+    r"`[^`\n]*\.(?:c|cc|cpp|cs|exs?|go|java|jsx?|kt|php|py|rb|rs|swift|tsx?)"
+    r"(?::\d+)?`"
+)
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 FRONTMATTER_KEY_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
-PLAIN_STRING_RE = re.compile(r'''[A-Za-z0-9._/][^\s\[\]{},#&*!|>"`\\]*''')
+PLAIN_STRING_RE = re.compile(r'''[A-Za-z0-9._/@:+-][^\s\[\]{},#&*!|>"`\\]*''')
 IMPLICIT_NON_STRING_RE = re.compile(
     r"(?ix)(?:"
     r"null|~|true|false|yes|no|on|off|"
@@ -32,7 +41,6 @@ IMPLICIT_NON_STRING_RE = re.compile(
     r"[0-9]{4}-[0-9]{2}-[0-9]{2}(?:[tT ]\S+)?"
     r")"
 )
-FULL_COMMIT_ID_RE = re.compile(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})")
 STOP_WORDS = {
     "and", "are", "but", "canon", "file", "files", "for", "from", "has",
     "have", "into", "must", "not", "only", "project", "should", "that",
@@ -40,17 +48,62 @@ STOP_WORDS = {
 }
 
 
-def run_git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", "-C", str(root), *args],
-        text=True,
-        capture_output=True,
-        check=False,
+def is_escaped(text: str, index: int) -> bool:
+    backslashes = 0
+    index -= 1
+    while index >= 0 and text[index] == "\\":
+        backslashes += 1
+        index -= 1
+    return backslashes % 2 == 1
+
+
+def strip_inline_code(text: str) -> str:
+    """Blank CommonMark-style code spans while preserving line positions."""
+    characters = list(text)
+    index = 0
+    while index < len(text):
+        if text[index] != "`" or is_escaped(text, index):
+            index += 1
+            continue
+        opener_end = index
+        while opener_end < len(text) and text[opener_end] == "`":
+            opener_end += 1
+        width = opener_end - index
+        cursor = opener_end
+        closing_end = None
+        while cursor < len(text):
+            if text[cursor] != "`":
+                cursor += 1
+                continue
+            run_end = cursor
+            while run_end < len(text) and text[run_end] == "`":
+                run_end += 1
+            if run_end - cursor == width:
+                closing_end = run_end
+                break
+            cursor = run_end
+        if closing_end is None:
+            index = opener_end
+            continue
+        for position in range(index, closing_end):
+            if characters[position] != "\n":
+                characters[position] = " "
+        index = closing_end
+    return "".join(characters)
+
+
+def is_real_link(text: str, start: int) -> bool:
+    if is_escaped(text, start):
+        return False
+    return not (
+        start > 0
+        and text[start - 1] == "!"
+        and not is_escaped(text, start - 1)
     )
 
 
 def strip_yaml_comment(value: str) -> str | None:
-    quote: str | None = None
+    quote = None
     escaped = False
     skip_next = False
     for index, char in enumerate(value):
@@ -64,10 +117,15 @@ def strip_yaml_comment(value: str) -> str | None:
             escaped = True
             continue
         if quote:
+            if (
+                char == quote
+                and quote == "'"
+                and index + 1 < len(value)
+                and value[index + 1] == "'"
+            ):
+                skip_next = True
+                continue
             if char == quote:
-                if quote == "'" and index + 1 < len(value) and value[index + 1] == "'":
-                    skip_next = True
-                    continue
                 quote = None
             continue
         prefix = value[:index].rstrip()
@@ -78,7 +136,7 @@ def strip_yaml_comment(value: str) -> str | None:
     return None if quote or escaped else value.rstrip()
 
 
-def parse_yaml_scalar(raw: str, *, allow_full_commit: bool = False) -> str | None:
+def parse_yaml_scalar(raw: str) -> str | None:
     value = strip_yaml_comment(raw.strip())
     if value is None or not value:
         return None
@@ -93,7 +151,7 @@ def parse_yaml_scalar(raw: str, *, allow_full_commit: bool = False) -> str | Non
             return None
         inner = value[1:-1]
         index = 0
-        result: list[str] = []
+        result = []
         while index < len(inner):
             if inner[index] == "'":
                 if index + 1 >= len(inner) or inner[index + 1] != "'":
@@ -104,15 +162,12 @@ def parse_yaml_scalar(raw: str, *, allow_full_commit: bool = False) -> str | Non
                 result.append(inner[index])
                 index += 1
         return "".join(result)
-    if value.startswith(("[", "{", "&", "*", "!", "|", ">", "%", "@", "`")):
+    if value.startswith(("[", "{", "&", "*", "!", "|", ">", "%", "`")):
         return None
     if (
         value.endswith(("]", "}"))
         or re.search(r":(?:\s|$)", value)
-        or (
-            IMPLICIT_NON_STRING_RE.fullmatch(value)
-            and not (allow_full_commit and FULL_COMMIT_ID_RE.fullmatch(value))
-        )
+        or IMPLICIT_NON_STRING_RE.fullmatch(value)
         or not PLAIN_STRING_RE.fullmatch(value)
     ):
         return None
@@ -126,9 +181,9 @@ def parse_inline_list(raw: str) -> list[str] | None:
     inner = value[1:-1].strip()
     if not inner:
         return []
-    items: list[str] = []
+    items = []
     start = 0
-    quote: str | None = None
+    quote = None
     escaped = False
     index = 0
     while index < len(inner):
@@ -138,11 +193,15 @@ def parse_inline_list(raw: str) -> list[str] | None:
         elif quote == '"' and char == "\\":
             escaped = True
         elif quote:
-            if char == quote:
-                if quote == "'" and index + 1 < len(inner) and inner[index + 1] == "'":
-                    index += 1
-                else:
-                    quote = None
+            if (
+                char == quote
+                and quote == "'"
+                and index + 1 < len(inner)
+                and inner[index + 1] == "'"
+            ):
+                index += 1
+            elif char == quote:
+                quote = None
         elif char in "'\"" and not inner[start:index].strip():
             quote = char
         elif char == ",":
@@ -168,10 +227,10 @@ def parse_inline_list(raw: str) -> list[str] | None:
 
 def parse_simple_frontmatter(raw: str) -> dict[str, object] | None:
     data: dict[str, object] = {}
-    pending_key: str | None = None
+    pending_key = None
     pending_items: list[str] = []
-    pending_indent: int | None = None
-    flow_key: str | None = None
+    pending_indent = None
+    flow_key = None
     flow_parts: list[str] = []
     for line in raw.splitlines():
         indentation = line[: len(line) - len(line.lstrip(" \t"))]
@@ -186,10 +245,10 @@ def parse_simple_frontmatter(raw: str) -> dict[str, object] | None:
             if fragment is None:
                 return None
             if fragment == "]":
-                parsed_list = parse_inline_list("[" + " ".join(flow_parts) + "]")
-                if parsed_list is None:
+                parsed = parse_inline_list("[" + " ".join(flow_parts) + "]")
+                if parsed is None:
                     return None
-                data[flow_key] = parsed_list
+                data[flow_key] = parsed
                 flow_key = None
                 flow_parts = []
             elif fragment:
@@ -236,12 +295,12 @@ def parse_simple_frontmatter(raw: str) -> dict[str, object] | None:
             if strip_yaml_comment(value) == "[":
                 flow_key = key
             else:
-                parsed_list = parse_inline_list(value)
-                if parsed_list is None:
+                parsed = parse_inline_list(value)
+                if parsed is None:
                     return None
-                data[key] = parsed_list
+                data[key] = parsed
         else:
-            parsed = parse_yaml_scalar(value, allow_full_commit=key == "verified")
+            parsed = parse_yaml_scalar(value)
             if parsed is None:
                 return None
             data[key] = parsed
@@ -252,51 +311,132 @@ def parse_simple_frontmatter(raw: str) -> dict[str, object] | None:
     return data
 
 
-def strip_frontmatter(text: str) -> tuple[str, dict[str, object]]:
+def strip_frontmatter(text: str) -> tuple[str, dict[str, object] | None]:
     match = FRONTMATTER_RE.match(text)
     if not match:
-        return text, {}
-    return text[match.end() :], parse_simple_frontmatter(match.group(1)) or {}
+        return text, None
+    return text[match.end() :], parse_simple_frontmatter(match.group(1))
 
 
 def permanent_markdown(canon: Path) -> tuple[list[Path], list[str]]:
-    files: list[Path] = []
-    unsafe: list[str] = []
-    for path in sorted(canon.rglob("*.md")):
-        rel = path.relative_to(canon)
-        if rel.parts and rel.parts[0] == "scratch":
+    files = []
+    unsafe = []
+    for directory, directories, filenames in os.walk(canon, followlinks=False):
+        current = Path(directory)
+        if current == canon:
+            scratch = canon / "scratch"
+            if scratch.is_symlink():
+                unsafe.append("scratch")
+            directories[:] = [name for name in directories if name != "scratch"]
+        symlinked_directories = [
+            name for name in directories if (current / name).is_symlink()
+        ]
+        unsafe.extend(
+            (current / name).relative_to(canon).as_posix()
+            for name in symlinked_directories
+        )
+        directories[:] = sorted(
+            name for name in directories if name not in symlinked_directories
+        )
+        for name in sorted(filenames):
+            if not name.endswith(".md"):
+                continue
+            path = current / name
+            relative = path.relative_to(canon).as_posix()
+            if path.is_symlink() or not path.is_file():
+                unsafe.append(relative)
+            else:
+                files.append(path)
+    return sorted(files), sorted(unsafe)
+
+
+def normalize_route(target: str) -> str | None:
+    target = unquote(target.strip().strip("<>"))
+    if not target or "\\" in target or "\x00" in target:
+        return None
+    parsed = urlsplit(target)
+    if parsed.scheme or parsed.netloc or target.startswith(("/", "~")):
+        return None
+    route = posixpath.normpath(parsed.path)
+    if route.startswith("canon/"):
+        route = route.removeprefix("canon/")
+    route = route.removeprefix("./")
+    if (
+        not route
+        or route in (".", "..")
+        or route.startswith("../")
+        or not route.endswith(".md")
+    ):
+        return None
+    return route
+
+
+def visible_manifest_lines(text: str) -> list[str]:
+    lines = []
+    without_comments = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+    in_fence = False
+    fence_marker = ""
+    for line in without_comments.splitlines():
+        fence = re.match(r"(`{3,}|~{3,})", line.lstrip())
+        if fence:
+            marker = fence.group(1)
+            if not in_fence:
+                in_fence = True
+                fence_marker = marker
+            elif marker[0] == fence_marker[0] and len(marker) >= len(fence_marker):
+                in_fence = False
+                fence_marker = ""
             continue
-        if path.is_symlink() or not path.is_file():
-            unsafe.append(rel.as_posix())
-            continue
-        files.append(path)
-    return files, unsafe
+        if not in_fence:
+            lines.append(line)
+    return lines
+
+
+def markdown_routes(text: str) -> set[str]:
+    routes = set()
+    for line in visible_manifest_lines(text):
+        for match in MANIFEST_LINK_RE.finditer(line):
+            route = normalize_route(match.group("angle") or match.group("plain"))
+            if route:
+                routes.add(route)
+    return routes
 
 
 def manifest_routes(canon: Path, text: str) -> set[str]:
-    routes: set[str] = set(CANON_PATH_RE.findall(text))
-    for target in LINK_RE.findall(text):
-        if "://" in target or target.startswith("/"):
+    routes = set()
+    visible = "\n".join(visible_manifest_lines(text))
+    for line in strip_inline_code(visible).splitlines():
+        matches = [
+            match
+            for match in MANIFEST_LINK_RE.finditer(line)
+            if is_real_link(line, match.start())
+        ]
+        if len(matches) != 1:
             continue
-        candidate = target.removeprefix("./").removeprefix("canon/")
-        if ".." in Path(candidate).parts:
+        match = matches[0]
+        remainder = line[: match.start()] + line[match.end() :]
+        if not re.search(r"(?i)\bread\s+(?:when|for)\s+[A-Za-z0-9]", remainder):
             continue
-        routes.add(candidate)
-    return {route for route in routes if (canon / route).suffix == ".md"}
+        route = normalize_route(match.group("angle") or match.group("plain"))
+        if route:
+            routes.add(route)
+    return routes
 
 
 def paragraphs(body: str) -> set[str]:
-    result: set[str] = set()
+    result = set()
     for paragraph in re.split(r"\n\s*\n", body):
         normalized = re.sub(r"[`*_>#|\[\]()]", " ", paragraph.lower())
         normalized = re.sub(r"\s+", " ", normalized).strip()
-        if len(normalized) >= 90 and not normalized.startswith("sources:"):
+        if len(normalized) >= 90:
             result.add(normalized)
     return result
 
 
 def token_counts(body: str) -> Counter[str]:
-    return Counter(word for word in WORD_RE.findall(body.lower()) if word not in STOP_WORDS)
+    return Counter(
+        word for word in WORD_RE.findall(body.lower()) if word not in STOP_WORDS
+    )
 
 
 def cosine(left: Counter[str], right: Counter[str]) -> float:
@@ -307,49 +447,17 @@ def cosine(left: Counter[str], right: Counter[str]) -> float:
     return numerator / (left_norm * right_norm) if left_norm and right_norm else 0.0
 
 
-def freshness(root: Path, rel: str, metadata: dict[str, object]) -> str:
-    sources = metadata.get("sources")
-    verified = str(metadata.get("verified", ""))
-    if not isinstance(sources, list) or not sources or not re.fullmatch(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})", verified):
-        return "indeterminate"
-    commit = run_git(root, "cat-file", "-e", f"{verified}^{{commit}}")
-    if commit.returncode:
-        return "indeterminate"
-    ancestor = run_git(root, "merge-base", "--is-ancestor", verified, "HEAD")
-    if ancestor.returncode:
-        return "indeterminate"
-    safe_sources: list[str] = []
-    for source in sources:
-        source_path = Path(str(source))
-        if source_path.is_absolute() or ".." in source_path.parts:
-            return "indeterminate"
-        resolved = root / source_path
-        if resolved.is_symlink() or not resolved.exists():
-            return "indeterminate"
-        safe_sources.append(source_path.as_posix())
-    dirty = run_git(root, "status", "--porcelain", "--untracked-files=all", "--", *safe_sources)
-    canon_dirty = run_git(root, "status", "--porcelain", "--", f"canon/{rel}")
-    if dirty.stdout.strip():
-        return "pending" if canon_dirty.stdout.strip() else "stale"
-    changed = run_git(root, "diff", "--quiet", f"{verified}..HEAD", "--", *safe_sources)
-    if changed.returncode == 0:
-        return "fresh"
-    if changed.returncode == 1:
-        return "stale"
-    return "indeterminate"
-
-
 def analyze(root: Path) -> dict[str, object]:
-    root = Path(run_git(root, "rev-parse", "--show-toplevel").stdout.strip() or root).resolve()
+    root = root.resolve()
     canon = root / "canon"
     if canon.is_symlink() or not canon.is_dir():
         raise SystemExit(f"missing or unsafe Canon directory: {canon}")
     files, unsafe = permanent_markdown(canon)
     relative = {path.relative_to(canon).as_posix(): path for path in files}
     bodies: dict[str, str] = {}
-    metadata: dict[str, dict[str, object]] = {}
-    records: list[dict[str, object]] = []
-    decision_hashes: dict[str, str] = {}
+    metadata: dict[str, dict[str, object] | None] = {}
+    records = []
+    decision_hashes = {}
     paragraph_owners: defaultdict[str, list[str]] = defaultdict(list)
     vectors: dict[str, Counter[str]] = {}
     for rel, path in relative.items():
@@ -361,41 +469,84 @@ def analyze(root: Path) -> dict[str, object]:
         for paragraph in paragraphs(body):
             paragraph_owners[paragraph].append(rel)
         vectors[rel] = token_counts(body)
-        top = rel.split("/", 1)[0]
-        needs_freshness = rel not in CORE_FILES and top not in SPECIAL_DIRS
         lines = text.splitlines()
-        compact_bytes = len(re.sub(r"\s+", " ", text).strip().encode())
-        records.append({
-            "path": rel,
-            "lines": len(lines),
-            "bytes": len(text.encode()),
-            "compact_bytes": compact_bytes,
-            "max_line_length": max((len(line) for line in lines), default=0),
-            "canon_links": len(manifest_routes(canon, body) - {rel}),
-            "words": len(WORD_RE.findall(body.lower())),
-            "freshness": freshness(root, rel, frontmatter) if needs_freshness else "not-applicable",
-        })
+        source_references = sorted(set(SOURCE_REFERENCE_RE.findall(body)))
+        records.append(
+            {
+                "path": rel,
+                "lines": len(lines),
+                "bytes": len(text.encode()),
+                "compact_bytes": len(re.sub(r"\s+", " ", text).strip().encode()),
+                "max_line_length": max((len(line) for line in lines), default=0),
+                "canon_links": len(markdown_routes(body) - {rel}),
+                "words": len(WORD_RE.findall(body.lower())),
+                "status": (
+                    frontmatter.get("status", "missing")
+                    if frontmatter is not None
+                    else "missing"
+                ),
+                "legacy_fields": sorted(
+                    set(frontmatter or {}) & LEGACY_FIELDS
+                ),
+                "implementation_references": len(source_references),
+            }
+        )
+
     manifest = bodies.get("manifest.md", "")
     routes = manifest_routes(canon, manifest)
-    expected_routes = set(relative) - {"manifest.md"}
+    normative = {
+        rel
+        for rel, frontmatter in metadata.items()
+        if rel != "manifest.md"
+        and (
+            (frontmatter or {}).get("status") == "normative"
+            or (frontmatter is None and rel.startswith("decisions/"))
+        )
+    }
     repeated = [
         {"files": owners, "text": paragraph[:220]}
         for paragraph, owners in paragraph_owners.items()
         if len(owners) > 1
     ]
-    overlap: list[dict[str, object]] = []
+    overlap = []
     names = sorted(vectors)
+    overlap_pairs_examined = 0
+    overlap_truncated = False
     for index, left in enumerate(names):
         for right in names[index + 1 :]:
+            if overlap_pairs_examined >= MAX_OVERLAP_PAIRS:
+                overlap_truncated = True
+                break
+            overlap_pairs_examined += 1
             score = cosine(vectors[left], vectors[right])
             if score >= 0.45:
-                overlap.append({"left": left, "right": right, "score": round(score, 3)})
-    overlap.sort(key=lambda item: (-float(item["score"]), str(item["left"]), str(item["right"])))
-    freshness_counts = Counter(str(record["freshness"]) for record in records)
+                overlap.append(
+                    {"left": left, "right": right, "score": round(score, 3)}
+                )
+        if overlap_truncated:
+            break
+    overlap.sort(
+        key=lambda item: (
+            -float(item["score"]),
+            str(item["left"]),
+            str(item["right"]),
+        )
+    )
+    status_counts = Counter(str(record["status"]) for record in records)
     cap_violations = [
         record
         for record in records
         if int(record["lines"]) > MAX_LINES or int(record["bytes"]) > MAX_BYTES
+    ]
+    inventory_candidates = [
+        {
+            "path": record["path"],
+            "implementation_references": record["implementation_references"],
+            "legacy_fields": record["legacy_fields"],
+        }
+        for record in records
+        if int(record["implementation_references"]) >= 5
+        or record["legacy_fields"]
     ]
     return {
         "root": str(root),
@@ -406,22 +557,23 @@ def analyze(root: Path) -> dict[str, object]:
             "bytes": sum(int(record["bytes"]) for record in records),
             "words": sum(int(record["words"]) for record in records),
             "routes": len(routes),
+            "normative_pages": len(normative),
             "cap_violations": len(cap_violations),
-            "freshness": dict(sorted(freshness_counts.items())),
+            "status": dict(sorted(status_counts.items())),
+            "inventory_candidates": len(inventory_candidates),
+            "overlap_pairs_examined": overlap_pairs_examined,
+            "overlap_truncated": overlap_truncated,
         },
-        "missing_routes": sorted(expected_routes - routes),
+        "missing_normative_routes": sorted(normative - routes),
         "dead_routes": sorted(routes - set(relative)),
         "unsafe_paths": unsafe,
         "cap_violations": cap_violations,
+        "inventory_candidates": inventory_candidates,
         "decision_hashes": decision_hashes,
-        "files_without_canon_links": sorted(
-            str(record["path"])
-            for record in records
-            if "/" in str(record["path"])
-            and not str(record["path"]).startswith(("decisions/", "plans/"))
-            and int(record["canon_links"]) == 0
-        ),
-        "largest_files": sorted(records, key=lambda item: (-int(item["bytes"]), str(item["path"])))[:15],
+        "largest_files": sorted(
+            records,
+            key=lambda item: (-int(item["bytes"]), str(item["path"])),
+        )[:15],
         "repeated_paragraphs": repeated[:20],
         "overlap_candidates": overlap[:20],
         "files": records,
@@ -437,20 +589,31 @@ def print_text(report: dict[str, object]) -> None:
         f"{summary['files']} files, {summary['lines']} lines, "
         f"{summary['bytes']} bytes, {summary['words']} words"
     )
-    print(f"Routes: {summary['routes']} | freshness: {summary['freshness']}")
-    print(f"Size-cap violations: {summary['cap_violations']}")
-    for key in ("missing_routes", "dead_routes", "unsafe_paths"):
+    print(
+        f"Routes: {summary['routes']} | normative: "
+        f"{summary['normative_pages']} | status: {summary['status']}"
+    )
+    print(
+        f"Size-cap violations: {summary['cap_violations']} | "
+        f"inventory candidates: {summary['inventory_candidates']}"
+    )
+    print(
+        f"Overlap pairs examined: {summary['overlap_pairs_examined']} | "
+        f"truncated: {summary['overlap_truncated']}"
+    )
+    for key in ("missing_normative_routes", "dead_routes", "unsafe_paths"):
         values = report[key]
         assert isinstance(values, list)
-        print(f"{key.replace('_', ' ').title()}: {', '.join(map(str, values)) if values else 'none'}")
+        label = key.replace("_", " ").title()
+        print(f"{label}: {', '.join(map(str, values)) if values else 'none'}")
     print("Largest files:")
     for item in report["largest_files"]:
         print(
             f"  {item['bytes']:>7} B  {item['lines']:>4} lines  "
-            f"max-line={item['max_line_length']:<5} compact={item['compact_bytes']:>7} B  "
-            f"{item['path']}  [{item['freshness']}]"
+            f"max-line={item['max_line_length']:<5} "
+            f"compact={item['compact_bytes']:>7} B  "
+            f"{item['path']}  [{item['status']}]"
         )
-    print("Files without Canon links:", ", ".join(report["files_without_canon_links"]) or "none")
     print("Repeated paragraphs:", len(report["repeated_paragraphs"]))
     print("Overlap candidates:")
     for item in report["overlap_candidates"]:
@@ -459,8 +622,13 @@ def print_text(report: dict[str, object]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path.cwd(), help="repository root or a path inside it")
-    parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=Path.cwd(),
+        help="repository root",
+    )
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     report = analyze(args.root)
     if args.json:

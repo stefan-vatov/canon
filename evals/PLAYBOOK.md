@@ -4,15 +4,22 @@ This playbook shows you how to run an attributable Canon evaluation, compare a
 guidance candidate with the current core, validate the resulting artifacts,
 and adopt or recover safely. Run every command from the repository root.
 `evals/README.md` documents the harness and scenarios; `BASELINES.md` is the
-durable results ledger; `RESEARCH.md` records the evidence behind scenarios.
+compact adoption ledger; `RESEARCH.md` records the evidence behind scenarios.
 
-## Current state: 2026-07-18
+## Current state: 2026-07-24
 
-The current worktree contains the integrity hardening pass:
+The current worktree contains the invariant-first rework:
 
 - schema-v2 batch and run receipts bind canonical checks, successful judge
   output, temporal state, retained guidance, scenarios, and selected evaluator
   inputs with SHA-256;
+- Canon records architectural laws, product invariants, decisions, and
+  validation links rather than source inventories;
+- the doctor validates metadata, normative routes, links, scratch isolation,
+  and safe repository-relative validation evidence paths without coupling
+  source changes to docs;
+- scenario 05 requires no Canon edit for a behavior-preserving extraction, and
+  scenario 08 rejects function-level inventory prose;
 - scenarios 04 and 10 use authenticated path-and-byte snapshots for temporal
   preservation checks;
 - missing routing telemetry is `unsupported`, never an automatic pass;
@@ -22,13 +29,16 @@ The current worktree contains the integrity hardening pass:
 - `canon-core.md` supplies the shared Canon section; `tools/build.py` combines
   it with two templates to write five files under `dist/`.
 
-The frozen adversarial supervisor improved from 0/8 on the pre-pass base to
-8/8 after hardening, and the repository regressions pass. These are
-integrity results, not paid-model behavior results. **No live paid-model batch
-has been run after the final hardening.** The 2026-07-17 and June scores in
-`BASELINES.md` are historical evidence from older guidance/evaluator states;
-do not present them as a behavioral baseline for this revision. The next
-paid run must establish that baseline.
+The July 18 integrity work remains in place, but its model scores predate the
+new guidance, rubric, and scenario set. A live six-worker baseline was
+established on 2026-07-24 with GPT 5.6 Sol, GPT 5.6 Terra, GLM 5.1, DeepSeek
+V4 Pro, MiniMax M3, and Kimi K2.5, all judged by Gemini 3.1 Pro at high
+reasoning. The evolutionary-workflow labels `GPT 5.5 high` and `GPT Spark`
+refer to the pinned GPT 5.6 Sol/high and GPT 5.6 Terra/medium workers,
+respectively. Both capable Codex tiers passed every required batch at 1.000
+mechanical and judge means; weaker-tier failures remain recorded rather than
+being averaged away. See `BASELINES.md` for the decision, comparison key,
+result floors, evidence boundary, and final supersession confirmation.
 
 ## Prerequisites and pins
 
@@ -84,9 +94,10 @@ The manifest records the requested worker model/reasoning and a hash of the
 judge command string. It does not resolve or authenticate the actual provider,
 model, CLI version, executable contents, credentials, or ambient configuration.
 It also does not attest the OS, `uv`/Git versions, sandbox wrapper or unsafe
-host-execution mode. Record material runtime identities and environment details
-in `BASELINES.md`, and run comparisons from a dedicated unchanged worktree and
-toolchain.
+host-execution mode. Retain material runtime identities and environment details
+with the raw bundle. Put only decision-relevant pins and limitations in the
+compact `BASELINES.md` entry, and run comparisons from a dedicated unchanged
+worktree and toolchain.
 
 ## Run the deterministic integrity gate
 
@@ -111,7 +122,7 @@ print(f"validated {len(paths)} scenario JSON files")
 PY
 ```
 
-The first command currently ends with `Ran 9 tests` and `OK`. It invokes no
+The first command currently ends with `Ran 55 tests` and `OK`. It invokes no
 model. The other commands validate Python syntax, shell syntax, and all
 scenario JSON.
 
@@ -144,8 +155,8 @@ from pathlib import Path
 
 summary = json.loads((Path(sys.argv[1]) / "summary.json").read_text())
 assert summary.get("complete") is True, summary
-assert summary.get("pass_all_required") is True, summary
-print("stub provenance smoke passed")
+assert summary.get("pass_all_required") is False, summary
+print("stub provenance smoke passed; required behavior gate failed as expected")
 PY
 ```
 
@@ -277,10 +288,10 @@ required correctness/integrity checks passed.
 
 Known provenance boundary: transcripts, workspaces, raw judge I/O, and the
 derived summary are not receipt-bound canonical artifacts. The selected
-evaluator hash map also omits some retained files, including `run-eval.sh`,
-`distill-transcript.py`, and `tools/canonlib.py`. This is why an unchanged
-same-wave toolchain and a durable runtime record remain mandatory even after
-the validator passes.
+evaluator hash map includes the checker, Canon doctor, and shared Canon path
+library, but still omits retained files such as `run-eval.sh` and
+`distill-transcript.py`. This is why an unchanged same-wave toolchain and a
+durable runtime record remain mandatory even after the validator passes.
 
 ## Decide whether to adopt
 
@@ -301,9 +312,11 @@ following:
 6. The diff is general guidance, not encoded fixture answers, and every change
    is explainable from observed failures.
 
-Record wins, losses, exact worker/judge identities, CLI versions, run counts,
-bundle paths, per-run floors, means, and known limitations in `BASELINES.md`.
-Result directories are git-ignored; the baseline ledger is the durable record.
+Retain raw bundles with exact runtime details. Record only the decision,
+comparison key, decisive passes or floors, artifact-set key, and known
+limitations in `BASELINES.md`; follow its entry template and do not paste
+transcripts or exhaustive bundle lists. Result directories are Git-ignored,
+so arrange durable external storage when the receipts must outlive one machine.
 
 ### Apply an accepted candidate and rebuild
 
@@ -340,9 +353,9 @@ git status --short -- canon-core.md dist/ evals/BASELINES.md
 ```
 
 The first build may print `wrote`; the second must print only `fresh`. Include
-`canon-core.md`, all changed generated files under `dist/`, and the
-`BASELINES.md` record in the same reviewed change. Never edit generated files
-by hand.
+`canon-core.md`, all changed generated files under `dist/`, and the compact
+`BASELINES.md` adoption entry in the same reviewed change. Never edit generated
+files by hand.
 
 ## Use the optimizer for proposals only
 

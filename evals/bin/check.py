@@ -8,7 +8,7 @@ Reads the scenario's expected.json and the post-run workspace, emits
 checks.json with one pass/fail entry per check. Checks:
 
   required_files        files that must exist after the run
-  manifest_complete     every permanent canon/*.md is referenced in manifest.md
+  canon_doctor          final Canon passes the frozen strict validator
   canon_line_limits     permanent canon files stay under max_canon_lines
   tests_pass            the fixture's test_cmd exits 0
   diff_scope            every changed file matches allowed_change_globs
@@ -19,9 +19,11 @@ checks.json with one pass/fail entry per check. Checks:
                         encode requirements stated in earlier sessions
 """
 import argparse
+import ast
 import fnmatch
 import hashlib
 import hmac
+import io
 import json
 import os
 import platform
@@ -31,14 +33,20 @@ import stat
 import subprocess
 import sys
 import tempfile
+import tokenize
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
-from canonlib import (  # noqa: E402
-    contained_regular_file,
-    manifest_route_issues,
-    missing_manifest_routes,
+from canonlib import contained_regular_file, manifest_route_records  # noqa: E402
+
+
+PYTHON_FLOAT_LITERAL_RE = re.compile(
+    r"(?:"
+    r"(?:\d[\d_]*\.[\d_]*|\.[\d_]+)(?:[eE][+-]?[\d_]+)?"
+    r"|"
+    r"\d[\d_]*[eE][+-]?[\d_]+"
+    r")(?:[jJ])?\Z"
 )
 
 
@@ -62,13 +70,21 @@ def changed_files(workdir, baseline):
 
 def permanent_canon_files(workdir):
     canon = workdir / "canon"
-    if not canon.is_dir():
+    if canon.is_symlink() or not canon.is_dir():
         return []
-    return sorted(
-        p for p in canon.rglob("*.md")
-        if "scratch" not in p.relative_to(canon).parts
-        and not p.is_symlink()
-    )
+    files = []
+    pending = [canon]
+    while pending:
+        directory = pending.pop()
+        for path in sorted(directory.iterdir()):
+            relative = path.relative_to(canon)
+            if relative.parts[0] == "scratch" or path.is_symlink():
+                continue
+            if path.is_dir():
+                pending.append(path)
+            elif path.is_file() and path.suffix == ".md":
+                files.append(path)
+    return sorted(files)
 
 
 def matching_files(workdir, glob):
@@ -78,6 +94,65 @@ def matching_files(workdir, glob):
         and not p.is_symlink()
         and ".git" not in p.relative_to(workdir).parts
         and fnmatch.fnmatch(str(p.relative_to(workdir)), glob)
+    )
+
+
+def python_float_signals(text):
+    """Return lexical float use without treating comments or strings as code."""
+    signals = []
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(text).readline)
+        for token in tokens:
+            if token.type == tokenize.NAME and token.string == "float":
+                signals.append(f"line {token.start[0]}: float")
+            elif (
+                token.type == tokenize.NUMBER
+                and (
+                    PYTHON_FLOAT_LITERAL_RE.fullmatch(token.string)
+                    or token.string.lower().endswith("j")
+                )
+            ):
+                signals.append(f"line {token.start[0]}: {token.string}")
+    except (IndentationError, tokenize.TokenError) as exc:
+        signals.append(f"unparseable Python: {exc}")
+    try:
+        tree = ast.parse(text)
+    except SyntaxError as exc:
+        signals.append(f"unparseable Python: {exc}")
+    else:
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, (ast.BinOp, ast.AugAssign))
+                and isinstance(node.op, ast.Div)
+            ):
+                signals.append(f"line {node.lineno}: true division")
+    return signals
+
+
+def has_python_public_binding(text, name):
+    """Return whether a module binds ``name`` at top level."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return False
+    for node in tree.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(target, ast.Name) and target.id == name for target in targets):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                bound_name = alias.asname or alias.name
+                if bound_name == name:
+                    return True
+    return False
+
+
+def has_labeled_manifest_route(text, route, label_regex):
+    """Return whether one valid manifest route line labels the requested context."""
+    return any(
+        candidate == route and re.search(label_regex, visible_line)
+        for candidate, visible_line in manifest_route_records(text)
     )
 
 
@@ -100,7 +175,7 @@ def canon_reads_from_transcripts(transcript_dir):
     non-error tool result appears in the structured transcript.
     """
     requested, successful = {}, []
-    saw_structured_result = False
+    saw_supported_read = False
     tdir = Path(transcript_dir)
     if not tdir.is_dir():
         return successful, False
@@ -116,7 +191,6 @@ def canon_reads_from_transcripts(transcript_dir):
             if e.get("type") == "item.completed":
                 item = e.get("item", {})
                 if item.get("type") == "command_execution":
-                    saw_structured_result = True
                     command = str(item.get("command", ""))
                     exit_code = item.get("exit_code")
                     first = command.strip().split(maxsplit=2)
@@ -124,11 +198,14 @@ def canon_reads_from_transcripts(transcript_dir):
                     if reader == "rtk" and len(first) > 1:
                         reader = first[1]
                     if exit_code == 0 and reader in ("cat", "sed", "head", "tail"):
-                        for match in re.finditer(
+                        matches = list(re.finditer(
                             r"(?<![A-Za-z0-9_./-])(canon/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.md)"
                             r"(?![A-Za-z0-9_./-])",
                             command,
-                        ):
+                        ))
+                        if matches:
+                            saw_supported_read = True
+                        for match in matches:
                             successful.append(match.group(1))
             for b in e.get("message", {}).get("content", []):
                 if b.get("type") == "tool_use" and b.get("name") == "Read":
@@ -136,11 +213,11 @@ def canon_reads_from_transcripts(transcript_dir):
                     if path and b.get("id"):
                         requested[b["id"]] = path
                 elif b.get("type") == "tool_result":
-                    saw_structured_result = True
                     path = requested.get(b.get("tool_use_id"))
                     if path and not b.get("is_error", False):
+                        saw_supported_read = True
                         successful.append(path)
-    return successful, saw_structured_result
+    return successful, saw_supported_read
 
 
 def file_digest(path):
@@ -297,16 +374,51 @@ def main():
         add(f"required:{rel}", safe, detail if not safe else "", required=True)
 
     canon_files = permanent_canon_files(work)
-    manifest = work / "canon" / "manifest.md"
-    if manifest.is_file():
-        text = manifest.read_text()
-        missing = missing_manifest_routes(canon_files, work / "canon", text)
-        add("manifest_complete", not missing,
-            f"not referenced: {', '.join(missing)}" if missing else "", required=True)
-        route_issues = manifest_route_issues(work / "canon", text)
-        add("manifest_routes_safe", not route_issues, "; ".join(route_issues), required=True)
-    elif (work / "canon").is_dir():
-        add("manifest_complete", False, "canon/ exists but manifest.md missing", required=True)
+    doctor = ROOT / "tools" / "canon-doctor.py"
+    if doctor.is_file() and not doctor.is_symlink():
+        doctor_result = subprocess.run(
+            [
+                sys.executable,
+                str(doctor),
+                "--root",
+                str(work),
+                "--baseline",
+                args.baseline or "HEAD",
+                "--json",
+                "--strict",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        try:
+            doctor_payload = json.loads(doctor_result.stdout)
+            doctor_findings = doctor_payload.get("findings", [])
+            doctor_detail = "; ".join(
+                f"{item.get('check')}: {item.get('detail')}"
+                for item in doctor_findings[:8]
+            )
+            if len(doctor_findings) > 8:
+                doctor_detail += f"; {len(doctor_findings) - 8} more"
+            doctor_ok = (
+                doctor_result.returncode == 0
+                and doctor_payload.get("ok") is True
+            )
+        except (json.JSONDecodeError, AttributeError):
+            doctor_ok = False
+            doctor_detail = (
+                doctor_result.stderr
+                or doctor_result.stdout
+                or "invalid doctor output"
+            )[-500:]
+        add("canon_doctor", doctor_ok, doctor_detail, required=True)
+    else:
+        add(
+            "canon_doctor",
+            False,
+            "frozen Canon doctor is missing",
+            required=True,
+        )
 
     max_lines = expected.get("max_canon_lines", 250)
     too_long = [
@@ -337,12 +449,17 @@ def main():
             add("tests_pass", False, str(exc), required=True)
 
     globs = expected.get("allowed_change_globs")
-    if globs:
+    if globs is not None:
         out_of_scope = [
             f for f in changed
             if not any(fnmatch.fnmatch(f, g) for g in globs)
         ]
-        add("diff_scope", not out_of_scope, ", ".join(out_of_scope))
+        add(
+            "diff_scope",
+            not out_of_scope,
+            ", ".join(out_of_scope),
+            required=bool(expected.get("diff_scope_required", False)),
+        )
 
     for rule in expected.get("rules", []):
         files = matching_files(work, rule["glob"])
@@ -369,7 +486,41 @@ def main():
                     if re.search(rule["forbid_regex"], c)]
             ok = not hits
             detail = f"/{rule['forbid_regex']}/ found in: {', '.join(hits)}" if hits else ""
-        add(f"rule:{rule['id']}", ok, detail or rule.get("description", ""))
+        if ok and rule.get("forbid_python_floats"):
+            hits = {}
+            for path, content in contents.items():
+                signals = python_float_signals(content)
+                if signals:
+                    hits[str(path.relative_to(work))] = signals
+            ok = not hits
+            if hits:
+                detail = "Python float use found: " + "; ".join(
+                    f"{path} ({', '.join(signals)})"
+                    for path, signals in hits.items()
+                )
+        if ok and rule.get("python_public_binding"):
+            name = rule["python_public_binding"]
+            ok = any(has_python_public_binding(content, name) for content in contents.values())
+            if not ok:
+                detail = f"no file matching {rule['glob']} binds public name {name!r}"
+        if ok and rule.get("manifest_labeled_route"):
+            spec = rule["manifest_labeled_route"]
+            route, label_regex = spec["path"], spec["label_regex"]
+            ok = any(
+                has_labeled_manifest_route(content, route, label_regex)
+                for content in contents.values()
+            )
+            if not ok:
+                detail = (
+                    f"no file matching {rule['glob']} routes {route!r} "
+                    f"with label /{label_regex}/"
+                )
+        add(
+            f"rule:{rule['id']}",
+            ok,
+            detail or rule.get("description", ""),
+            required=bool(rule.get("required", True)),
+        )
 
     state_dir = Path(args.state_dir).resolve() if args.state_dir else None
     state_key = args.state_key
@@ -481,7 +632,7 @@ def main():
                 "structured successful-read telemetry is unsupported",
                 outcome="unsupported")
         else:
-            domain_glob = routing.get("domain_glob", "canon/*/overview.md")
+            domain_glob = routing.get("domain_glob", "canon/architecture/*.md")
             domain_reads = sorted({r for r in reads if fnmatch.fnmatch(r, domain_glob)})
             must = routing.get("must_read", [])
             missing = [m for m in must if m not in reads]

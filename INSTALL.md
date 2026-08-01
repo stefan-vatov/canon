@@ -11,8 +11,7 @@ for the agent you use, then start a new agent session from the target repository
 
 - A trusted, clean checkout of this Project Canon repository at a commit or
   tag you can record.
-- A target Git repository. Use at least one real commit before adding domain
-  files whose freshness must be checked against history.
+- A target Git repository.
 - A POSIX-compatible shell and Python 3.10 or later.
 - [`uv`](https://docs.astral.sh/uv/) for `canon-doctor.py` verification.
 - A clean or understood target worktree. The commands below do not stage or
@@ -528,15 +527,59 @@ may not reload the newly installed repository instructions.
 If `canon/` is absent, send this prompt exactly:
 
 ```text
-Set up Project Canon in this repository now. Follow the installed Canon bootstrap rules. Create canon/overview.md, canon/glossary.md, canon/standards.md, canon/manifest.md, canon/decisions/, and canon/scratch/. Add canon/scratch/ to the repository-root .gitignore without removing existing entries. Route every permanent Canon Markdown file except manifest.md. Populate only facts verified from this repository or explicitly supplied by me; do not invent standards, decisions, or domain knowledge. Do not change application code. When setup is complete, report the files created and any unresolved knowledge gaps.
+Set up Project Canon in this repository now. Preserve all existing repository
+instructions. Create canon/manifest.md with status: reference and
+canon/standards.md with status: normative. Create canon/architecture/,
+canon/decisions/, and canon/scratch/, and add canon/scratch/ to the
+repository-root .gitignore without removing existing entries. Do not invent
+standards, decisions, architecture, rationale, or domain terms. Do not create
+source-file inventories or sources/verified metadata. Do not change application
+code. Report the files created and any unresolved knowledge gaps.
 ```
 
 If `canon/` already exists, do not run the bootstrap prompt. Start a fresh
 session and ask the agent to inspect Canon health before the first real task.
 
 Large repositories should start with only the core structure. Add focused
-domain files when work first needs durable cross-cutting knowledge; do not bulk
-document the codebase during installation.
+architecture pages only when work first needs a durable law or product
+invariant; do not bulk-document the codebase during installation.
+
+## Migrate an existing repository Canon
+
+Upgrading the agent guidance does not silently rewrite the target repository's
+`canon/`. Existing decisions and human standards need reviewed migration.
+
+Start from a clean target worktree. In a session that can load this checkout's
+bundled [`$compact-canon`](.codex/skills/compact-canon/SKILL.md) skill, invoke
+it explicitly. Otherwise give the same migration request without the first
+sentence:
+
+```sh
+MIGRATION_BASE="$(git -C "$TARGET" rev-parse HEAD)" || exit 1
+printf 'Legacy decision baseline: %s\n' "$MIGRATION_BASE"
+```
+
+```text
+Use $compact-canon to rework this repository's Canon into the invariant-first
+shape. Preserve human standards and every existing decision byte-for-byte.
+Remove implementation inventories and legacy sources/verified metadata from
+non-decision pages; legacy metadata inside an existing decision is immutable
+history. Replace removed metadata only with truthful status, package or
+architectural scope, executable validation, and relationship links. Make
+manifest.md a compact concern-to-page router, keep scratch out of normal
+context, and move operational guidance only when an existing development-doc
+destination is in scope. Run the Canon doctor with the pre-migration commit as
+`--baseline` in strict mode and report all abstentions.
+```
+
+Review every changed Canon paragraph against this test:
+
+> Canon changed because the system must now guarantee that ...
+
+If the explanation is only a file or symbol move, remove that paragraph from
+Canon instead of translating the inventory into a new form. Run migration and
+application refactors as separate changes when practical; this makes deleted
+mirroring easy to distinguish from changed guarantees.
 
 ## Verify the installation
 
@@ -549,8 +592,14 @@ uv run --script "$CANON/tools/canon-doctor.py" --root "$TARGET"
 ```
 
 Normal mode exits nonzero for errors. It prints warnings but exits zero when
-there are no errors. Warnings include stale or indeterminate domain knowledge
-and changelog-style prose.
+there are no errors. Warnings identify likely implementation inventories and
+changelog-style prose.
+
+For a migrated Canon with legacy decision records, add
+`--baseline "$MIGRATION_BASE"` to every normal and strict doctor invocation.
+Keep that reviewed commit reachable; the doctor uses it only to grandfather
+unchanged historical decision metadata and still protects every decision
+present at the current `HEAD`.
 
 Then run the release gate:
 
@@ -1039,11 +1088,19 @@ removal.
 That is normal-mode behavior. Run with `--strict`; warnings then fail the
 command and must be resolved before release.
 
-### Doctor reports stale or indeterminate knowledge
+### Doctor rejects `sources` or `verified`
 
-Inspect the named domain file, its `sources`, its immutable `verified` commit,
-the target Git history, and dirty source state. Do not silence the warning by
-inventing a commit or deleting evidence.
+These fields belong to the retired repository-mirroring model. Remove the
+source inventory and commit hash. Classify the page as `normative`,
+`reference`, `draft`, or `deprecated`; replace implementation paths with
+package or architectural `scope` values, and link only stable executable
+checks under `validation`.
+
+### Doctor reports an implementation inventory
+
+Replace exhaustive files, symbols, exports, or repository instances with one
+general ownership or behavior rule. Keep a few examples only when they are
+explicitly non-exhaustive and materially improve comprehension.
 
 ## For Project Canon maintainers
 

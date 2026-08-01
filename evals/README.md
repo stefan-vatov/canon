@@ -4,7 +4,7 @@ This guide shows you how to run, judge, verify, compare, optimize, and recover
 Project Canon evaluation batches from the repository root.
 
 Use [PLAYBOOK.md](PLAYBOOK.md) for the adoption discipline,
-[BASELINES.md](BASELINES.md) for the result history, and
+[BASELINES.md](BASELINES.md) for durable adoption decisions, and
 [RESEARCH.md](RESEARCH.md) for the evidence behind the harder scenarios.
 
 ## What a batch records
@@ -31,7 +31,7 @@ A completed bundle contains the tested `guidance-used.md`, `manifest.json`,
 `batch-receipt.json`, frozen inputs under `inputs/`, per-run workspaces,
 transcripts, checks, receipts, temporal snapshots, optional judge artifacts,
 and `summary.json`. Results are Git-ignored; record durable conclusions in
-`BASELINES.md`.
+`BASELINES.md`, not raw run inventories.
 
 ## Prerequisites
 
@@ -389,7 +389,7 @@ stub optimization score as behavioral evidence.
 `canon-core.md`. Follow [PLAYBOOK.md](PLAYBOOK.md): evaluate the proposal in a
 same-wave paired run, pass the capable-tier and holdout gates, then adopt the
 accepted bundle's hash-validated `guidance-used.md`. Rebuild twice and record
-the result in `BASELINES.md`.
+the compact decision in `BASELINES.md`.
 
 ## Recover a failed or interrupted batch
 
@@ -468,15 +468,15 @@ completed receipt after the fact.
 
 | scenario | sessions | purpose |
 |---|---:|---|
-| `01-bootstrap` | 1 | Create a Canon while implementing a feature. |
-| `02-feature` | 1 | Obey planted standards and canonize new behavior. |
-| `03-drift` | 1 | Trust running code over contradictory Canon and repair the Canon. |
-| `04-memory-chain` | 10 | Preserve and update knowledge across fresh sessions. |
-| `05-staleness` | 1 | Refresh stale source-backed domain knowledge before using it. |
+| `01-bootstrap` | 1 | Create the minimal two-page Canon while implementing a feature. |
+| `02-feature` | 1 | Obey standards and update a changed public contract without inventory prose. |
+| `03-drift` | 1 | Resolve a normative conflict using explicit human direction. |
+| `04-memory-chain` | 10 | Preserve and update durable invariants across fresh sessions. |
+| `05-impact` | 1 | Leave Canon untouched during a behavior-preserving helper extraction. |
 | `06-decisions` | 2 | Record rationale and use the decision when challenged later. |
-| `07-pressure` | 1 | Preserve tests, Canon, and freshness discipline under urgency framing. |
-| `08-routing` | 1 | Read the correct domain without bulk-loading distractors. |
-| `09-abstention` | 1 | Surface a missing policy instead of fabricating it. |
+| `07-pressure` | 1 | Preserve tests and update a real product invariant under urgency. |
+| `08-routing` | 1 | Read the correct invariant without bulk-loading or canonizing a new function. |
+| `09-abstention` | 1 | Surface missing policy without fabricating code or speculative Canon. |
 | `10-supersede` | 3 | Apply a superseding decision while preserving authenticated prior history. |
 
 One `04-memory-chain` run means ten fresh agent sessions in one workspace.
@@ -515,20 +515,32 @@ A minimal contract looks like:
 ```
 
 Globs use Python `fnmatch`: `*` can cross `/`, and brace expansion is not
-supported. Mechanical required gates are required files, manifest integrity,
-fixture tests, holdouts, authenticated `capture`/`preserve`, and scorable
-routing checks. Line/byte caps, diff scope, and content rules affect the score
-but are not currently hard `pass_all_required` gates.
+supported. Mechanical required gates are required files, the frozen strict
+Canon doctor, fixture tests, holdouts, authenticated `capture`/`preserve`, and
+scorable routing checks. Line/byte caps affect the score. Diff scope is soft
+by default and becomes required when a contract sets
+`"diff_scope_required": true`. Content rules are required by default; mark an
+explicitly diagnostic rule with `"required": false`. Python content rules may
+also set `"forbid_python_floats": true` to reject float/complex literals,
+`float`, and true division without mistaking comments or strings for code, or
+`"python_public_binding": "NAME"` to require a top-level assignment or import
+that exposes that module name. Behavioral holdouts should still verify the
+bound value and contract. A rule may use `manifest_labeled_route` with `path`
+and `label_regex` fields to require a valid manifest route carrying an
+independent context label; it uses the same route parser as the Canon doctor
+instead of approximating Markdown with a second regular expression.
 
 Additional contract blocks:
 
 - `holdout`: copy hidden tests into a disposable workspace and run them there;
-- `routing`: require successful structured reads and cap sibling-domain reads;
+- `routing`: require successful structured reads and cap sibling architecture-page reads;
 - `capture`: authenticate the exact paths and bytes matched at one step;
 - `preserve`: require a later step to retain the captured set and contents.
 
-The routing parser recognizes successful Codex JSON command reads and Claude
-structured `Read` results. If an adapter provides no supported successful-read
+The routing parser recognizes successful Codex JSON `cat`, `sed`, `head`, and
+`tail` reads of Canon paths (optionally wrapped by `rtk`) and Claude structured
+`Read` results. Other command readers are treated as unsupported rather than
+as proof of a missed route. If an adapter provides no supported successful-read
 telemetry, routing is recorded as `unsupported`, not passed.
 
 Always prove a scenario is winnable: implement a correct solution by hand and

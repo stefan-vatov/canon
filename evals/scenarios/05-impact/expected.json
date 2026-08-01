@@ -1,0 +1,46 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "max_canon_lines": 250,
+  "required_files": [
+    "canon/manifest.md",
+    "canon/standards.md",
+    "canon/architecture/notes.md"
+  ],
+  "allowed_change_globs": [
+    "notes.py",
+    "note_validation.py",
+    "test_*.py"
+  ],
+  "diff_scope_required": true,
+  "rules": [
+    {
+      "id": "validation_extracted",
+      "glob": "note_validation.py",
+      "must_regex": "def validate_note_text\\(",
+      "description": "the validation helper was extracted"
+    },
+    {
+      "id": "notes_delegates",
+      "glob": "notes.py",
+      "must_regex": "(?s)(?:import note_validation|from note_validation import).*validate_note_text",
+      "description": "create_note delegates validation to the extracted helper"
+    },
+    {
+      "id": "public_contract_preserved",
+      "glob": "notes.py",
+      "python_public_binding": "MAX_NOTE_LENGTH",
+      "description": "the behavior-preserving refactor keeps or re-exports the public limit"
+    },
+    {
+      "id": "canon_remains_invariant_only",
+      "glob": "canon/architecture/notes.md",
+      "must_regex": "(?is)280.*non-empty|non-empty.*280",
+      "forbid_regex": "(?i)note_validation|validate_note_text|sources:|verified:",
+      "description": "Canon does not inventory the extracted helper"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t05i"
+  }
+}

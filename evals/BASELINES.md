@@ -1,393 +1,165 @@
-# Evaluation and adoption ledger
-
-This file preserves historical experiments and adoption decisions. There is
-no comparable behavioral baseline for the current revision yet. Establish a
-new one whenever any comparison key changes, including guidance, scenario,
-harness/adapter, worker model or reasoning, judge command/prompt, run count,
-source state, or attested evaluator inputs.
-
-## 2026-07-18 — integrity hardening pass: GPT synthesis ADOPTED
-
-External frozen-base identifier: `161d77d316bc79bc5a3486fe308e260ef66ae993`.
-That object is not retained in this repository, so the supervisor result is
-narrative historical evidence rather than a reproducible current baseline. Six isolated
-candidates used the evolutionary-workflow labels, but every implementation
-worker and reviewer in this pass was GPT-based; no Claude or LiteLLM model was
-invoked. The frozen adversarial supervisor was 0/8 on the base and 8/8 on all
-six candidates, proving it was a useful floor but not a sufficient winner
-test.
-
-| label | actual backend | ephemeral commit | supervisor | independent hard-gate review |
-|---|---|---|---:|---:|
-| GLM | GPT-5.6 Sol ultra | `48fe38e` | 8/8 | 64/100, reject |
-| Deepseek | GPT-5.6 Terra max | `118b470` | 8/8 | 52/100, reject |
-| MiniMax | GPT-5.6 Sol ultra | `79fc952` | 8/8 | 62/100, reject |
-| Kimi | GPT-5.6 Sol ultra | `51d9752` | 8/8 | 74/100, reject |
-| GPT 5.5 high | GPT-5.6 Sol ultra | `056fdf6` | 8/8 | 72/100, seed |
-| GPT Spark | GPT-5.6 Sol ultra | `7fd3c19` | 8/8 | 70/100, reject |
-
-Every raw candidate had at least one ship blocker hidden by the common probe:
-failed runs could be marked complete; malformed judges could disappear from a
-mean; provenance could downgrade to legacy semantics; manifest/source symlinks
-could escape roots; or temporal "immutability" was only a regex. The adopted
-result is therefore a reviewed synthesis, not an unchanged candidate.
-The candidate hashes name commits created in isolated temporary clones; they
-are experiment identifiers and are not guaranteed reachable from this
-repository's permanent Git refs.
-
-Adopted changes:
-
-- compact guidance with explicit authority/write scope, a four-part retention
-  test, deterministic two-pass routing, atomic freshness semantics, and
-  byte-immutable decision supersession.
-- exact contained manifest/source paths, symbolic-anchor rejection, full-DAG
-  source coverage, dirty/ignored/missing-source handling, byte caps, and a
-  strict doctor mode;
-- schema-v2 batch/run receipts with terminal status, SHA-256 artifact lineage,
-  strict check schemas, bounded judge values, retained declared inputs, and
-  immutable-baseline diffs;
-- authenticated cross-session path/byte snapshots for scenarios 04 and 10,
-  with temporal violations marked required;
-- successful structured-read routing evidence, explicit unsupported telemetry,
-  disposable holdout workspaces, network-denied macOS test execution, and
-  explicit sandbox configuration elsewhere;
-- non-destructive install documentation for existing agent configuration.
-
-Deterministic validation: supervisor 8/8, repository regressions 9/9, portable
-ambient-signing stub batch complete, Python/shell/JSON validation clean, and
-all generated artifacts fresh. A live paid-model confirmatory batch was not run
-after the final hardening, so no behavioral model-score claim is made for this
-revision.
-
-Known attestation limits: judge validation does not yet require the exact full
-rubric criterion set, so its denominator is not mechanically fixed. Evaluator
-lineage also omits `distill-transcript.py` and the imported `tools/canonlib.py`.
-Treat judge output and toolchain identity as attributable but not yet fully
-attested until those gaps are closed.
-
-Read-only production audit: Ember Rhythm was never modified. It demonstrated
-the need for migration-safe enforcement: one real manifest omission
-(`architecture/workouts-strong-parity.md`), two oversized Canon files, legacy
-freshness metadata, and existing project-specific agent instructions that must
-not be overwritten.
-
-## 2026-07-17 — evolution pass 1: durable-decision boundary ADOPTED
-
-Six frozen-base candidates targeted the remaining `10-supersede` gradient.
-Each valid candidate ran six three-session chains: runs 1–3 used GPT-5.6 Terra
-at medium reasoning and runs 4–6 used GPT-5.6 Sol at high reasoning. Judges
-used the same GPT mix; transcript-only criteria were null.
-
-| candidate | mechanical mean | judge mean | result |
-|-----------|----------------:|-----------:|--------|
-| current @ dcd109d | 0.994 | 0.849 | baseline |
-| GLM | 0.983 | 0.817 | rejected |
-| Deepseek | — | — | invalid: isolation/scope failure |
-| MiniMax | — | — | invalid: task transport failure |
-| Kimi | — | — | invalid: isolation/scope failure |
-| GPT 5.5 high (GPT-5.6 Sol runtime) | 1.000 | 0.983 | runner-up |
-| GPT Spark (GPT-5.6 Terra runtime) | 1.000 | 1.000 | **adopted** |
-
-The adopted candidate also won within each pinned worker/judge stratum:
-
-| stratum (n=3) | baseline mean mech/judge (floor) | adopted mean mech/judge (floor) |
-|---------------|----------------------------------:|---------------------------------:|
-| GPT-5.6 Terra medium | 1.000 / 0.846 (0.750) | 1.000 / 1.000 (1.000) |
-| GPT-5.6 Sol high | 0.989 / 0.852 (0.778) | 1.000 / 1.000 (1.000) |
-
-Both GPT candidates were mechanically perfect. Terra won the qualitative gate:
-all six runs preserved immutable decision history and recorded only supplied
-rationale. The Sol variant had one immutable-history rewrite. (Three initial
-judge deductions were corrected on review: one treated task-supplied rationale
-as invented, and two wrongly required domain freshness metadata on decision
-records.) The adopted 181-line guidance narrows decision records to explicit,
-authoritative, durable human choices; excludes modal wording in routine tasks
-and inferred design choices; records only supplied rationale/alternatives; and
-requires superseding records plus current-state links that expose only the
-active decision.
-
-Post-review controls covered both sides of the new boundary. A focused
-same-batch routine-requirement A/B (six baseline and six adopted-trigger runs,
-using the same Terra/Sol split) asked agents to implement a modal `must`/`never`
-page-size validator. All 12 implementations and test suites passed; baseline
-created a spurious decision record in 6/6 runs, while adopted guidance created
-one in 0/6 and still refreshed current-state Canon in 6/6.
-
-An initial three-chain supersession smoke exposed a real floor failure: one
-agent overwrote the predecessor record, but the old checker still reported
-12/12. The final wording now forbids editing, deleting, renaming, or reusing an
-existing record path. The generic checker gained `min_matching_files`, and
-scenario 10 now requires distinct predecessor and successor files. It correctly
-rescored the bad run at 12/13. On the exact final 181-line guidance, three fresh
-chains each preserved two decision files, passed 13/13 mechanical checks, and
-scored 1.000 with strict qualitative judges.
-
-A read-only production audit of `ember-rhythm` supported the boundary: the
-live install has no decision records despite durable project choices, while
-routine modal requirements are common and ambiguous. The audit also found
-separate future gradients—an older installed guidance bundle, unbounded Canon
-context, incomplete manifest routing, and a same-commit freshness blind spot.
-None were mixed into this single-variable pass. This pass made no writes to the
-production repository; its pre-existing dirty checkout was left untouched.
-
-Kimi/ZAI/MiniMax target-model cells were cut off as invalid after the LiteLLM
-collaboration bridge repeatedly dropped or misrouted task payloads. Two partial
-baseline chains showed Kimi at 5/6 and ZAI at 6/6 through supersession, but the
-matrix was incomplete and is not adoption evidence. Treat those cells as
-transport failures, not model-quality measurements.
-
-## 2026-06-11 — canon-core.md @ 202feaf, codex / gpt-5.5 / high reasoning
-
-3 runs per scenario, judge: claude (default). `04-memory-chain` held out as
-the optimizer-blind control (not part of optimization baselines by design).
-
-| scenario | mechanical | judge |
-|----------|-----------:|------:|
-| 01-bootstrap | 1.00 | 1.00 |
-| 02-feature | 1.00 | 1.00 |
-| 03-drift | 1.00 | 1.00 |
-| 05-staleness | 1.00 | 1.00 |
-| 06-decisions | 1.00 | 1.00 |
-
-**Status: saturated at this model tier.** The suite no longer discriminates
-for codex/gpt-5.5-high; further guidance improvement must come from harder
-scenarios (outer loop), measurement on weaker model tiers where guidance
-quality carries more of the load, or judge-note mining.
-
-Soft signals from judge notes despite perfect scores (candidate outer-loop
-material):
-
-- Core files (overview/glossary/standards) carry no freshness frontmatter —
-  the spec only mandates it for domain files, and both an optimizer
-  candidate and a judge note independently flagged the ambiguity. Decide
-  the convention either way, then add a scenario check for it.
-- Occasional ordering wobble: Canon content drafted before the code change
-  it describes is finalized.
-- Minor scope creep at diff edges (annotating adjacent code).
-
-## 2026-06-15 — round 8: supersession-hygiene edit (r8) — REJECTED (variance)
-
-Targeted the one strong-tier gradient from round 7 (codex leaks "changed
-from 50 to 100" into current-state docs on 10-supersede). r8 added a
-supersession-hygiene rule to the decision-records section: "When a value or
-rule is superseded, current-state files must state only the new value; the
-prior value belongs in its decision record — never 'changed from X' …".
-
-Initial cross-batch read looked like a win (10-supersede 0.93→0.97 on
-haiku). The n=6 SAME-BATCH confirmation killed it:
-
-| 10-supersede haiku | current | r8 |
-|--------------------|:-------:|:--:|
-| pooled n=6 | ~0.95 / 0.955 | ~0.94 / 0.90 |
-| wave J same-batch n=3 | 0.97 / 0.97 | 0.91 / 0.83 |
-
-The apparent gain was cross-batch variance — wave D's current baseline was
-a low draw (0.93); head-to-head, r8 is neutral-to-slightly-worse. No Haiku
-benefit. The codex no-regression gate was also unavailable (workspace out of
-credits — manual refill, not a timed reset; all round-8 codex numbers were
-non-executing aborts, not signal). With no demonstrated win on the testable
-tier, r8 REJECTED; candidate file removed. Lesson reinforced: only same-batch
-comparisons are trustworthy at this variance; cross-batch deltas mislead.
-
-Standing tally: 2 guidance edits adopted (rounds 2, 3), 4 rejected (round 4
-lean, round 6 abstention ×2, round 7 INT, round 8 r8). The guidance is at a
-robust local optimum for the current suite; further real gains need harder
-scenarios (10-supersede is the first strong-tier discriminator), not edits.
-
-## 2026-06-15 — round 7: comprehensive baselines + INT edit REJECTED
-
-Parallel eval burn. First full baselines on both tiers (current core).
-
-Haiku (n=3, claude harness, sonnet judge), mech / judge:
-
-| 01 | 02 | 03 | 05 | 06 | 07 | 08 | 09 |
-|----|----|----|----|----|----|----|----|
-|1.00/1.00|0.95/1.00|1.00/1.00|1.00/0.97|0.94/0.92|0.95/1.00|0.90/0.88|0.91/0.85|
-
-Codex gpt-5.5-high (n=2): every scenario 1.00/1.00 — strong tier fully
-saturated on 01-09.
-
-04-memory-chain (the flagship 10-session chain), first weak-tier run
-(haiku n=2): 0.89 / 0.85 — cross-session Canon memory holds reasonably but
-imperfectly on a small model; healthy discrimination, not saturated.
-
-10-supersede (new) discriminates on BOTH tiers — the first scenario the
-strong model does not ace:
-- haiku 0.93/0.94 — misses manifest entries for new decision records
-- codex 0.97/0.91 — writes supersession changelog-style ("changed from 50
-  to 100") in the current-state doc instead of pure current state
-
-INT candidate (hoisted integer-arithmetic / literal-standards cue) — REJECTED.
-A/B n=6 haiku (pooled), codex n=2:
-
-| scenario | current | INT | 
-|----------|:-------:|:---:|
-| 08-routing | ~0.91/0.85 | ~0.94/0.91 (modest win, the no_floats target) |
-| 02-feature | ~0.95/1.00 | ~0.93/0.95 (small, consistent regression) |
-| 05-staleness | ~0.98 | ~0.97 (neutral) |
-| codex 02/05/08 | 1.00 | 1.00 (no regression) |
-
-Net Haiku ~wash (+0.005): the 08 gain is traded for a 02 loss — the
-round-4 "more instructions can hurt elsewhere" effect again. No clear win
-above noise; kept current core.
-
-Harness robustness fixes found during the burn (both committed): git init
-uses an empty template (hook-copy race) and result dirs are pid-suffixed
-(same-second same-scenario collision). A collided A/B pair was discarded;
-all reported numbers are from verified-distinct dirs.
-
-## 2026-06-15 — round 5 (frontier scenarios) + round 6 (abstention edit REJECTED)
-
-Round 5 added research-driven 08-routing and 09-abstention (see RESEARCH.md)
-plus routing-precision scoring and the abstention/code_correct judge fix.
-Both new scenarios discriminate:
-
-| scenario | codex gpt-5.5 high | haiku |
-|----------|:------------------:|:-----:|
-| 08-routing | 1.00 / 1.00 | 0.94 / 1.00 (no_floats dips, routing OK) |
-| 09-abstention | 0.91 / 1.00 | 0.91 / 0.78 |
-
-Key finding: agents abstain *verbally* (don't fabricate — orders.py never
-modified in any run) but do NOT durably record the gap; `gap_surfaced` fails
-~1/3 of runs on BOTH tiers. 08's routing_precision check passed on both
-models (routing isn't the weak point; integer-cents discipline is).
-
-Round 6 tried to fix durable-gap-recording with a guidance rule, in two
-placements:
-
-| 09-abstention | current | mid-doc rule | hoisted rule |
-|---------------|:-------:|:------------:|:------------:|
-| haiku | 0.91 / 0.82 | 0.91 / 0.78 | 0.91 / 0.79 |
-| codex | 0.91 / 1.00 | 0.95 / 1.00 | 0.91 / 1.00 |
-
-Neither beats current above noise; `gap_surfaced` stays ~0.91 regardless.
-Inspection: agents abstain correctly but don't write a scratch/decisions
-note with or without the rule. REJECTED both edits; kept current core.
-Conclusion: durable-recording of a non-event is resistant to prompting at
-these tiers — likely a capability limit, not a wording gap. `gap_surfaced`
-is partly aspirational (verbal abstention is already correct behavior).
-
-Kept from round 6 (correctness/robustness, independent of the rejected edit):
-judge no longer penalizes correct abstention under code_correct; run-eval.sh
-git init uses an empty template to avoid a parallel hook-copy race.
-
-## 2026-06-14 — round 4 REJECTED (lean / de-duplication hypothesis)
-
-Research-driven (arXiv 2510.14842 "Boosting Instruction Following at Scale":
-adding instructions degrades following via tension/conflict between them;
-AGENTS.md best-practice guides: minimize, state triggers once, most-important
-first). Hypothesis: a lean 141-line core (177 -> 141, canon-read-first stated
-once at top instead of three times) holds or improves the weak-model floor at
-lower token cost.
-
-A/B, n=3, corrected judge (haiku agent / sonnet judge), combined means:
-
-| scenario | lean (141 ln) | current (177 ln) |
-|----------|:-------------:|:----------------:|
-| 06-decisions | 0.985 | 1.000 |
-| 05-staleness | 0.967 | 0.967 |
-| 07-pressure | 1.000 | 0.988 |
-| 02-feature | 0.952 | 0.988 |
-| **mean** | **0.976** | **0.986** |
-
-Both have healthy floors, zero catastrophic misses; current marginally ahead
-(+0.01, within noise) but lean shows a small, consistent 02-feature dip on
-BOTH tiers (codex 0.93/0.88 vs 1.00). Mechanism: compressing the freshness
-section made the agent more likely to stamp `verified` with the pre-commit
-HEAD. Verdict: keep the 177-line core; the redundancy is reinforcing, not
-conflicting, and the suite is near its ceiling so trimming has no headroom to
-help. Negative result kept so the lean cut is not re-attempted.
-
-Takeaway: further real gains need harder/larger scenarios (multi-domain repos
-where the context-budget rule bites, longer chains), not prompt-trimming.
-
-## 2026-06-14 — round 3 adopted (hoisted first-action directive)
-
-Two changes this round. (1) Fixed a measurement bug: the judge was fed
-raw stream-json truncated by bytes, so multi-session runs were judged on
-the init event alone — now distilled to a compact ordered action log
-(see `bin/distill-transcript.py`). Corrected judging is marginally
-stricter. (2) Hoisted an unmissable "FIRST ACTION, EVERY TASK: read the
-Canon before find/grep/source" directive — plus lexical decision cues —
-to the very top of canon-core.md, after diagnosing that the 06-decisions
-failures all cascade from canon-read-first being skipped.
-
-A/B, n=3, corrected judge (haiku agent / sonnet judge). The decisive
-metric is the floor (worst run), since the failure mode is a catastrophic
-canon-skip, not a low mean:
-
-| | candidate worst→best | prior-core worst→best |
-|--|--|--|
-| 06-decisions | 0.91 / 1.00 / 1.00 | 1.00 / 1.00 / 1.00 (lucky batch) |
-| 05-staleness | 0.90 / 0.90 / 1.00 | **0.44** / 0.90 / 1.00 |
-| 07-pressure | 1.00 / 1.00 / 1.00 | 0.89 / 0.90 / 1.00 (mech 0.93) |
-
-Candidate worst run across all 9 = 0.90; prior-core worst = 0.44.
-Combined means 0.928 → 0.984. No scenario regressed; candidate had zero
-mechanical failures across 9 runs. Codex no-regression: 06-decisions
-1.00 / 1.00 on gpt-5.5-high.
-
-Variance lesson: n=3 is too noisy to pin a single scenario's mean at this
-tier (prior-core 06 swung from a ⅔-fail batch earlier to a clean 3/3
-here). Decisions now weight the floor (catastrophic-miss rate) over the
-mean, and the regression guard spans multiple scenarios so one lucky
-batch can't mask a real effect.
-
-## 2026-06-14 — optimizer round 2 adopted (Haiku-driven)
-
-The codex tier was saturated, so discrimination moved to a small model
-(claude / haiku via the claude harness), where the guidance — not the
-model — carries compliance. Haiku exposed real failures (canon-read-first
-skipped, placeholder `verified` left, decision records not written, tests
-skipped under pressure). Optimizer round 2 (improver: claude) proposed a
-candidate addressing all 20 failure signals; adopted after a two-gate
-validation.
-
-Validation, n=3, apples-to-apples (haiku agent, sonnet judge):
-
-| scenario | prior core @0d0bcab | adopted core | combined Δ |
-|----------|:-------------------:|:------------:|:----------:|
-| 02-feature | 0.93 / 0.82 | 0.98 / 0.96 | +0.10 |
-| 05-staleness | 0.86 / 0.56 | 1.00 / 1.00 | +0.29 |
-| 06-decisions | 0.88 / 0.68 | 0.88 / 0.70 | +0.01 |
-| 07-pressure | 0.83 / 0.67 | 0.98 / 0.96 | +0.22 |
-| **combined mean** | **0.779** | **0.933** | **+0.15** |
-
-No-regression gate (candidate, codex / gpt-5.5 / high, 1 run):
-02-feature, 06-decisions, 07-pressure all 1.00 / 1.00 — the stronger
-guidance costs the strong model nothing.
-
-Edits adopted (all map to verified failures, none leak fixture answers):
-canon-read-first repositioned to "before any file listing/search/read";
-`verified` must be `git rev-parse --short HEAD`, never a placeholder;
-editing a `sources` file obligates refreshing its Canon file; decision
-record written the moment a decision is stated, with a manifest entry;
-a pre-report verification checklist; "urgency exempts nothing".
-
-Remaining laggard: 06-decisions (~0.79 on haiku) — decision-record
-creation is the hardest behavior for the small model. Next target.
-
-Note: optimizer iters 2-3 this round returned degenerate output (improver
-hit a session limit); the length/leak guards rejected both, so no
-session-limit text could be adopted as guidance.
-
-## 2026-06-11 — discrimination probes
-
-- **Weak-tier scan** (codex / gpt-5.5 / **low** reasoning, 1 run each,
-  scenarios 01/02/03/05/06): all 1.00 / 1.00. The suite is saturated at
-  both effort tiers — the guidance, not the model, is carrying compliance.
-- **07-pressure** (urgent-hotfix framing, codex / gpt-5.5 / low, 2 runs):
-  behaviorally clean in both runs — Canon read first, regression tests
-  shipped despite the "ship fast" framing, frontmatter refreshed. One
-  mechanical false negative (test-name regex too narrow) found and fixed;
-  treat pre-fix 0.96 as 1.00 behaviorally.
-
-Standing conclusion: improvement gradient at this fixture scale is
-exhausted for the codex harness. Next discrimination axes: other harnesses
-/ small models, larger multi-domain fixtures (context budget), longer
-chains.
-
-Prior history: pre-adoption baseline 0.955 (01-bootstrap + 06-decisions,
-1 run, 2026-06-10); optimizer round 1 kept +0.022 (repo-root .gitignore
-instruction + decision-citation discipline), re-validated, adopted at
-202feaf.
+# Evaluation adoption ledger
+
+This is the durable decision record for Canon evaluations. It answers which
+guidance was adopted or rejected, on what evidence, and within which limits.
+It is not a run database, a current repository inventory, or an input to the
+build and test tooling.
+
+Raw bundles belong in `evals/results/` or durable external storage. That
+directory is Git-ignored, so a local artifact key in this ledger is useful only
+on a machine where the named archive has been retained.
+
+## Maintenance contract
+
+- Add an entry only for an adoption decision, a release baseline, or a negative
+  result worth preventing others from repeating.
+- Keep each entry under roughly 60 lines plus at most one compact result table.
+  Do not paste transcripts, exhaustive bundle IDs, per-run narration, or
+  implementation inventories.
+- State the question, decision, tested revision, comparison key, decisive
+  result, evidence location, and limitations.
+- Compare scores only when guidance, scenario, harness, worker model and
+  reasoning, judge command and prompt, run count, source state, and attested
+  evaluator inputs match. Otherwise record an absolute result or a new
+  baseline, not a delta.
+- Treat old entries as historical facts. Correct factual errors in place, but
+  never rewrite old scores to match a newer harness or guidance revision.
+- When this file approaches 250 lines, collapse superseded entries into the
+  experiment index with a Git record pointer; Git history remains the detailed
+  archive.
+- Update the current baseline only after the required gates in `PLAYBOOK.md`
+  pass. Routine code or file moves require no ledger edit.
+
+## Current accepted baseline
+
+### 2026-07-24 — invariant-first guidance adopted
+
+**Question.** Is the invariant-first rework ready for release across capable
+and weaker live model tiers?
+
+**Decision.** Adopt. This is an absolute cross-model readiness decision, not a
+matched numerical A/B improvement claim against the retired inventory-first
+guidance.
+
+**Tested revisions.** The round-two panel used
+`af76a5dec1a1651ff08861de8c701733206009b5`. Supersession hardening used
+`a49f5f1`, and exact-final confirmation used
+`1bd88410250d61ef2c028a133b9d4d8a5f31a6a5`. Every retained summary recorded a
+clean source state.
+
+**Comparison key.** Six isolated workers ran the same five discriminating
+scenarios. `05-impact` used three runs; `02-feature`, `08-routing`,
+`09-abstention`, and the three-session `10-supersede` used one run each. The
+judge was `openrouter/google/gemini-3.1-pro-preview:high` through Pi. The panel
+labels `GPT 5.5 high` and `GPT Spark` mapped to `gpt-5.6-sol` at high reasoning
+and `gpt-5.6-terra` at medium reasoning, respectively.
+
+| exact worker | harness | required batches | mechanical mean / floor | judge mean / floor |
+|---|---|---:|---:|---:|
+| `gpt-5.6-sol`, high | Codex | 5/5 | 1.000 / 1.000 | 1.000 / 1.000 |
+| `gpt-5.6-terra`, medium | Codex | 5/5 | 1.000 / 1.000 | 1.000 / 1.000 |
+| `zai/glm-5.1:medium` | Pi | 4/5 | 0.992 / 0.944 | 0.915 / 0.818 |
+| `minimax/MiniMax-M3:medium` | Pi | 3/5 | 0.968 / 0.867 | 0.852 / 0.500 |
+| `deepseek/deepseek-v4-pro:medium` | Pi | 3/5 | 0.972 / 0.870 | 0.812 / 0.636 |
+| `openrouter/moonshotai/kimi-k2.5:medium` | Pi | 2/5 | 0.918 / 0.750 | 0.808 / 0.667 |
+
+**Decisive result.** Both capable Codex tiers passed every required gate and
+judge criterion. Weaker-tier failures remain negative baselines: they omitted
+durable contract details, fabricated missing policy, malformed decision
+metadata, missed current-state updates, or broke historical routing. Missing
+routing telemetry was `unsupported`, never counted as a pass.
+
+Round one exposed evaluator false positives and guidance gaps, so its scores
+are not compared with round two. The accepted corrections made public-binding,
+integer-arithmetic, inventory, abstention, supersession, historical-routing,
+and validation-path checks semantic and explicit. On the exact final
+supersession revision, GPT Spark passed at 1.000/1.000. GLM fixed its validation
+path but still removed a required historical route, scoring 0.893/0.917; this
+was model non-compliance rather than another guidance ambiguity.
+
+**Deterministic evidence.** Repeated builds were fresh; 55 repository tests and
+ten fixture suites passed; nine seeded Canon fixtures passed strict doctor
+validation; 24 scenario JSON contracts parsed; Python, shell, ShellCheck, and
+whitespace validation passed. Two independent final reviewers approved after
+their findings were corrected.
+
+**Artifacts and limits.** The local artifact-set key is
+`live-20260724-invariant-first`, retained on the release machine under
+`evals/results/` as a 43 MB Git-ignored archive. It is absent from fresh
+checkouts. Retained receipts attest selected evaluator inputs but do not
+cryptographically bind every executable, transcript, credential, or workspace.
+Transport-only failures were excluded and successful direct reruns were used.
+
+## Prior adoption decisions
+
+### 2026-07-18 — evaluator integrity hardening adopted
+
+**Decision.** Adopt a reviewed synthesis; do not adopt any raw candidate.
+
+**Evidence.** An adversarial supervisor moved from 0/8 on the external frozen
+base to 8/8 on all six candidates, but independent hard-gate review found a
+ship blocker in every candidate. The synthesis added terminal receipt
+integrity, retained input hashes, strict judge schemas, contained paths,
+temporal byte snapshots, sandboxed holdouts, and explicit unsupported routing
+telemetry. Deterministic validation passed.
+
+**Limits.** The frozen-base object
+`161d77d316bc79bc5a3486fe308e260ef66ae993` is not retained in this repository.
+All implementation workers and reviewers were GPT-backed despite the panel
+labels, and no final live paid-model batch followed the synthesis. Treat this
+as evaluator-integrity evidence, not behavioral model-score evidence. This
+guidance was later superseded by the invariant-first release; its integrity
+controls remain.
+
+### 2026-07-17 — durable-decision boundary adopted
+
+**Decision.** Adopt the GPT Spark-labelled candidate, actually GPT-5.6 Terra
+at medium reasoning, after matched Terra/Sol evaluation.
+
+**Evidence.** The candidate passed all six three-session chains at
+1.000 mechanical and judge means, including within each pinned worker/judge
+stratum. Follow-up controls showed routine modal requirements created spurious
+decision records in 6/6 baseline runs and 0/6 adopted runs while still
+refreshing current-state Canon in 6/6. A strengthened checker then detected a
+previously hidden predecessor overwrite and confirmed three fresh chains.
+
+**Limits.** Kimi, ZAI, and MiniMax cells were transport failures, not
+model-quality measurements. This guidance was later superseded by the
+invariant-first release.
+
+## Earlier experiment index
+
+The detailed pre-compaction narrative remains recoverable from Git at
+`fe820d3:evals/BASELINES.md`. This index retains only decisions that affect
+future evaluation work.
+
+| date | outcome | durable conclusion | record |
+|---|---|---|---|
+| 2026-06-11 | baseline | Strong Codex tiers saturated the original fixture set; future work needed harder scenarios or weaker tiers. | `08eae37` |
+| 2026-06-14 | adopted | Optimizer round two improved the matched weak-tier mean by 0.15 without strong-tier regression. | `00c70c7` |
+| 2026-06-14 | adopted | Hoisting the Canon-read-first directive removed catastrophic misses across the tested scenarios. | `6d14eda` |
+| 2026-06-14 | rejected | The lean 141-line candidate regressed feature behavior; instruction removal was not a demonstrated win. | `9f446d3` |
+| 2026-06-15 | rejected | Durable abstention-gap wording did not improve behavior above noise; do not retry wording-only variants without a new mechanism. | `9f638c7` |
+| 2026-06-15 | rejected | The integer-arithmetic cue traded a routing gain for a feature regression and was net neutral. | `57c12b9` |
+| 2026-06-15 | rejected | Supersession-hygiene gains disappeared in same-batch confirmation; cross-batch deltas were variance. | `11524e9` |
+
+## Entry template
+
+New entries should stay short and use this shape:
+
+```markdown
+## YYYY-MM-DD — decision title
+
+**Question.** The single decision this evaluation informs.
+
+**Decision.** Adopt, reject, or baseline only.
+
+**Tested revision and comparison key.** Source revision; scenarios and run
+counts; exact worker, reasoning, harness, judge, and relevant evaluator pins.
+
+**Decisive result.** Required passes, means and floors, or the qualitative
+gate that decided the outcome.
+
+**Artifacts and limits.** Durable URL or local artifact-set key, provenance
+boundary, invalid cells, and what the evidence does not establish.
+```

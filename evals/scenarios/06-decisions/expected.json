@@ -2,10 +2,8 @@
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "max_canon_lines": 250,
   "required_files": [
-    "canon/overview.md",
-    "canon/glossary.md",
-    "canon/standards.md",
-    "canon/manifest.md"
+    "canon/manifest.md",
+    "canon/standards.md"
   ],
   "allowed_change_globs": [
     "*.py",
@@ -20,9 +18,19 @@
     },
     {
       "id": "no_changelog_style",
-      "glob": "canon/overview.md",
+      "glob": "canon/architecture/reporting.md",
       "forbid_regex": "(?i)\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
       "description": "overview stays current-state"
+    }
+  ],
+  "preserve": [
+    {
+      "snapshot": "utc_decision_record",
+      "exact_set": true
+    },
+    {
+      "snapshot": "code_after_decision",
+      "exact_set": true
     }
   ],
   "holdout": {

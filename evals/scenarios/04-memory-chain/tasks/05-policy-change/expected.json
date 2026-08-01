@@ -3,13 +3,13 @@
   "rules": [
     {
       "id": "canon_updated_to_50",
-      "glob": "canon/pricing/overview.md",
+      "glob": "canon/architecture/pricing.md",
       "must_regex": "50",
       "description": "the new cap was recorded in the Canon"
     },
     {
       "id": "current_state_no_stale_40",
-      "glob": "canon/pricing/overview.md",
+      "glob": "canon/architecture/pricing.md",
       "forbid_regex": "40%|40 ?percent",
       "description": "the current-state file no longer presents 40 as current"
     },
