@@ -1939,6 +1939,98 @@ article[id] {
   font-weight: 550;
 }
 
+/* ---- companion plate --------------------------------------------- */
+
+/* back matter: the companion work announced the way old presses did it —
+   "uniform with this volume." A printed plate, not a stamp: no entrance
+   motion; the only movement is the hand hovering the links. */
+.companion {
+  border-top: 1px solid var(--rule-soft);
+  padding-block: clamp(48px, 7vh, 72px);
+}
+
+.companion-label {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.companion-plate {
+  align-items: center;
+  background: var(--paper-high);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  box-shadow: 0 14px 44px rgba(var(--shadow-rgb), 0.08);
+  display: grid;
+  gap: clamp(24px, 3.5vw, 48px);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: clamp(24px, 3.2vw, 40px);
+}
+
+.companion-marks {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.companion-chip {
+  align-items: center;
+  background: var(--seal);
+  border-radius: 8px;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.companion-chip svg {
+  display: block;
+}
+
+.companion-name {
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+  font-weight: 530;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.companion-tagline {
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+  font-style: italic;
+  margin-bottom: 12px;
+}
+
+.companion-note {
+  color: var(--ink-soft);
+  font-size: 0.98rem;
+  line-height: 1.6;
+  max-width: 52ch;
+}
+
+.companion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.companion-repo {
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 120ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .companion-repo:hover {
+    color: var(--seal);
+  }
+}
+
 /* ---- footer ------------------------------------------------------ */
 
 .site-footer {
@@ -1967,27 +2059,6 @@ article[id] {
   justify-content: space-between;
   letter-spacing: 0.05em;
   padding-block: 24px 36px;
-}
-
-/* the companion line takes its own row above the colophon proper — the
-   two sites name each other the way companion volumes do */
-.colophon-companion {
-  flex-basis: 100%;
-  margin: 0;
-}
-
-.colophon-companion a {
-  color: var(--ink-soft);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  transition: color 120ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .colophon-companion a:hover {
-    color: var(--seal);
-  }
 }
 
 .colophon-provenance {
@@ -2191,6 +2262,16 @@ article[id] {
 
   .meta-strip .shell {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .companion-plate {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .companion-actions {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .hero-term {
