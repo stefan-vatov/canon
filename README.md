@@ -264,3 +264,12 @@ npx wrangler deploy  # requires Cloudflare access to the agentcanon.dev zone
 
 Project Canon is MIT licensed and originated as a fork of
 [fjzeit's concept](https://github.com/fjzeit/lode).
+
+---
+
+**Sister project:** [Agent Constitution](https://agentconstitution.dev)
+([repo](https://github.com/stefan-vatov/agentconstitution)) — the law your
+agents build under, where Canon is the record they build on. The two share
+one visual language and complementary jobs: the constitution governs
+direction and values; Canon keeps the architectural invariants and the
+reasons behind them.
