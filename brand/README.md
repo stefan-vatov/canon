@@ -10,14 +10,15 @@
 
 - The mark is a **stone arch** — a voussoir ring on plinthed piers, the
   keystone articulated by two angled masonry joints, spring-line joints
-  where the ring meets the piers. The sister project's mark is the pen
+  where the ring meets the piers. The companion project's mark is the pen
   (the instrument that writes the law); Canon's is the arch (the structure
   that stays standing): it holds because the keystone holds — "the
   implementation churns, the canon holds" — and it is also the gate every
   change passes through (§ III). Joints are overprinted in the ground
   color and dropped at tiny sizes, where the solid silhouette carries.
 - There is deliberately **no ratification-style seal**: ratification is the
-  sister project's ritual, and Canon has none — the record starts empty and
+  companion project's ritual, and Canon has none — the record starts empty
+  and
   grows page by page, its authority carried by front matter
   (`status: normative`) and the doctor's gate. Where a large emblem is
   wanted (the meta-strip, the OG corner), the mark appears as a plain

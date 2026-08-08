@@ -3,7 +3,7 @@
    Concept: "the record and the churn." The page is a permanent paper
    record (warm ivory, editorial serif, hairline rules); the sessions
    that churn beneath it appear as dark terminal exhibits embedded in
-   it like evidence. Sister system to agentconstitution.dev — the two
+   it like evidence. Companion system to agentconstitution.dev — the two
    sites share one visual language on purpose.
    ------------------------------------------------------------------ */
 
@@ -563,7 +563,7 @@ article[id] {
   margin-bottom: 26px;
 }
 
-/* a shade below the sister site's scale: this masthead sentence is six
+/* a shade below the companion site's scale: this masthead sentence is six
    words with two four-syllable verbs — at full size it stacks one word
    per line and the sentence stops reading as a sentence */
 .hero h1 {
@@ -1969,14 +1969,14 @@ article[id] {
   padding-block: 24px 36px;
 }
 
-/* the sister line takes its own row above the colophon proper — the two
-   sites name each other the way sister publications do */
-.colophon-sister {
+/* the companion line takes its own row above the colophon proper — the
+   two sites name each other the way companion volumes do */
+.colophon-companion {
   flex-basis: 100%;
   margin: 0;
 }
 
-.colophon-sister a {
+.colophon-companion a {
   color: var(--ink-soft);
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -1985,7 +1985,7 @@ article[id] {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .colophon-sister a:hover {
+  .colophon-companion a:hover {
     color: var(--seal);
   }
 }
