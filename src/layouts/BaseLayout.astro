@@ -1,0 +1,82 @@
+---
+import "../styles/global.css";
+import newsreaderRoman from "../assets/fonts/newsreader-latin-opsz-normal-w400-700.woff2?url";
+import newsreaderItalic from "../assets/fonts/newsreader-latin-opsz-italic-w400-700.woff2?url";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : null;
+const ogImage = Astro.site ? new URL("/og.png", Astro.site) : null;
+const jsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Project Canon",
+  description,
+  url: Astro.site?.toString(),
+});
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f1e9" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161310" />
+    <meta name="color-scheme" content="light dark" />
+    <script is:inline>
+      // Resolve the color theme before first paint: a stored choice is
+      // stamped on <html>; without one, the OS preference governs via CSS.
+      // An explicit choice also pins both theme-color metas so browser
+      // chrome matches the page rather than the OS.
+      (() => {
+        let theme = null;
+        try {
+          theme = localStorage.getItem("theme");
+        } catch {}
+        if (theme !== "light" && theme !== "dark") return;
+        document.documentElement.dataset.theme = theme;
+        const color = theme === "dark" ? "#161310" : "#f4f1e9";
+        for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+          meta.setAttribute("content", color);
+        }
+      })();
+    </script>
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={newsreaderRoman} />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={newsreaderItalic} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Project Canon" />
+    <meta name="twitter:card" content="summary_large_image" />
+    {canonical && <link rel="canonical" href={canonical} />}
+    {canonical && <meta property="og:url" content={canonical} />}
+    {
+      ogImage && (
+        <>
+          <meta property="og:image" content={ogImage} />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta
+            property="og:image:alt"
+            content="Project Canon — code remembers where. Canon remembers why."
+          />
+          <meta name="twitter:image" content={ogImage} />
+        </>
+      )
+    }
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <script type="application/ld+json" set:html={jsonLd} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

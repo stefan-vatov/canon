@@ -1,0 +1,29 @@
+---
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const pageTitle = "404 — nothing routes here | Project Canon";
+const pageDescription =
+  "No page exists at this address. The manifest lists no route for it — the gap is hereby reported.";
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <SiteHeader root="/" />
+  <main id="main">
+    <section class="notfound shell">
+      <span class="mono-label">Routing gap</span>
+      <h1>Nothing routes here.</h1>
+      <p class="prose">
+        The manifest lists no page for this address: it never existed, or it
+        moved — and per the contract, a gap is surfaced, never papered over.
+        Consider it reported.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="/">Back to the overview</a>
+        <a class="btn btn-ghost" href="/how-it-works">Why invariants</a>
+      </div>
+    </section>
+    <SiteFooter />
+  </main>
+</BaseLayout>

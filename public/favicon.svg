@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#a33021"/>
+  <!-- the arch: voussoir ring on plinthed piers; keystone and spring
+       joints overprinted in the tile red -->
+  <g transform="translate(1, -0.4) scale(0.62)">
+    <path fill="#fbf9f3" d="M 10 90 L 10 82 L 14 82 L 14 52 A 36 36 0 0 1 86 52 L 86 82 L 90 82 L 90 90 L 62 90 L 62 82 L 66 82 L 66 52 A 16 16 0 0 0 34 52 L 34 82 L 38 82 L 38 90 Z"/>
+    <line x1="39.3" y1="14.5" x2="46.4" y2="39.5" stroke="#a33021" stroke-width="2.8"/>
+    <line x1="60.7" y1="14.5" x2="53.6" y2="39.5" stroke="#a33021" stroke-width="2.8"/>
+    <line x1="14" y1="53.2" x2="34" y2="53.2" stroke="#a33021" stroke-width="2.4"/>
+    <line x1="66" y1="53.2" x2="86" y2="53.2" stroke="#a33021" stroke-width="2.4"/>
+  </g>
+</svg>

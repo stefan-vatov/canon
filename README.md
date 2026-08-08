@@ -238,6 +238,21 @@ git diff --check
 
 The second build must report both artifacts as `fresh`.
 
+## Website
+
+[agentcanon.dev](https://agentcanon.dev) — sister site to
+[agentconstitution.dev](https://agentconstitution.dev), built with the same
+Astro + Cloudflare Workers setup. The site lives at the repository root
+(`src/`, `public/`, `astro.config.mjs`) and builds to `dist-site/` — the
+`dist/` directory remains reserved for the generated Canon artifacts.
+
+```sh
+npm install
+npm run dev        # local preview
+npm run build      # validates public/llms.txt freshness, then builds
+npx wrangler deploy  # requires Cloudflare access to the agentcanon.dev zone
+```
+
 ## Documentation
 
 - [INSTALL.md](INSTALL.md) — safe installation, merge, upgrade, rollback, and

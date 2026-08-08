@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "Newsreader Variable";
+    font-style: normal;
+    font-weight: 400 700;
+    src: url("../src/assets/fonts/newsreader-latin-opsz-normal-w400-700.woff2") format("woff2-variations");
+  }
+  @font-face {
+    font-family: "Newsreader Variable";
+    font-style: italic;
+    font-weight: 400 700;
+    src: url("../src/assets/fonts/newsreader-latin-opsz-italic-w400-700.woff2") format("woff2-variations");
+  }
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; }
+  body {
+    background: #f4f1e9;
+    color: #211d15;
+    font-family: "Newsreader Variable", Georgia, serif;
+    font-optical-sizing: auto;
+    position: relative;
+    overflow: hidden;
+  }
+  body::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    content: "";
+    inset: 0;
+    opacity: 0.05;
+    position: absolute;
+    z-index: 4;
+  }
+  .frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+    padding: 64px 72px 56px;
+    position: relative;
+  }
+  .brandrow { align-items: center; display: flex; gap: 16px; }
+  .chip {
+    align-items: center;
+    background: #a33021;
+    border-radius: 11px;
+    display: inline-flex;
+    height: 54px;
+    justify-content: center;
+    width: 54px;
+  }
+  .brandname { font-size: 30px; font-weight: 550; letter-spacing: 0.01em; }
+  .label {
+    color: #a33021;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.17em;
+    margin-bottom: 26px;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: 92px;
+    font-weight: 460;
+    letter-spacing: -0.022em;
+    line-height: 1.0;
+    max-width: 900px;
+  }
+  h1 em { color: #a33021; font-style: italic; font-weight: 440; }
+  .foot {
+    align-items: baseline;
+    border-top: 1px solid rgba(33, 29, 21, 0.22);
+    color: #6f6753;
+    display: flex;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 17px;
+    justify-content: space-between;
+    letter-spacing: 0.06em;
+    padding-top: 24px;
+  }
+  .foot b { color: #211d15; font-weight: 600; }
+  /* the printer's device — printed straight; it declares, it doesn't certify */
+  .device {
+    color: #a33021;
+    height: 200px;
+    mix-blend-mode: multiply;
+    opacity: 0.88;
+    position: absolute;
+    right: 82px;
+    top: 78px;
+    width: 208px;
+    z-index: 3;
+  }
+</style>
+</head>
+<body>
+  <svg class="device" viewBox="4 8 92 88">
+    <path fill="currentColor" d="M 10 90 L 10 82 L 14 82 L 14 52 A 36 36 0 0 1 86 52 L 86 82 L 90 82 L 90 90 L 62 90 L 62 82 L 66 82 L 66 52 A 16 16 0 0 0 34 52 L 34 82 L 38 82 L 38 90 Z"></path>
+    <line x1="39.3" y1="14.5" x2="46.4" y2="39.5" stroke="#f4f1e9" stroke-width="2.8"></line>
+    <line x1="60.7" y1="14.5" x2="53.6" y2="39.5" stroke="#f4f1e9" stroke-width="2.8"></line>
+    <line x1="14" y1="53.2" x2="34" y2="53.2" stroke="#f4f1e9" stroke-width="2.2"></line>
+    <line x1="66" y1="53.2" x2="86" y2="53.2" stroke="#f4f1e9" stroke-width="2.2"></line>
+  </svg>
+
+  <div class="frame">
+    <div class="brandrow">
+      <span class="chip">
+        <svg viewBox="4 8 92 88" width="32" height="30.6">
+          <path fill="#fbf9f3" d="M 10 90 L 10 82 L 14 82 L 14 52 A 36 36 0 0 1 86 52 L 86 82 L 90 82 L 90 90 L 62 90 L 62 82 L 66 82 L 66 52 A 16 16 0 0 0 34 52 L 34 82 L 38 82 L 38 90 Z"/>
+          <line x1="39.3" y1="14.5" x2="46.4" y2="39.5" stroke="#a33021" stroke-width="2.8"/>
+          <line x1="60.7" y1="14.5" x2="53.6" y2="39.5" stroke="#a33021" stroke-width="2.8"/>
+          <line x1="14" y1="53.2" x2="34" y2="53.2" stroke="#a33021" stroke-width="2.4"/>
+          <line x1="66" y1="53.2" x2="86" y2="53.2" stroke="#a33021" stroke-width="2.4"/>
+        </svg>
+      </span>
+      <span class="brandname">Project Canon</span>
+    </div>
+
+    <div>
+      <div class="label">Durable architectural memory for coding agents</div>
+      <h1>Code remembers where. Canon remembers <em>why.</em></h1>
+    </div>
+
+    <div class="foot">
+      <span>one generated <b>3.5 KB</b> core · CLAUDE.md / AGENTS.md · eval-verified</span>
+      <span><b>agentcanon.dev</b></span>
+    </div>
+  </div>
+</body>
+</html>

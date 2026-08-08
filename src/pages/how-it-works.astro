@@ -1,0 +1,132 @@
+---
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const pageTitle = "Why invariants | Project Canon";
+const pageDescription =
+  "Why durable memory for coding agents must be made of invariants, not inventories: sessions are amnesiac, staleness is asymmetric, and a record that owns too much governs nothing.";
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <SiteHeader root="/" />
+  <main id="main">
+    <article class="essay">
+      <span class="mono-label">Why invariants</span>
+      <h1>A memory made of invariants.</h1>
+      <p class="essay-sub">
+        The mechanistic argument: why the durable record must own almost
+        nothing — and why that is what makes it durable.
+      </p>
+
+      <h2>Sessions are amnesiac</h2>
+      <p class="opener">
+        A coding agent's working memory is its context window, and the
+        context window dies with the session. Whatever the agent understood
+        about your system — why the gateway exists, why the cap is 10 MB, why
+        Postgres won — is discarded at the end of the run. The next session
+        starts from the same place every session starts: the code, and
+        nothing else.
+      </p>
+      <p>
+        Code is a remarkable record of one thing: where the implementation
+        currently lives. It is a terrible record of why. The constraint that
+        shaped a module, the outage that mandated a timeout, the trade-off
+        that was argued for a week and settled — none of it survives
+        compilation. An agent can re-derive some of the why from shape alone,
+        the way an archaeologist re-derives a city from foundations. Each
+        re-derivation is expensive, partial, and a little more wrong than the
+        last, because the people who could correct it are no longer in the
+        loop.
+      </p>
+
+      <h2>Two kinds of truth</h2>
+      <p>
+        Everything worth writing about a system is one of two kinds of fact.
+        <strong>Where-facts</strong>: which file holds the validator, which
+        helper wraps the driver, which tests cover the flow. The repository
+        itself is the authoritative record of these — types, manifests,
+        schemas, build graphs — and any prose copy of them begins to rot at
+        the next commit.
+        <strong>Why-facts</strong>: what must remain true regardless of where
+        anything lives. Uploads fail closed. Retries never double-charge.
+        Feature code never imports a driver.
+      </p>
+      <p>
+        The two kinds age in opposite directions, and that asymmetry is the
+        whole design. A where-fact written down is a liability with a
+        half-life measured in commits. A why-fact written down is stale only
+        when a human changes their mind — and that moment is exactly when the
+        human is present, deciding, and able to update one page.
+      </p>
+
+      <h2>Inventories rot; invariants hold</h2>
+      <p>
+        This is why documentation-as-inventory fails twice. First
+        mechanically: the mirror drifts from the tree, because nothing forces
+        the tree to tell the mirror. Then socially, which is worse: agents
+        and humans learn the mirror lies, and stop consulting it — including
+        the parts that were true and load-bearing. A record that is 80% stale
+        where-facts teaches its readers to ignore the 20% that matters.
+      </p>
+      <p>
+        Canon takes the asymmetry as law. It owns durable guarantees only —
+        ownership, contracts, lifecycle policy, security, required
+        validation, explicit decisions with their rationale — and refuses
+        inventories outright. Not because file lists are useless, but because
+        the repository already maintains them perfectly, for free, forever.
+        One fact, one owning page. If a page cannot go stale without a human
+        changing their mind, the record stays trustworthy without
+        maintenance, and trustworthy is what gets read.
+      </p>
+
+      <h2>Memory must be loaded, then routed</h2>
+      <p>
+        A record does no work from outside the context window. Canon ships as
+        the files agents already load — generated CLAUDE.md and AGENTS.md —
+        so the contract is in context before the first decision. But a durable
+        record that grows must not be read whole: bulk-loading a memory into
+        a working context spends the very resource the task needs. So the
+        first action is a route, not a read: the manifest maps each concern
+        to its owning page with an explicit read-when condition, and a
+        well-routed session loads one or two pages. The memory scales; the
+        cost of consulting it does not.
+      </p>
+
+      <h2>The gate keeps it small</h2>
+      <p>
+        Left alone, every record grows toward inventory, because writing
+        feels like diligence. Canon's gate is a classification every session
+        must file: <strong>none</strong> — the guarantees didn't move, leave
+        the record alone; <strong>clarification</strong> — same rule, clearer
+        words; <strong>change</strong> — a guarantee moved, update the
+        smallest owning page with its complete contract. The gate makes
+        not-writing a deliberate, reportable act, which is the only way
+        restraint survives automation.
+      </p>
+
+      <h2>Authority, drift, and silence</h2>
+      <p>
+        Two failure modes remain, and both are answered by rank rather than
+        judgment. When code contradicts the record, the norm outranks the
+        drift: the agent reports the conflict or, when authorized, fixes the
+        code — it never rewrites the rule to match what it found, because a
+        record that follows the code is just a slower mirror. And when the
+        record is silent, silence outranks invention: absent policy is a gap
+        to surface, not a blank to fill. A guessed limit, once written,
+        becomes load-bearing — the most dangerous kind of documentation,
+        authority without an author.
+      </p>
+
+      <p class="essay-close">
+        Canon is small because the truth that must survive is small.
+        Everything else is implementation — and the implementation is allowed
+        to churn.
+      </p>
+
+      <a class="btn btn-ghost essay-back" href="/">Back to the overview</a>
+    </article>
+
+    <SiteFooter />
+  </main>
+</BaseLayout>

@@ -1,0 +1,201 @@
+---
+// Plate I — the routing chart, mounted like a plate from an atlas.
+// The manifest is the hub; routed pages hang off it with their
+// read-when conditions. Picking a task lights only the pages that
+// task loads. The rename task lights nothing — geography, not law.
+
+type Node = {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  when?: string;
+  lit: string[];
+};
+
+const HUB = { x: 54, y: 170, w: 132, h: 30, cx: 120, cy: 185 };
+
+const nodes: Node[] = [
+  {
+    id: "standards",
+    label: "standards.md",
+    x: 430,
+    y: 46,
+    w: 236,
+    when: "read for laws before structural change",
+    lit: [],
+  },
+  {
+    id: "payments",
+    label: "architecture/payments.md",
+    x: 430,
+    y: 108,
+    w: 236,
+    when: "read when touching charge flow",
+    lit: ["t1"],
+  },
+  {
+    id: "uploads",
+    label: "architecture/uploads.md",
+    x: 430,
+    y: 170,
+    w: 236,
+    when: "read when changing ingest limits",
+    lit: ["t3"],
+  },
+  {
+    id: "persistence",
+    label: "architecture/persistence.md",
+    x: 430,
+    y: 232,
+    w: 236,
+    when: "read when changing storage lifecycle",
+    lit: [],
+  },
+  {
+    id: "decisions",
+    label: "decisions/2026-08-02-sqlite.md",
+    x: 430,
+    y: 294,
+    w: 236,
+    when: "history — clearly labeled",
+    lit: [],
+  },
+];
+
+const edge = (node: Node) => {
+  const x1 = HUB.x + HUB.w;
+  const y1 = HUB.cy;
+  const x2 = node.x;
+  const y2 = node.y + 15;
+  const mx = (x1 + x2) / 2;
+  return `M${x1} ${y1} C${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+};
+
+const tasks = [
+  { id: "t1", label: "fix refund retries" },
+  { id: "t2", label: "rename a helper" },
+  { id: "t3", label: "raise the upload cap" },
+];
+
+const verdicts = [
+  { id: "t1", parts: ["2 pages load", " — the manifest routes; the rest stay unread"] },
+  { id: "t2", parts: ["no route lights", " — a rename is geography, not law · canon impact: none"] },
+  { id: "t3", parts: ["2 pages load", " — the cap's owning page, nothing else"] },
+];
+---
+
+<figure class="tree-exhibit" aria-label="Plate I — the routing chart">
+  <div class="plate">
+    <div class="plate-bar">
+      <span class="plate-label">Plate I — the routing chart</span>
+      <span class="term-ab" role="group" aria-label="Pick a task">
+        <span>task:</span>
+        {tasks.map((t, i) => (
+          <button
+            class="term-ab-btn"
+            type="button"
+            data-task={t.id}
+            aria-pressed={i === 0 ? "true" : "false"}
+          >
+            {t.label}
+          </button>
+        ))}
+      </span>
+    </div>
+    <div class="tree-body">
+      <svg
+        class="route-svg"
+        viewBox="0 0 760 400"
+        role="img"
+        aria-label="A chart of a repository's canon directory. A hub node, the manifest, connects by curved routes to five pages, each annotated with its read-when condition. A scratch node sits apart behind a dashed border, connected to nothing. Depending on the chosen task, either two nodes light up, or none."
+      >
+        {nodes.map((node) => (
+          <path
+            class="route-edge"
+            data-lit={node.lit.join(" ")}
+            d={edge(node)}
+          ></path>
+        ))}
+
+        <g class="route-node hub">
+          <rect x={HUB.x} y={HUB.y} width={HUB.w} height={HUB.h} rx="4"></rect>
+          <text x={HUB.cx} y={HUB.cy + 4} text-anchor="middle">manifest.md</text>
+        </g>
+
+        {nodes.map((node) => (
+          <>
+            <g class="route-node" data-lit={node.lit.join(" ")}>
+              <rect x={node.x} y={node.y} width={node.w} height="30" rx="4"></rect>
+              <text x={node.x + node.w / 2} y={node.y + 19} text-anchor="middle">
+                {node.label}
+              </text>
+            </g>
+            <text
+              class="route-when"
+              data-lit={node.lit.join(" ")}
+              x={node.x - 12}
+              y={node.y + 8}
+              text-anchor="end"
+            >
+              {node.when}
+            </text>
+          </>
+        ))}
+
+        <g class="route-node scratch">
+          <rect x={HUB.x} y="330" width={HUB.w} height="30" rx="4"></rect>
+          <text x={HUB.cx} y="349" text-anchor="middle">scratch/</text>
+        </g>
+        <text class="route-when" x={HUB.x + HUB.w + 14} y="349">
+          never routed · non-authoritative
+        </text>
+      </svg>
+      <p class="route-verdict" aria-live="polite">
+        {verdicts.map((v, i) => (
+          <span data-task={v.id} class={i === 0 ? "is-lit" : ""}>
+            <b>{v.parts[0]}</b>{v.parts[1]}
+          </span>
+        ))}
+      </p>
+    </div>
+  </div>
+  <figcaption class="plate-caption">
+    The manifest routes; the task decides which law is loaded. A routed
+    session reads one or two pages and lets the rest lie — and when a change
+    is only geography, no page lights at all.
+  </figcaption>
+</figure>
+
+<script>
+  const plate = document.querySelector<HTMLElement>(".tree-exhibit");
+  if (plate) {
+    const buttons = [...plate.querySelectorAll<HTMLButtonElement>(".term-ab-btn")];
+    const litable = [...plate.querySelectorAll<Element>("[data-lit]")];
+    const verdicts = [...plate.querySelectorAll<Element>(".route-verdict [data-task]")];
+
+    const select = (task: string) => {
+      buttons.forEach((btn) =>
+        btn.setAttribute("aria-pressed", String(btn.dataset.task === task)),
+      );
+      litable.forEach((el) => {
+        const lit = (el.getAttribute("data-lit") ?? "").split(" ");
+        el.classList.toggle("is-lit", lit.includes(task));
+      });
+      // the hub lights whenever anything routes: reading the manifest is
+      // itself the first page loaded
+      const hubLit = litable.some((el) => el.classList.contains("is-lit"));
+      plate.querySelector(".route-node.hub")?.classList.toggle("is-lit", hubLit);
+      verdicts.forEach((el) =>
+        el.classList.toggle("is-lit", el.getAttribute("data-task") === task),
+      );
+    };
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => select(btn.dataset.task ?? ""));
+    });
+
+    select("t1");
+  }
+</script>

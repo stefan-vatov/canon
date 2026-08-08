@@ -1,0 +1,114 @@
+---
+// Fig. I — the churn, printed on the paper itself.
+// Six fresh sessions each climb the same hill: rebuild a picture of the
+// system from code alone, then end, and the context is discarded (the
+// dashed drop). Each rebuild recovers less of the original why — the
+// authors leave, the tickets close, the intent decays. The canon line
+// is the only red on the plot: written once at the start, read back
+// unchanged by every session that follows. Knots are designed, not
+// random — every visitor reads the same printed figure.
+
+const r1 = (v: number) => Math.round(v * 10) / 10;
+
+const baseY = 452;
+const canonY = 150;
+const left = 64;
+const right = 506;
+
+// [x0, peakY] per session — peaks decay toward "what code alone gives back"
+const sessions: [number, number][] = [
+  [64, 210],
+  [138, 248],
+  [212, 282],
+  [286, 312],
+  [360, 338],
+  [434, 358],
+];
+
+const arcs = sessions.map(([x0, peak]) => {
+  const h = baseY - peak;
+  const rise =
+    `M${x0} ${baseY}` +
+    ` C${r1(x0 + 16)} ${r1(baseY - h * 0.25)}, ${r1(x0 + 26)} ${r1(peak + h * 0.18)}, ${x0 + 42} ${peak}` +
+    ` C${x0 + 48} ${peak - 2}, ${x0 + 54} ${peak}, ${x0 + 58} ${peak + 4}`;
+  return {
+    d: rise,
+    dropX: x0 + 58,
+    dropY: peak + 4,
+    peak: { x: x0 + 42, y: peak },
+    steps: [
+      { x: r1(x0 + 21), y: r1(baseY - h * 0.42) },
+      { x: r1(x0 + 32), y: r1(peak + h * 0.14) },
+    ],
+    tick: { x: x0 + 29, label: "" },
+  };
+});
+---
+
+<figure class="drift-fig">
+  <svg
+    viewBox="34 66 492 408"
+    role="img"
+    aria-label="Six arcs rise from a shared baseline, one per session. Each climbs, flattens, and is cut off by a dashed drop back to the baseline — the context discarded. Every arc peaks lower than the one before. Above them all, a straight red line labeled canon runs level from the first session to the last, unchanged."
+  >
+    <line class="fig-mid fig-bearing" x1={left} y1={baseY} x2={right} y2={baseY}></line>
+
+    {arcs.map((arc, i) => (
+      <g class="fig-walk-g" style={`--i: ${i}`}>
+        <path class="fig-walk" d={arc.d} pathLength="1"></path>
+        {arc.steps.map((dot) => (
+          <circle class="fig-late fig-step" cx={dot.x} cy={dot.y} r="1.3"></circle>
+        ))}
+        <circle class="fig-late fig-end" cx={arc.peak.x} cy={arc.peak.y} r="2.3"></circle>
+        <line
+          class="fig-late fig-drop"
+          x1={arc.dropX}
+          y1={arc.dropY}
+          x2={arc.dropX}
+          y2={baseY}
+        ></line>
+      </g>
+    ))}
+
+    {sessions.map(([x0], i) => (
+      <text class="fig-mid fig-label" x={x0 + 29} y={baseY + 20} text-anchor="middle">
+        s{i + 1}
+      </text>
+    ))}
+
+    <text class="fig-late fig-label" x={left} y={196}>what the session re-derives</text>
+
+    <line class="fig-canon" x1={left} y1={canonY} x2={right} y2={canonY} pathLength="1"></line>
+    <circle class="fig-late fig-canon-dot" cx={left} cy={canonY} r="3.2"></circle>
+    <text class="fig-late fig-label canon" x={left + 12} y={canonY - 12}>written once</text>
+    <text class="fig-late fig-label canon" x={right} y={canonY - 12} text-anchor="end">
+      canon — read by every session
+    </text>
+  </svg>
+  <figcaption class="fig-caption">
+    Fig. I. Each fresh session rebuilds its picture of the system from code
+    alone, and each rebuild recovers less of the original why. A fact written
+    into canon is read back in seconds, unchanged, by every session that
+    follows.
+  </figcaption>
+</figure>
+
+<script>
+  const fig = document.querySelector<HTMLElement>(".drift-fig");
+  if (fig && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    // hidden-then-drawn only when JS runs — without it the figure is
+    // simply printed, fully visible
+    fig.classList.add("will-draw");
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            fig.classList.add("is-drawn");
+            io.disconnect();
+          }
+        }),
+      { threshold: 0.35 },
+    );
+    io.observe(fig);
+  }
+</script>

@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agentcanon",
+  "compatibility_date": "2026-08-08",
+  "assets": {
+    "directory": "./dist-site",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    {
+      "pattern": "agentcanon.dev",
+      "custom_domain": true
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+---
+// The printer's device — the press's plain emblem, the way a colophon
+// declares provenance. Not a stamp: canon has no ratification ceremony,
+// so nothing here pretends to certify one. Authority lives in front
+// matter (status: normative) and the doctor's gate, not in wax.
+interface Props {
+  class?: string;
+}
+
+const { class: className = "device" } = Astro.props;
+---
+
+<svg class={className} viewBox="4 8 92 88" aria-hidden="true">
+  <path
+    fill="currentColor"
+    d="M 10 90 L 10 82 L 14 82 L 14 52 A 36 36 0 0 1 86 52 L 86 82 L 90 82 L 90 90 L 62 90 L 62 82 L 66 82 L 66 52 A 16 16 0 0 0 34 52 L 34 82 L 38 82 L 38 90 Z"
+  ></path>
+  <line x1="39.3" y1="14.5" x2="46.4" y2="39.5" stroke="var(--paper-deep)" stroke-width="2.8"></line>
+  <line x1="60.7" y1="14.5" x2="53.6" y2="39.5" stroke="var(--paper-deep)" stroke-width="2.8"></line>
+  <line x1="14" y1="53.2" x2="34" y2="53.2" stroke="var(--paper-deep)" stroke-width="2.2"></line>
+  <line x1="66" y1="53.2" x2="86" y2="53.2" stroke="var(--paper-deep)" stroke-width="2.2"></line>
+</svg>

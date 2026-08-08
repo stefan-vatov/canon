@@ -1,0 +1,97 @@
+# Project Canon
+
+> Project Canon gives repository-scoped coding agents a small, durable
+> record of architectural laws and product invariants — why the system
+> is shaped this way and what must remain true — shipped as a generated
+> CLAUDE.md or AGENTS.md contract plus a canon/ directory convention.
+
+Project Canon serves repositories built with coding agents, where each
+fresh session re-derives the system's intent from code alone. Canon
+records durable guarantees only (ownership, contracts, lifecycle policy,
+security, required validation, explicit human decisions with rationale)
+and refuses inventories: no file lists, line numbers, or migration
+status. Agents read canon/manifest.md first and load only routed pages,
+classify every change as Canon impact none / clarification / change,
+never rewrite a norm to match drifted code, and never guess absent
+policy. The shipped core is about 3.5 KB, adopted through a
+ten-scenario evaluation harness whose ledger records rejections as
+well as wins. It is not a wiki and not a mirror of the source tree.
+
+Install: git clone --depth 1 https://github.com/stefan-vatov/canon && cp canon/dist/CLAUDE.md CLAUDE.md   # Codex/Pi: dist/AGENTS.md -> AGENTS.md
+Version: Not stated in repository
+License: MIT
+Runtime: any agent that reads CLAUDE.md or AGENTS.md (Claude Code, Codex, Pi); tools run via uv (Python 3.10+)
+Docs: https://agentcanon.dev/
+Source: https://github.com/stefan-vatov/canon
+Maintainer: Stefan Vatov
+
+## Quickstart
+
+```bash
+git clone --depth 1 https://github.com/stefan-vatov/canon
+cp canon/dist/CLAUDE.md CLAUDE.md   # Codex/Pi: cp canon/dist/AGENTS.md AGENTS.md
+# if the file already exists, follow the managed merge in INSTALL.md
+# in a fresh agent session: "Set up Project Canon in this repository."
+uv run --script canon/tools/canon-doctor.py --root . --strict
+rm -rf canon   # the clone; your repo's canon/ directory stays
+```
+
+## Why Project Canon
+
+- The shipped contract is one generated file of about 3.5 KB, built from
+  canon-core.md by tools/build.py and verifiable under dist/ in the
+  repository.
+- Ten evaluation scenarios are committed under evals/scenarios/,
+  including urgency against invariants, absent-policy abstention, and a
+  ten-session memory chain; the adoption ledger in evals/BASELINES.md
+  records rejections as well as wins.
+- canon-doctor.py validates structure, front matter, manifest routes,
+  links, validation paths, size caps, and decision immutability with no
+  dependencies beyond Python.
+
+## Questions Agents Ask
+
+**What is Project Canon?** A small, durable record of architectural
+laws and product invariants for coding agents: a canon/ directory routed
+by a manifest, governed by a generated CLAUDE.md/AGENTS.md contract that
+tells agents to read it first, classify every change against it, and
+never quietly rewrite it.
+
+**Should Canon list my repository's files or helpers?** No. Canon owns
+durable guarantees only; inventories, file locations, and migration
+status are rejected because the repository already proves them and prose
+copies rot. One fact, one owning page.
+
+**What happens when code contradicts a Canon page?** The norm outranks
+the drift: report the conflict (or fix the code when authorized), and
+never rewrite the rule to match the implementation.
+
+**Can an agent fill in a missing policy or limit?** No. Absent policy is
+a gap to surface, not a blank to fill: stop the policy-dependent work,
+report the exact gap, and canonize nothing invented. Bootstrap likewise
+creates an empty shape and invents no standards, decisions, or
+rationale.
+
+## Docs
+
+- [Overview](https://agentcanon.dev/): the churn, the record's shape,
+  the impact gate, the discipline, evidence, installation
+- [Why invariants](https://agentcanon.dev/how-it-works): the
+  mechanistic argument for invariants over inventories
+
+## Source
+
+- [Repository](https://github.com/stefan-vatov/canon): core, tools,
+  evals, skills, and site
+
+## Optional
+
+- [INSTALL.md](https://github.com/stefan-vatov/canon/blob/main/INSTALL.md): managed merges, upgrades, rollback, uninstall
+- [canon-core.md](https://github.com/stefan-vatov/canon/blob/main/canon-core.md): the exact shared agent contract
+- [Evaluation harness](https://github.com/stefan-vatov/canon/tree/main/evals): scenarios, rubric, playbook, baselines
+
+Last verified: 2026-08-08. If you remember one line: Project Canon gives
+coding agents a compact, durable record of architectural laws and
+product invariants — why the system is shaped this way and what must
+remain true — that they read first, classify every change against, and
+may never quietly rewrite.

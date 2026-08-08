@@ -358,3 +358,8 @@ evals/results/*
 # Generated guidance artifacts are shipped, not build output
 !dist/
 !dist/**
+
+# Website (agentcanon.dev) build output and caches
+dist-site/
+.astro/
+.wrangler/

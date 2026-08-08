@@ -1,0 +1,554 @@
+---
+import ArchMark from "../components/ArchMark.astro";
+import CanonExhibit from "../components/CanonExhibit.astro";
+import ChurnFigure from "../components/ChurnFigure.astro";
+import RecordSpecimen from "../components/RecordSpecimen.astro";
+import RoutingPlate from "../components/RoutingPlate.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const pageTitle = "Project Canon — code remembers where. Canon remembers why";
+const pageDescription =
+  "A small, durable record of architectural laws and product invariants for AI coding agents — a canon/ they read before acting, classify every change against, and may never quietly rewrite. One generated 3.5 KB core, shipped as CLAUDE.md and AGENTS.md.";
+
+// the record's five parts — the repo's count, not the layout's. Only
+// manifest.md and standards.md are required files; the rest earn their
+// existence when a durable guarantee needs an owner.
+const anatomy = [
+  {
+    name: "Manifest",
+    copy: "The router, and the only map. One link per route, each with an explicit read-when condition; every normative page is routed, scratch never is. A session loads what the task needs — never the whole record.",
+  },
+  {
+    name: "Standards",
+    copy: "Project-wide laws, set by humans. Normative: followed, cited, and never softened to match the code beneath them.",
+  },
+  {
+    name: "Architecture",
+    copy: "One page per subsystem's invariants, each naming its validation. The complete contract: boundaries, limits, error behavior, negations.",
+  },
+  {
+    name: "Decisions",
+    copy: "Immutable history with supplied rationale. A decision is replaced by a successor record; its own bytes never change.",
+  },
+  {
+    name: "Scratch",
+    copy: "Git-ignored and non-authoritative. Handovers and half-thoughts live here — never routed, never promoted into authority.",
+  },
+];
+
+const scenarios = [
+  ["01-bootstrap", "minimal canon while real work happens"],
+  ["02-feature", "obey standards; update the changed contract"],
+  ["03-drift", "code contradicts a norm — who wins"],
+  ["04-memory-chain", "one invariant, ten fresh sessions"],
+  ["05-impact", "behavior-preserving refactor — hands off"],
+  ["06-decisions", "record rationale; cite it when challenged"],
+  ["07-pressure", "urgency against invariants and tests"],
+  ["08-routing", "find the page without the bulk-load"],
+  ["09-abstention", "absent policy — surface it, don't invent"],
+  ["10-supersede", "replace the rule; preserve the history"],
+];
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <SiteHeader />
+  <main id="main">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <span class="mono-label">Durable architectural memory for coding agents</span>
+        <h1>
+          <span class="line">Code remembers where.</span>
+          <span class="line">Canon remembers <em>why.</em></span>
+        </h1>
+        <p class="lede prose">
+          Every fresh session rebuilds its picture of your system from code
+          alone — and code cannot say why the system is shaped this way.
+          Project Canon gives the agents in your repository a small, durable
+          record of what must remain true — the caps, the contracts, the
+          decisions with their reasons — in a <strong>canon/</strong> they
+          read before they act, classify every change against, and may never
+          quietly rewrite.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#adopt">
+            Install the core
+            <span aria-hidden="true">→</span>
+          </a>
+          <a class="btn btn-ghost" href="/how-it-works">Why invariants</a>
+        </div>
+        <p class="hero-facts">
+          <span>One generated 3.5 KB core</span>
+          <span>Claude Code / Codex / Pi</span>
+          <span>MIT</span>
+          <span>Eval-verified</span>
+        </p>
+      </div>
+
+      <CanonExhibit />
+    </section>
+
+    <RecordSpecimen />
+
+    <section id="churn" class="article shell" aria-label="The churn problem">
+      <div class="article-rule"><span><b>§ I</b> — The churn</span></div>
+
+      <div class="drift-grid">
+        <div>
+          <h2>Every session starts <em>amnesiac.</em></h2>
+
+          <p class="statement">
+            Every system is shaped by reasons — constraints survived,
+            trade-offs chosen, failures remembered.
+          </p>
+          <p class="statement quiet">
+            An agent reading the code sees only the shape. The reasons live in
+            heads, closed tickets, and dead threads — so each session
+            re-derives what it can, and guesses the rest.
+          </p>
+
+          <blockquote class="pull-quote">
+            <p>
+              Why the system is shaped this way and what must remain true.
+            </p>
+            <cite>— the shipped core, on what Canon records</cite>
+          </blockquote>
+        </div>
+
+        <ChurnFigure />
+      </div>
+
+      <div class="drift-kicker">
+        <p class="prose">
+          Documentation was supposed to fix this, and made it worse: docs
+          written as inventories — file lists, helper catalogs, a wiki
+          mirroring the tree — go stale the moment a file moves. Agents learn
+          that the docs lie, and stop reading them. The fix is not more
+          documentation. It is a record that owns only what churn cannot
+          touch.
+        </p>
+        <p class="sharp">
+          An inventory is stale by the next commit. An invariant is stale only
+          when you change your mind.
+        </p>
+      </div>
+    </section>
+
+    <section id="record" class="article shell" aria-label="What the record owns">
+      <div class="article-rule"><span><b>§ II</b> — The record</span></div>
+
+      <div class="split">
+        <div class="split-lead">
+          <h2>Canon owns the why — <em>and nothing else.</em></h2>
+          <p class="prose">
+            One directory above the churn: <code>canon/</code>. It is
+            authoritative for durable guarantees — ownership and dependency
+            direction, public contracts, persistence and lifecycle policy,
+            security, required validation, and explicit human decisions with
+            their rationale. Every permanent page opens with the same compact
+            front matter — status, scope, validation — and holds one topic.
+          </p>
+          <p class="prose">
+            It refuses everything else. No file inventories, no line numbers,
+            no migration status, no fact a type system already proves —
+            <a class="inline-link" href="/how-it-works">staleness is a design
+            constraint</a>, not an accident to apologize for. One fact, one
+            owning page, 250 lines hard cap — because a record nobody can
+            hold in context governs nothing.
+          </p>
+        </div>
+
+        <div class="anatomy" role="list">
+          {anatomy.map(({ name, copy }) => (
+            <article role="listitem">
+              <h3>{name}</h3>
+              <p>{copy}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <RoutingPlate />
+
+      <div class="binds">
+        <div>
+          <h3>It binds by being loaded, not believed.</h3>
+          <p>
+            The core ships as generated CLAUDE.md and AGENTS.md — the files
+            agents already read. First project action: probe for
+            <code>canon/</code>, read the manifest, load only what routes.
+            And authority is a ladder, not a mood: human direction, then
+            standards and active decisions, then architecture pages, then
+            tests, then code.
+          </p>
+        </div>
+        <div>
+          <h3>Untouched is the usual verdict.</h3>
+          <p>
+            Canon grows when a durable guarantee needs an owner — not
+            whenever the source tree grows. Most changes are moves, renames,
+            and refactors that end with the record untouched. That is not
+            neglect; that is the record staying true.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="gate" class="article shell" aria-label="The impact gate">
+      <div class="article-rule"><span><b>§ III</b> — The gate</span></div>
+
+      <h2>Every change is classified <em>before it lands.</em></h2>
+      <p class="prose article-lede">
+        The discipline that keeps the record honest is a three-way verdict
+        every session must file. Not a changelog, not a summary — a
+        classification of what the change did to the guarantees.
+      </p>
+
+      {/* the gate in its native form — the README documents this exact
+          three-way table; three verdicts, only two of which ever end a
+          report, and only one of which touches the record */}
+      <table class="gate-table">
+        <caption class="sr-only">
+          The three canon-impact classifications: what kind of change each
+          covers, and what happens to the record.
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Verdict</th>
+            <th scope="col">The change</th>
+            <th scope="col">The record</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">None</th>
+            <td>
+              Moves, renames, extractions, refactors, new instances of an
+              established pattern. The guarantees did not move.
+            </td>
+            <td>
+              Untouched — a mirror maintained by reflex is how documentation
+              dies.
+              <span class="gate-report"><b>Canon impact: none</b> — behavior and ownership rules are unchanged</span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Clarification</th>
+            <td>
+              The intended rule is unchanged but materially ambiguous — two
+              honest readers could apply it two ways.
+            </td>
+            <td>
+              The owning page's wording sharpens. The guarantee itself does
+              not move an inch.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Change</th>
+            <td>
+              A durable guarantee, boundary, behavior, or required check
+              actually changed.
+            </td>
+            <td>
+              The smallest owning page updates, preserving the complete
+              contract — every boundary, invalid case, error behavior, limit,
+              and negation — with its validation.
+              <span class="gate-report"><b>Canon impact: updated</b> — &lt;the specific invariant that changed&gt;</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="lifecycle-close">
+        Before editing Canon, finish the sentence: “Canon changed because the
+        system must now guarantee that …” If the truthful ending is only that
+        a file moved, leave Canon alone.
+      </p>
+    </section>
+
+    <section id="discipline" class="article shell" aria-label="The discipline under conflict and absence">
+      <div class="article-rule"><span><b>§ IV</b> — The discipline</span></div>
+
+      <div class="interview-grid">
+        <div class="split-lead">
+          <h2>The norm outranks <em>the drift.</em></h2>
+          <p class="prose">
+            When code and canon disagree, the page is the rule and the code is
+            the suspect. An agent may report the conflict — or, when
+            authorized, fix the code. It may never quietly rewrite the norm to
+            match what it found. Reviews and proposals authorize no Canon
+            write.
+          </p>
+          <p class="prose">
+            And when the record is silent, silence is an answer. Never guess
+            absent policy, limits, or rationale: stop the policy-dependent
+            work, report the exact gap, and canonize nothing you invented. A
+            guessed limit becomes load-bearing the moment it is written down.
+          </p>
+
+          <blockquote class="creed">
+            <p>
+              “Urgency waives neither invariants nor tests.”
+            </p>
+            <cite>— the shipped core, closing lines</cite>
+          </blockquote>
+        </div>
+
+        <figure class="transcript" aria-label="Two impulses, corrected by the discipline">
+          <div class="turn">
+            <span class="who">impulse</span>
+            <p class="said">
+              The code caps uploads at 25 MB but the page says 10. I'll update
+              canon to match the implementation.
+            </p>
+          </div>
+          <div class="turn you">
+            <span class="who">discipline</span>
+            <p class="said">
+              Never rewrite a norm to match drift. The conflict is the finding
+              — report it, and a human names the wrong side.
+            </p>
+          </div>
+          <div class="turn">
+            <span class="who">impulse</span>
+            <p class="said">
+              The export job needs a retry ceiling and nothing routes. Three
+              feels right; I'll write it into the page.
+            </p>
+          </div>
+          <div class="turn you">
+            <span class="who">discipline</span>
+            <p class="said">
+              Absent policy is a gap, not an invitation. Stop the dependent
+              work, surface the gap, invent nothing.
+            </p>
+          </div>
+
+          <div class="drafted">
+            <span class="who">Filed — end-of-session report</span>
+            <p>
+              <strong>Conflict:</strong> implementation (25 MB) contradicts
+              the normative cap (10 MB); awaiting direction.
+              <strong>Gap:</strong> no retry policy exists for exports; none
+              was guessed.
+            </p>
+            <div class="gate-chips">
+              <span><b>✓</b> norm untouched</span>
+              <span><b>✓</b> gap surfaced</span>
+              <span><b>✓</b> nothing invented</span>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <section id="evidence" class="article shell" aria-label="Evaluation evidence">
+      <div class="article-rule"><span><b>§ V</b> — The evidence</span></div>
+
+      <div class="evidence-grid">
+        <div class="split-lead">
+          <h2>The core earned <em>every byte.</em></h2>
+          <p class="prose">
+            The install is one generated contract, 3.5 KB. The lab that
+            proves it lives in this repository: ten scenarios that drop real
+            coding agents into seeded repos and apply pressure — urgency
+            against
+            invariants, orders that tempt a guessed policy, one invariant
+            carried across ten fresh sessions, supersessions that invite a
+            history rewrite.
+          </p>
+          <p class="prose">
+            Every run gets two scores — mechanical and judged — reported
+            separately, because they fail for different reasons. The
+            mechanical side checks fixture tests, validation paths, routing,
+            and abstention, with hidden holdout tests run in disposable
+            copies; the judge scores fifteen rubric criteria from the
+            distilled transcript, the diff, and the final canon. An edit to
+            the core is adopted only when capable tiers hold and weaker tiers
+            do not regress.
+          </p>
+          <p class="evidence-notes">
+            Rejections are recorded, not buried: an apparent win traced to
+            cross-batch variance ships in the ledger as a rejection, and
+            weak-tier failures stand as negative baselines rather than
+            excuses. The whole harness is public in the repo.
+          </p>
+        </div>
+
+        <figure class="term lab" aria-label="Evaluation scenarios">
+          <figcaption class="term-bar">
+            <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>evals/scenarios</span>
+          </figcaption>
+          <div class="term-body" tabindex="0">
+            {scenarios.map(([id, gloss]) => (
+              <div class="scenario">
+                <span class="dim">{id}</span>
+                <span>{gloss}</span>
+              </div>
+            ))}
+            <div class="lab-axes">
+              <span class="dim">scores:</span> mechanical + judged · reported separately<br />
+              <span class="dim">holdouts:</span> hidden tests <span class="dim">·</span> run in disposable copies<br />
+              <span class="dim">gate:</span> adopt only <span class="pass">without weak-tier regression</span>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <section id="adopt" class="article shell" aria-label="Install Project Canon">
+      <div class="article-rule"><span><b>§ VI</b> — Adoption</span></div>
+
+      <div class="adopt-lead">
+        <h2>Two ways in. <em>It starts empty.</em></h2>
+        <p class="prose">
+          Canon ships as two generated files and a directory convention — no
+          framework, no dependency, nothing to build in your repo. The whole
+          errand is a file copy, a bootstrap session, and a doctor run: do it
+          by hand, or hand it to an agent you already run. Either way the
+          record starts empty on purpose — standards and decisions enter it
+          only when a human states them.
+        </p>
+      </div>
+
+      <div class="setup-grid">
+        <figure class="term setup-term" aria-label="Setup by hand">
+          <figcaption class="term-bar">
+            <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>setup — by hand</span>
+          </figcaption>
+          <div class="term-body" tabindex="0">
+            <span class="dim">$</span> git clone --depth 1 https://github.com/stefan-vatov/canon<br />
+            <span class="dim">$</span> cp canon/dist/CLAUDE.md CLAUDE.md<br />
+            <span class="dim">&nbsp;&nbsp;# codex / pi → cp canon/dist/AGENTS.md AGENTS.md</span><br />
+            <span class="dim">&nbsp;&nbsp;# file already exists? use the managed merge in INSTALL.md</span><br />
+            <span class="dim">$</span> claude<br />
+            <span class="pass">&gt;</span> set up Project Canon in this repository<br />
+            <span class="dim">$</span> uv run --script canon/tools/canon-doctor.py --root . --strict
+          </div>
+        </figure>
+
+        <figure class="prompt-card" aria-label="Setup by agent">
+          <figcaption class="prompt-bar">
+            <span>setup — by agent</span>
+            <button class="copy-btn" type="button" data-copy="agent-setup-prompt">copy</button>
+          </figcaption>
+          <p class="prompt-text" id="agent-setup-prompt">
+            Install Project Canon from https://github.com/stefan-vatov/canon —
+            shallow-clone the repo and copy dist/CLAUDE.md to CLAUDE.md (for
+            Codex or Pi: dist/AGENTS.md to AGENTS.md; if the file already
+            exists, follow INSTALL.md's managed merge), then remove the clone.
+            Set up the repository Canon: create canon/manifest.md with status:
+            reference and canon/standards.md with status: normative, create
+            canon/architecture/, canon/decisions/, and canon/scratch/, and add
+            canon/scratch/ to the repository-root .gitignore. Do not invent
+            standards, decisions, architecture, rationale, or domain terms.
+            Report anything that still needs human input.
+          </p>
+          <p class="prompt-note">
+            Paste into any agent session in your repo. Installation can be
+            delegated; the record's contents cannot.
+          </p>
+        </figure>
+      </div>
+
+      <ol class="ratify-steps">
+        <li>
+          <h3>Install the guidance</h3>
+          <p>
+            Copy the generated artifact for your harness: dist/CLAUDE.md for
+            Claude Code, dist/AGENTS.md for Codex, Pi, and anything else that
+            reads it. Generated means generated — the source of truth is
+            canon-core.md, never the artifact.
+          </p>
+        </li>
+        <li>
+          <h3>Bootstrap the shape</h3>
+          <p>
+            A fresh session creates the manifest, the standards file, and the
+            directories — and invents nothing. Empty is correct: the record
+            fills as real guarantees earn their pages.
+          </p>
+        </li>
+        <li>
+          <h3>Let the doctor gate it</h3>
+          <p>
+            canon-doctor is dependency-free Python: structure, front matter,
+            routes, links, validation paths, size caps, decision immutability.
+            Run it with --strict — in CI, if you have one.
+          </p>
+        </li>
+      </ol>
+
+      <p class="mono-note adopt-note">
+        already overgrown? <b>skills/compact-canon</b> audits or migrates an
+        existing canon — repeated rules, inventories, legacy metadata, routing
+        gaps — and a dry run changes nothing.
+      </p>
+    </section>
+
+    <aside class="meta-strip" aria-label="Evidence note">
+      <div class="shell">
+        <ArchMark class="device-inline" />
+        <p>
+          <strong>Every line of the core earned its bytes.</strong> The
+          shipped contract is 3.5 KB, minimized from 9.7 — adopted after a
+          same-wave, three-arm comparison against the prior core, run across
+          seven model lanes and seventy judged batches. The
+          <a
+            class="inline-link"
+            href="https://github.com/stefan-vatov/canon/blob/main/evals/BASELINES.md"
+            target="_blank"
+            rel="noopener"
+            aria-label="Read the evaluation baselines ledger (opens in a new tab)"
+          >evidence ledger</a>
+          is public in the repo, rejections included.
+        </p>
+      </div>
+    </aside>
+
+    <SiteFooter />
+  </main>
+
+  <script>
+    const revertTimers = new WeakMap<HTMLButtonElement, number>();
+
+    const swapLabel = (btn: HTMLButtonElement, text: string) => {
+      btn.classList.add("is-swapping");
+      setTimeout(() => {
+        btn.textContent = text;
+        btn.classList.remove("is-swapping");
+      }, 130);
+    };
+
+    document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const source = document.getElementById(btn.dataset.copy ?? "");
+        if (!source) return;
+        let label = "copied";
+        try {
+          await navigator.clipboard.writeText(source.innerText.trim());
+        } catch {
+          const range = document.createRange();
+          range.selectNodeContents(source);
+          const selection = window.getSelection();
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+          if (document.execCommand("copy")) {
+            selection?.removeAllRanges();
+          } else {
+            label = "press ⌘C";
+          }
+        }
+        swapLabel(btn, label);
+        clearTimeout(revertTimers.get(btn));
+        revertTimers.set(
+          btn,
+          window.setTimeout(() => swapLabel(btn, "copy"), 1900),
+        );
+      });
+    });
+  </script>
+</BaseLayout>
