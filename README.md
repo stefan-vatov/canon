@@ -301,20 +301,18 @@ git diff --check
 
 The second build must report both artifacts as `fresh`.
 
+The website is maintained from this repository too: `npm install` once,
+`npm run dev` to preview, `npm run build` to build into `dist-site/` (never
+`dist/`, which holds the generated artifacts), and `npx wrangler deploy` to
+publish — the last one requires Cloudflare access to the agentcanon.dev
+zone.
+
 ## Website
 
-[agentcanon.dev](https://agentcanon.dev) — sister site to
-[agentconstitution.dev](https://agentconstitution.dev), built with the same
-Astro + Cloudflare Workers setup. The site lives at the repository root
-(`src/`, `public/`, `astro.config.mjs`) and builds to `dist-site/` — the
-`dist/` directory remains reserved for the generated Canon artifacts.
-
-```sh
-npm install
-npm run dev        # local preview
-npm run build      # validates public/llms.txt freshness, then builds
-npx wrangler deploy  # requires Cloudflare access to the agentcanon.dev zone
-```
+[agentcanon.dev](https://agentcanon.dev) — the whole argument, walked: why
+sessions lose the why, what the record owns and refuses, the impact gate,
+the discipline under conflict and absence, the evaluation evidence, and
+installation.
 
 ## Documentation
 
