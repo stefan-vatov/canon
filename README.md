@@ -39,7 +39,7 @@ pattern should normally produce `Canon impact: none`.
 ## What you get
 
 - **One generated contract, ~3.5 KB** — drops in as `CLAUDE.md` or
-  `AGENTS.md`; no framework, no dependency, nothing to build in your repo.
+  `AGENTS.md`; no framework, nothing to build in your repo.
 - **A five-part `canon/` convention** — manifest-routed, so a session loads
   the one or two pages a task needs instead of the whole record.
 - **A three-way impact gate** — every change is classified none /
@@ -227,8 +227,7 @@ The harness, scenarios, rubric, and playbook are all in
   status are rejected by design — the doctor's smell tests flag them —
   because the repository already proves those facts and prose copies rot.
 - **It will not write itself.** Bootstrap creates an empty shape and invents
-  nothing; standards and decisions enter the record only when a human states
-  them.
+  nothing; filling it is the human's job.
 - **Not zero-tooling.** The artifacts are plain Markdown, but the validator
   and build tooling run via [`uv`](https://docs.astral.sh/uv/) (Python 3.10+).
 - **Not a guarantee.** Adherence is measured per model and recorded, not
