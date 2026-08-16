@@ -63,14 +63,20 @@ already have one. For managed merges, upgrades, rollback, or uninstall, use
 git clone --depth 1 https://github.com/stefan-vatov/canon
 cp canon/dist/CLAUDE.md CLAUDE.md   # Codex / Pi: cp canon/dist/AGENTS.md AGENTS.md
 
-mkdir -p .claude/skills             # Codex: mkdir -p .codex/skills
-cp -R canon/.codex/skills/compact-canon .claude/skills/
+SKILLS=.claude/skills               # your agent's project skill directory
+mkdir -p "$SKILLS" && cp -R canon/.codex/skills/compact-canon "$SKILLS/"
 ```
 
 The second copy installs [`compact-canon`](.codex/skills/compact-canon/SKILL.md),
 the on-demand skill that audits and compacts an overgrown record. It ships only
 in this repository, so a target that skips it keeps no compaction path after
 the clone is gone.
+
+The skill is a portable `SKILL.md` directory; its location in this repository
+is where *this* repository's agent reads skills, not a requirement for yours.
+Repeat the copy for every skill directory the agents in your repository read —
+`.claude/skills/`, `.codex/skills/`, or whatever your harness documents.
+Duplicate copies do not conflict.
 
 Then bootstrap the record in a fresh agent session from the target
 repository:
@@ -124,15 +130,22 @@ export CANON TARGET
   cmp -s "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
 
   skill_source="$CANON/.codex/skills/compact-canon"
-  skill_dest="$TARGET/.codex/skills/compact-canon"   # Claude Code: .claude/skills/...
-  if test -e "$skill_dest" || test -L "$skill_dest"; then
-    echo "refusing existing target: $skill_dest" >&2
-    exit 1
-  fi
-  mkdir -p "${skill_dest%/*}"
-  cp -R "$skill_source" "$skill_dest"
-  find "$skill_dest" -name '__pycache__' -type d -prune -exec rm -rf {} +
-  diff -r -x '__pycache__' "$skill_source" "$skill_dest" >/dev/null
+
+  # one entry per skill directory your agents read; edit this list
+  set -- \
+    "$TARGET/.codex/skills/compact-canon" \
+    "$TARGET/.claude/skills/compact-canon"
+
+  for skill_dest do
+    if test -e "$skill_dest" || test -L "$skill_dest"; then
+      echo "refusing existing target: $skill_dest" >&2
+      exit 1
+    fi
+    mkdir -p "${skill_dest%/*}" || exit 1
+    cp -R "$skill_source" "$skill_dest" || exit 1
+    find "$skill_dest" -name '__pycache__' -type d -prune -exec rm -rf {} +
+    diff -r -x '__pycache__' "$skill_source" "$skill_dest" >/dev/null || exit 1
+  done
 
   printf 'Record installed Canon revision: %s\n' "$CANON_REF"
 )
@@ -309,17 +322,19 @@ implementation inventories, legacy metadata, routing gaps, and reconstructible
 prose while preserving human standards and immutable decisions. Ask for a
 `dry run` to receive candidates without changing files.
 
-Install it into the target repository once, alongside the instruction file:
+Install it alongside the instruction file, into each skill directory the target
+repository's agents read:
 
 ```sh
-mkdir -p /path/to/target/.claude/skills   # Codex: .codex/skills
-cp -R .codex/skills/compact-canon /path/to/target/.claude/skills/
+SKILLS=/path/to/target/.claude/skills   # or .codex/skills, or both
+mkdir -p "$SKILLS" && cp -R .codex/skills/compact-canon "$SKILLS/"
 ```
 
-Then invoke it by name in a session started from that repository —
-`$compact-canon` in Codex, "use the compact-canon skill" in Claude Code.
+Then invoke it by name in a session started from that repository, using
+whatever trigger your harness documents — `$compact-canon` in Codex, "use the
+compact-canon skill" in Claude Code.
 [INSTALL.md](INSTALL.md#install-the-compact-canon-skill) covers the guarded
-install, upgrade, and removal.
+install, upgrade, and removal for one or many locations.
 
 ## Maintain this repository
 

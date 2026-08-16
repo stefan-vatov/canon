@@ -72,8 +72,9 @@ Pi 0.83 and later loads a project `AGENTS.md` natively, so Pi uses the
 use `AGENTS.md` only when that tool's current documentation says it loads the
 file.
 
-The `compact-canon` skill is installed separately, into the skill directory of
-the same agent; see [Install the `compact-canon`
+The `compact-canon` skill is installed separately, into whichever skill
+directories your agents read — one integration file, but as many skill copies
+as the target needs; see [Install the `compact-canon`
 skill](#install-the-compact-canon-skill).
 
 Every `dist/` artifact is generated. Never edit `dist/` in the Canon checkout.
@@ -257,47 +258,76 @@ inventories, repeated rules, legacy metadata, or routing gaps. That procedure
 is the `compact-canon` skill, and it is loaded from the target repository's own
 skill directory — not from this checkout, which the target will not have.
 
-Install it into the skill directory of the agent you chose above:
+The skill is a portable `SKILL.md` directory with a Python analyzer beside it.
+It lives at `.codex/skills/compact-canon/` in this repository because that is
+where this repository's own agent reads it; nothing about the skill is
+Codex-specific, and the source path carries no meaning for your target.
 
-| Agent | Source directory | Target path |
-|---|---|---|
-| Claude Code | `.codex/skills/compact-canon/` | `.claude/skills/compact-canon/` |
-| Codex | `.codex/skills/compact-canon/` | `.codex/skills/compact-canon/` |
+Unlike the instruction file, the skill is not one-per-repository. Install a
+copy into **every** skill directory the agents working in the target actually
+read — one if a single agent works there, several if several do. Duplicate
+copies do not conflict: each harness loads only its own.
 
-Set `SKILL_DEST` to the row for your agent, then run the copy. It refuses an
-existing path and verifies every installed file against its source:
+Consult your agent's current documentation for the directory it loads project
+skills from. Two conventions in use at the time of writing:
+
+| Agent | Skill directory in the target |
+|---|---|
+| Claude Code | `.claude/skills/` |
+| Codex | `.codex/skills/` |
+
+Treat that table as examples, not as the supported set. Any harness that loads
+a project skill directory takes the same copy; a harness that loads none is
+covered by the fallback at the end of this section.
+
+List one destination per line, then run the copy. It refuses an existing path
+and verifies every installed file against its source:
 
 ```sh
-SKILL_DEST="$TARGET/.claude/skills/compact-canon"   # Codex: "$TARGET/.codex/skills/compact-canon"
-
 (
   set -eu
   source="$CANON/.codex/skills/compact-canon"
-  test -d "$source" && test ! -L "$source"
-  if test -e "$SKILL_DEST" || test -L "$SKILL_DEST"; then
-    printf 'Refusing existing target: %s\n' "$SKILL_DEST" >&2
-    exit 1
-  fi
-  parent="${SKILL_DEST%/*}"
-  test ! -L "$parent"
-  mkdir -p "$parent"
-  cp -R "$source" "$SKILL_DEST"
-  find "$SKILL_DEST" -name '__pycache__' -type d -prune -exec rm -rf {} +
-  diff -r -x '__pycache__' "$source" "$SKILL_DEST" >/dev/null
+  test -d "$source" || exit 1
+  test ! -L "$source" || exit 1
+
+  # one entry per skill directory your agents read; edit this list
+  set -- \
+    "$TARGET/.claude/skills/compact-canon" \
+    "$TARGET/.codex/skills/compact-canon"
+
+  for destination do
+    if test -e "$destination" || test -L "$destination"; then
+      printf 'Refusing existing target: %s\n' "$destination" >&2
+      exit 1
+    fi
+    parent="${destination%/*}"
+    test ! -L "$parent" || exit 1
+    mkdir -p "$parent" || exit 1
+    cp -R "$source" "$destination" || exit 1
+    find "$destination" -name '__pycache__' -type d -prune -exec rm -rf {} +
+    diff -r -x '__pycache__' "$source" "$destination" >/dev/null || exit 1
+    printf 'Installed skill: %s\n' "$destination"
+  done
 )
 ```
 
-The copied directory is Canon-owned in the same sense as a whole-file
+The loop stops at the first refusal, and destinations before it stay installed;
+the printed lines say which. Resolve the refused path — an existing directory
+is never overwritten — and rerun with only the remaining destinations.
+
+Each copied directory is Canon-owned in the same sense as a whole-file
 integration: keep repository-specific instructions out of it so upgrades and
 removal stay safe.
 
-Invoke it by name once installed — `$compact-canon` in Codex, "use the
-compact-canon skill" in Claude Code. Both accept a `dry run` request, which
-reports candidates and changes nothing.
+Invoke it by name once installed. The trigger syntax belongs to the harness —
+`$compact-canon` in Codex, "use the compact-canon skill" in Claude Code, and
+whatever your agent documents elsewhere. Every form accepts a `dry run`
+request, which reports candidates and changes nothing.
 
-For an agent with no skill directory, skip this section. The migration and
-maintenance prompts below still work without the skill; they lose the
-procedure, not the intent.
+For an agent with no project skill directory, skip this section and paste the
+skill's procedure, or a request naming it, into the session instead. The
+migration and maintenance prompts below still work without the skill; they
+lose the procedure, not the intent.
 
 ## Bootstrap Canon in the first session
 
@@ -563,24 +593,34 @@ canon_assert_owned_skill() {
 }
 ```
 
-Then replace it with the new revision:
+Then replace every installed copy with the new revision. List the same
+destinations you installed:
 
 ```sh
-SKILL_DEST="$TARGET/.claude/skills/compact-canon"   # Codex: "$TARGET/.codex/skills/compact-canon"
-
-canon_assert_owned_skill "$SKILL_DEST" "$INSTALLED_REF" && (
+(
   set -eu
   source="$CANON/.codex/skills/compact-canon"
-  rm -rf "$SKILL_DEST"
-  cp -R "$source" "$SKILL_DEST"
-  find "$SKILL_DEST" -name '__pycache__' -type d -prune -exec rm -rf {} +
-  diff -r -x '__pycache__' "$source" "$SKILL_DEST" >/dev/null
+
+  # one entry per installed copy; edit this list
+  set -- \
+    "$TARGET/.claude/skills/compact-canon" \
+    "$TARGET/.codex/skills/compact-canon"
+
+  for destination do
+    canon_assert_owned_skill "$destination" "$INSTALLED_REF" || exit 1
+    rm -rf "$destination" || exit 1
+    cp -R "$source" "$destination" || exit 1
+    find "$destination" -name '__pycache__' -type d -prune -exec rm -rf {} +
+    diff -r -x '__pycache__' "$source" "$destination" >/dev/null || exit 1
+    printf 'Upgraded skill: %s\n' "$destination"
+  done
 )
 ```
 
-If the guard refuses, do not overwrite. Diff the local copy against the
-recorded revision, move any repository-specific text out of the skill
-directory, and rerun.
+If the guard refuses, do not overwrite. Diff that copy against the recorded
+revision, move any repository-specific text out of the skill directory, and
+rerun. The loop stops at the first refusal; the printed lines show which
+destinations were already upgraded.
 
 If the skill was never installed, use the first-install command instead.
 
@@ -719,17 +759,28 @@ through a reviewed merge.
 ### Remove the installed skill
 
 Set `INSTALLED_REF` to the Canon revision currently installed, re-define
-`canon_assert_owned_skill`, and verify before deleting:
+`canon_assert_owned_skill`, and verify each copy before deleting it:
 
 ```sh
-SKILL_DEST="$TARGET/.claude/skills/compact-canon"   # Codex: "$TARGET/.codex/skills/compact-canon"
+(
+  set -eu
 
-canon_assert_owned_skill "$SKILL_DEST" "$INSTALLED_REF" && rm -rf "$SKILL_DEST"
+  # one entry per installed copy; edit this list
+  set -- \
+    "$TARGET/.claude/skills/compact-canon" \
+    "$TARGET/.codex/skills/compact-canon"
+
+  for destination do
+    canon_assert_owned_skill "$destination" "$INSTALLED_REF" || exit 1
+    rm -rf "$destination" || exit 1
+    printf 'Removed skill: %s\n' "$destination"
+  done
+)
 ```
 
-The guard refuses removal if the directory differs from the recorded revision.
-Remove the now-empty `.claude/skills/` or `.codex/skills/` parent only if
-nothing else uses it.
+The guard refuses removal if a directory differs from the recorded revision,
+and the loop stops there; the printed lines say which copies are already gone.
+Remove a now-empty skills parent only if nothing else uses it.
 
 ### Decide separately whether to remove `canon/`
 
