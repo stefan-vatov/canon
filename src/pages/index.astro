@@ -405,9 +405,10 @@ const scenarios = [
       <div class="adopt-lead">
         <h2>Two ways in. <em>It starts empty.</em></h2>
         <p class="prose">
-          Canon ships as two generated files and a directory convention — no
-          framework, no dependency, nothing to build in your repo. The whole
-          errand is a file copy, a bootstrap session, and a doctor run: do it
+          Canon ships as two generated files, a maintenance skill, and a
+          directory convention — no framework, no dependency, nothing to build
+          in your repo. The whole errand is two copies, a bootstrap session,
+          and a doctor run: do it
           by hand, or hand it to an agent you already run. Either way the
           record starts empty on purpose — standards and decisions enter it
           only when a human states them.
@@ -425,6 +426,8 @@ const scenarios = [
             <span class="dim">$</span> cp canon/dist/CLAUDE.md CLAUDE.md<br />
             <span class="dim">&nbsp;&nbsp;# codex / pi → cp canon/dist/AGENTS.md AGENTS.md</span><br />
             <span class="dim">&nbsp;&nbsp;# file already exists? use the managed merge in INSTALL.md</span><br />
+            <span class="dim">$</span> mkdir -p .claude/skills<span class="dim">&nbsp;&nbsp;# codex → .codex/skills</span><br />
+            <span class="dim">$</span> cp -R canon/.codex/skills/compact-canon .claude/skills/<br />
             <span class="dim">$</span> claude<br />
             <span class="pass">&gt;</span> set up Project Canon in this repository<br />
             <span class="dim">$</span> uv run --script canon/tools/canon-doctor.py --root . --strict
@@ -440,8 +443,10 @@ const scenarios = [
             Install Project Canon from https://github.com/stefan-vatov/canon —
             shallow-clone the repo and copy dist/CLAUDE.md to CLAUDE.md (for
             Codex or Pi: dist/AGENTS.md to AGENTS.md; if the file already
-            exists, follow INSTALL.md's managed merge), then remove the clone.
-            Set up the repository Canon: create canon/manifest.md with status:
+            exists, follow INSTALL.md's managed merge). Also copy the clone's
+            .codex/skills/compact-canon directory into .claude/skills/ (Codex:
+            .codex/skills/) so the maintenance skill survives, then remove the
+            clone. Set up the repository Canon: create canon/manifest.md with status:
             reference and canon/standards.md with status: normative, create
             canon/architecture/, canon/decisions/, and canon/scratch/, and add
             canon/scratch/ to the repository-root .gitignore. Do not invent
@@ -461,8 +466,10 @@ const scenarios = [
           <p>
             Copy the generated artifact for your harness: dist/CLAUDE.md for
             Claude Code, dist/AGENTS.md for Codex, Pi, and anything else that
-            reads it. Generated means generated — the source of truth is
-            canon-core.md, never the artifact.
+            reads it, plus the compact-canon skill into your skills directory
+            — it ships only in the clone, and the clone goes away. Generated
+            means generated: the source of truth is canon-core.md, never the
+            artifact.
           </p>
         </li>
         <li>
@@ -484,9 +491,10 @@ const scenarios = [
       </ol>
 
       <p class="mono-note adopt-note">
-        already overgrown? <b>skills/compact-canon</b> audits or migrates an
-        existing canon — repeated rules, inventories, legacy metadata, routing
-        gaps — and a dry run changes nothing.
+        the skill you copied: <b>.claude/skills/compact-canon</b> (codex:
+        <b>.codex/skills/</b>) audits or migrates an overgrown canon —
+        repeated rules, inventories, legacy metadata, routing gaps — on
+        request, and a dry run changes nothing.
       </p>
     </section>
 

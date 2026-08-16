@@ -47,6 +47,9 @@ pattern should normally produce `Canon impact: none`.
 - **`canon-doctor`** — dependency-free Python validation of structure, front
   matter, routes, links, validation paths, size caps, and decision
   immutability.
+- **`compact-canon`** — an agent skill you install alongside the contract; it
+  audits or compacts a record that already grew inventories, repeated rules,
+  and routing gaps, and a dry run changes nothing.
 - **An open evaluation lab** — ten scenarios, two independent scores per
   run, and an adoption ledger that records rejections as well as wins.
 
@@ -59,7 +62,15 @@ already have one. For managed merges, upgrades, rollback, or uninstall, use
 ```sh
 git clone --depth 1 https://github.com/stefan-vatov/canon
 cp canon/dist/CLAUDE.md CLAUDE.md   # Codex / Pi: cp canon/dist/AGENTS.md AGENTS.md
+
+mkdir -p .claude/skills             # Codex: mkdir -p .codex/skills
+cp -R canon/.codex/skills/compact-canon .claude/skills/
 ```
+
+The second copy installs [`compact-canon`](.codex/skills/compact-canon/SKILL.md),
+the on-demand skill that audits and compacts an overgrown record. It ships only
+in this repository, so a target that skips it keeps no compaction path after
+the clone is gone.
 
 Then bootstrap the record in a fresh agent session from the target
 repository:
@@ -111,12 +122,25 @@ export CANON TARGET
   fi
   cp "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
   cmp -s "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
+
+  skill_source="$CANON/.codex/skills/compact-canon"
+  skill_dest="$TARGET/.codex/skills/compact-canon"   # Claude Code: .claude/skills/...
+  if test -e "$skill_dest" || test -L "$skill_dest"; then
+    echo "refusing existing target: $skill_dest" >&2
+    exit 1
+  fi
+  mkdir -p "${skill_dest%/*}"
+  cp -R "$skill_source" "$skill_dest"
+  find "$skill_dest" -name '__pycache__' -type d -prune -exec rm -rf {} +
+  diff -r -x '__pycache__' "$skill_source" "$skill_dest" >/dev/null
+
   printf 'Record installed Canon revision: %s\n' "$CANON_REF"
 )
 ```
 
-The block refuses to overwrite an existing instruction file. Follow the
-managed-merge procedure in [INSTALL.md](INSTALL.md) when one already exists.
+The block refuses to overwrite an existing instruction file or skill
+directory. Follow the managed-merge procedure in [INSTALL.md](INSTALL.md) when
+one already exists.
 
 </details>
 
@@ -279,11 +303,23 @@ links, or oversize bodies are not grandfathered.
 Supply `--baseline` only with the reviewed commit recorded before migrating a
 legacy Canon; keep that commit pinned in subsequent validation.
 
-Use [`$compact-canon`](.codex/skills/compact-canon/SKILL.md) for an on-demand
-audit or migration of an overgrown Canon. It identifies repeated rules,
+[`compact-canon`](.codex/skills/compact-canon/SKILL.md) is the on-demand audit
+and migration of an overgrown Canon. It identifies repeated rules,
 implementation inventories, legacy metadata, routing gaps, and reconstructible
 prose while preserving human standards and immutable decisions. Ask for a
 `dry run` to receive candidates without changing files.
+
+Install it into the target repository once, alongside the instruction file:
+
+```sh
+mkdir -p /path/to/target/.claude/skills   # Codex: .codex/skills
+cp -R .codex/skills/compact-canon /path/to/target/.claude/skills/
+```
+
+Then invoke it by name in a session started from that repository —
+`$compact-canon` in Codex, "use the compact-canon skill" in Claude Code.
+[INSTALL.md](INSTALL.md#install-the-compact-canon-skill) covers the guarded
+install, upgrade, and removal.
 
 ## Maintain this repository
 

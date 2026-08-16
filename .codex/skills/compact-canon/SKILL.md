@@ -32,14 +32,15 @@ Canon file.
 3. Read `canon/manifest.md`, then the routed normative pages in manifest order.
    Read reference or draft pages only when needed to classify them. Do not read
    `canon/scratch/` unless the user explicitly included scratch in the task.
-4. Run the bundled analyzer:
+4. Run the bundled analyzer from this skill's own directory —
+   `.claude/skills/compact-canon/` under Claude Code,
+   `.codex/skills/compact-canon/` under Codex:
 
    ```sh
-   python3 .codex/skills/compact-canon/scripts/analyze_canon.py --root /path/to/repo
+   python3 .claude/skills/compact-canon/scripts/analyze_canon.py --root /path/to/repo
    ```
 
-   Use `--json` when another tool will consume the report. If the skill is
-   installed elsewhere, invoke the script from the skill directory.
+   Use `--json` when another tool will consume the report.
 5. Run `tools/canon-doctor.py --root <repo> --json` when it exists. Mechanical
    findings are evidence, not permission to rewrite policy.
 

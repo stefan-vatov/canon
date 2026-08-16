@@ -17,7 +17,7 @@ policy. The shipped core is about 3.5 KB, adopted through a
 ten-scenario evaluation harness whose ledger records rejections as
 well as wins. It is not a wiki and not a mirror of the source tree.
 
-Install: git clone --depth 1 https://github.com/stefan-vatov/canon && cp canon/dist/CLAUDE.md CLAUDE.md   # Codex/Pi: dist/AGENTS.md -> AGENTS.md
+Install: git clone --depth 1 https://github.com/stefan-vatov/canon && cp canon/dist/CLAUDE.md CLAUDE.md && mkdir -p .claude/skills && cp -R canon/.codex/skills/compact-canon .claude/skills/   # Codex/Pi: dist/AGENTS.md -> AGENTS.md, skill -> .codex/skills/
 Version: Not stated in repository
 License: MIT
 Runtime: any agent that reads CLAUDE.md or AGENTS.md (Claude Code, Codex, Pi); tools run via uv (Python 3.10+)
@@ -31,9 +31,11 @@ Maintainer: Stefan Vatov
 git clone --depth 1 https://github.com/stefan-vatov/canon
 cp canon/dist/CLAUDE.md CLAUDE.md   # Codex/Pi: cp canon/dist/AGENTS.md AGENTS.md
 # if the file already exists, follow the managed merge in INSTALL.md
+mkdir -p .claude/skills             # Codex: mkdir -p .codex/skills
+cp -R canon/.codex/skills/compact-canon .claude/skills/   # maintenance skill
 # in a fresh agent session: "Set up Project Canon in this repository."
 uv run --script canon/tools/canon-doctor.py --root . --strict
-rm -rf canon   # the clone; your repo's canon/ directory stays
+rm -rf canon   # the clone; your repo's canon/ directory and skill stay
 ```
 
 ## Why Project Canon
@@ -86,11 +88,12 @@ rationale.
 
 ## Optional
 
-- [INSTALL.md](https://github.com/stefan-vatov/canon/blob/main/INSTALL.md): managed merges, upgrades, rollback, uninstall
+- [INSTALL.md](https://github.com/stefan-vatov/canon/blob/main/INSTALL.md): managed merges, the skill install, upgrades, rollback, uninstall
+- [compact-canon skill](https://github.com/stefan-vatov/canon/blob/main/.codex/skills/compact-canon/SKILL.md): copy into the target's .claude/skills/ or .codex/skills/; audits or compacts an overgrown canon/, dry run available
 - [canon-core.md](https://github.com/stefan-vatov/canon/blob/main/canon-core.md): the exact shared agent contract
 - [Evaluation harness](https://github.com/stefan-vatov/canon/tree/main/evals): scenarios, rubric, playbook, baselines
 
-Last verified: 2026-08-08. If you remember one line: Project Canon gives
+Last verified: 2026-08-16. If you remember one line: Project Canon gives
 coding agents a compact, durable record of architectural laws and
 product invariants — why the system is shaped this way and what must
 remain true — that they read first, classify every change against, and

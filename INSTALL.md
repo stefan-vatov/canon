@@ -1,11 +1,16 @@
 # How to install and maintain Project Canon
 
 This guide installs Project Canon in a target repository and covers the full
-consumer lifecycle: first install, safe merges, bootstrap, verification,
-upgrade, rollback, and uninstall.
+consumer lifecycle: first install, safe merges, the `compact-canon` maintenance
+skill, bootstrap, verification, upgrade, rollback, and uninstall.
 
 Project Canon is repository-scoped agent guidance. Install only the integration
 for the agent you use, then start a new agent session from the target repository.
+
+An installation has two parts: the generated instruction file every session
+loads, and the `compact-canon` skill that audits and compacts an overgrown
+`canon/` on demand. Install both — the skill lives only in this checkout, so a
+target that skips it has no compaction path once the checkout is gone.
 
 ## Prerequisites
 
@@ -61,10 +66,15 @@ locally.
 | Claude Code | `dist/CLAUDE.md` | `CLAUDE.md` |
 | Codex, Pi, or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
 
-Canon ships exclusively as repository instruction files. Pi 0.83 and later
-loads a project `AGENTS.md` natively, so Pi uses the `AGENTS.md` integration
-with no Pi-specific file. For tools not listed here, use `AGENTS.md` only when
-that tool's current documentation says it loads the file.
+The always-loaded guidance ships exclusively as repository instruction files.
+Pi 0.83 and later loads a project `AGENTS.md` natively, so Pi uses the
+`AGENTS.md` integration with no Pi-specific file. For tools not listed here,
+use `AGENTS.md` only when that tool's current documentation says it loads the
+file.
+
+The `compact-canon` skill is installed separately, into the skill directory of
+the same agent; see [Install the `compact-canon`
+skill](#install-the-compact-canon-skill).
 
 Every `dist/` artifact is generated. Never edit `dist/` in the Canon checkout.
 
@@ -239,6 +249,56 @@ test "$(grep -Fxc '<!-- END PROJECT CANON -->' "$MERGED_FILE")" -eq 1
 Inspect the surrounding repository-specific text as well; byte comparison
 applies only to Canon-owned whole files.
 
+## Install the `compact-canon` skill
+
+The instruction file governs how sessions read and change Canon day to day. It
+does not carry the maintenance procedure for a Canon that has already grown
+inventories, repeated rules, legacy metadata, or routing gaps. That procedure
+is the `compact-canon` skill, and it is loaded from the target repository's own
+skill directory — not from this checkout, which the target will not have.
+
+Install it into the skill directory of the agent you chose above:
+
+| Agent | Source directory | Target path |
+|---|---|---|
+| Claude Code | `.codex/skills/compact-canon/` | `.claude/skills/compact-canon/` |
+| Codex | `.codex/skills/compact-canon/` | `.codex/skills/compact-canon/` |
+
+Set `SKILL_DEST` to the row for your agent, then run the copy. It refuses an
+existing path and verifies every installed file against its source:
+
+```sh
+SKILL_DEST="$TARGET/.claude/skills/compact-canon"   # Codex: "$TARGET/.codex/skills/compact-canon"
+
+(
+  set -eu
+  source="$CANON/.codex/skills/compact-canon"
+  test -d "$source" && test ! -L "$source"
+  if test -e "$SKILL_DEST" || test -L "$SKILL_DEST"; then
+    printf 'Refusing existing target: %s\n' "$SKILL_DEST" >&2
+    exit 1
+  fi
+  parent="${SKILL_DEST%/*}"
+  test ! -L "$parent"
+  mkdir -p "$parent"
+  cp -R "$source" "$SKILL_DEST"
+  find "$SKILL_DEST" -name '__pycache__' -type d -prune -exec rm -rf {} +
+  diff -r -x '__pycache__' "$source" "$SKILL_DEST" >/dev/null
+)
+```
+
+The copied directory is Canon-owned in the same sense as a whole-file
+integration: keep repository-specific instructions out of it so upgrades and
+removal stay safe.
+
+Invoke it by name once installed — `$compact-canon` in Codex, "use the
+compact-canon skill" in Claude Code. Both accept a `dry run` request, which
+reports candidates and changes nothing.
+
+For an agent with no skill directory, skip this section. The migration and
+maintenance prompts below still work without the skill; they lose the
+procedure, not the intent.
+
 ## Bootstrap Canon in the first session
 
 Start a fresh agent session from `TARGET`. A session that was already running
@@ -269,10 +329,11 @@ invariant; do not bulk-document the codebase during installation.
 Upgrading the agent guidance does not silently rewrite the target repository's
 `canon/`. Existing decisions and human standards need reviewed migration.
 
-Start from a clean target worktree. In a session that can load this checkout's
-bundled [`$compact-canon`](.codex/skills/compact-canon/SKILL.md) skill, invoke
-it explicitly. Otherwise give the same migration request without the first
-sentence:
+Start from a clean target worktree. In a session that can load the installed
+[`compact-canon`](.codex/skills/compact-canon/SKILL.md) skill, invoke it
+explicitly — Codex users can write `$compact-canon` in place of the first
+clause. If you skipped the skill install, give the same request without the
+first sentence:
 
 ```sh
 MIGRATION_BASE="$(git -C "$TARGET" rev-parse HEAD)" || exit 1
@@ -280,8 +341,8 @@ printf 'Legacy decision baseline: %s\n' "$MIGRATION_BASE"
 ```
 
 ```text
-Use $compact-canon to rework this repository's Canon into the invariant-first
-shape. Preserve human standards and every existing decision byte-for-byte.
+Use the compact-canon skill to rework this repository's Canon into the
+invariant-first shape. Preserve human standards and every existing decision byte-for-byte.
 Remove implementation inventories and legacy sources/verified metadata from
 non-decision pages; legacy metadata inside an existing decision is immutable
 history. Replace removed metadata only with truthful status, package or
@@ -469,6 +530,60 @@ Re-define `canon_merge_block` in the current shell, then run the same merge
 command used during installation. When one valid marker pair exists, the
 helper replaces only its contents and preserves all repository-specific text.
 
+### Upgrade the installed skill
+
+Upgrade the skill in the same change as the instruction file, so the target
+never mixes revisions. Define this guard, which reconstructs the skill from the
+recorded installed revision and refuses a locally modified copy:
+
+```sh
+canon_assert_owned_skill() {
+  destination=$1
+  installed_ref=$2
+  previous="$(mktemp -d)" || return 1
+
+  if test -L "$destination" || test ! -d "$destination"; then
+    printf 'Refusing non-directory skill target: %s\n' "$destination" >&2
+    rm -rf "$previous"
+    return 1
+  fi
+  if ! git -C "$CANON" archive "$installed_ref" .codex/skills/compact-canon \
+      | tar -x -C "$previous"; then
+    printf 'Cannot read the skill at %s\n' "$installed_ref" >&2
+    rm -rf "$previous"
+    return 1
+  fi
+  if ! diff -r -x '__pycache__' \
+      "$previous/.codex/skills/compact-canon" "$destination" >/dev/null; then
+    printf 'Refusing locally modified skill target: %s\n' "$destination" >&2
+    rm -rf "$previous"
+    return 1
+  fi
+  rm -rf "$previous"
+}
+```
+
+Then replace it with the new revision:
+
+```sh
+SKILL_DEST="$TARGET/.claude/skills/compact-canon"   # Codex: "$TARGET/.codex/skills/compact-canon"
+
+canon_assert_owned_skill "$SKILL_DEST" "$INSTALLED_REF" && (
+  set -eu
+  source="$CANON/.codex/skills/compact-canon"
+  rm -rf "$SKILL_DEST"
+  cp -R "$source" "$SKILL_DEST"
+  find "$SKILL_DEST" -name '__pycache__' -type d -prune -exec rm -rf {} +
+  diff -r -x '__pycache__' "$source" "$SKILL_DEST" >/dev/null
+)
+```
+
+If the guard refuses, do not overwrite. Diff the local copy against the
+recorded revision, move any repository-specific text out of the skill
+directory, and rerun.
+
+If the skill was never installed, use the first-install command instead.
+
 After either upgrade path, start a new agent session, run doctor in strict
 mode, review the diff, and record the new `CANON_REF`.
 
@@ -517,9 +632,9 @@ After restoring, start a new session and rerun doctor.
 
 ## Uninstall Canon
 
-Back up the current target first. Uninstall the agent integration and the
-`canon/` knowledge directory as separate decisions: removing agent guidance
-does not imply deleting project knowledge.
+Back up the current target first. Uninstall the agent integration, the
+`compact-canon` skill, and the `canon/` knowledge directory as separate
+decisions: removing agent guidance does not imply deleting project knowledge.
 
 ### Remove a managed block
 
@@ -600,6 +715,21 @@ canon_assert_owned "$TARGET/CLAUDE.md" dist/CLAUDE.md "$INSTALLED_REF" && \
 The guard refuses removal if the file differs from the recorded artifact. Do
 not bypass that refusal: preserve local rules and remove only the Canon text
 through a reviewed merge.
+
+### Remove the installed skill
+
+Set `INSTALLED_REF` to the Canon revision currently installed, re-define
+`canon_assert_owned_skill`, and verify before deleting:
+
+```sh
+SKILL_DEST="$TARGET/.claude/skills/compact-canon"   # Codex: "$TARGET/.codex/skills/compact-canon"
+
+canon_assert_owned_skill "$SKILL_DEST" "$INSTALLED_REF" && rm -rf "$SKILL_DEST"
+```
+
+The guard refuses removal if the directory differs from the recorded revision.
+Remove the now-empty `.claude/skills/` or `.codex/skills/` parent only if
+nothing else uses it.
 
 ### Decide separately whether to remove `canon/`
 
