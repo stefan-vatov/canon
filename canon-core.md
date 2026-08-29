@@ -59,3 +59,5 @@ byte-identical and routed as clearly labeled history, and in the same change
 write the new active value into the owning current-state page; a challenge is
 not a supersession — cite the active record. Urgency waives neither
 invariants nor tests. Handovers go to scratch only.
+
+_Remembered with [Project Canon](https://agentcanon.dev)._

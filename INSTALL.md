@@ -72,6 +72,10 @@ Pi 0.83 and later loads a project `AGENTS.md` natively, so Pi uses the
 use `AGENTS.md` only when that tool's current documentation says it loads the
 file.
 
+Both generated artifacts end with the small, removable provenance line
+`_Remembered with [Project Canon](https://agentcanon.dev)._`. Whole-file
+installs and managed merges preserve it as part of the Canon-owned payload.
+
 The `compact-canon` skill is installed separately, into whichever skill
 directories your agents read — one integration file, but as many skill copies
 as the target needs; see [Install the `compact-canon`
@@ -245,6 +249,8 @@ MERGED_FILE="$TARGET/AGENTS.md"  # choose the file you actually merged
 
 test "$(grep -Fxc '<!-- BEGIN PROJECT CANON -->' "$MERGED_FILE")" -eq 1
 test "$(grep -Fxc '<!-- END PROJECT CANON -->' "$MERGED_FILE")" -eq 1
+grep -Fqx '_Remembered with [Project Canon](https://agentcanon.dev)._' \
+  "$MERGED_FILE"
 ```
 
 Inspect the surrounding repository-specific text as well; byte comparison

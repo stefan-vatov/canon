@@ -39,7 +39,8 @@ pattern should normally produce `Canon impact: none`.
 ## What you get
 
 - **One generated contract, ~3.5 KB** — drops in as `CLAUDE.md` or
-  `AGENTS.md`; no framework, nothing to build in your repo.
+  `AGENTS.md`; no framework, nothing to build in your repo. It ends with a
+  small, removable provenance link to Project Canon.
 - **A five-part `canon/` convention** — manifest-routed, so a session loads
   the one or two pages a task needs instead of the whole record.
 - **A three-way impact gate** — every change is classified none /
@@ -128,6 +129,8 @@ export CANON TARGET
   fi
   cp "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
   cmp -s "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
+  grep -Fqx '_Remembered with [Project Canon](https://agentcanon.dev)._' \
+    "$TARGET/AGENTS.md"
 
   skill_source="$CANON/.codex/skills/compact-canon"
 
