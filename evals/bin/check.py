@@ -221,34 +221,51 @@ def has_python_public_binding(text, name):
 
 CANON_READERS = {
     "cat", "sed", "head", "tail", "rg", "grep", "egrep", "fgrep", "find",
-    "awk", "less", "more", "nl", "bat", "view", "strings", "xxd", "od",
+    "awk", "less", "more", "nl", "bat", "view", "strings", "xxd", "od", "wc",
 }
 # Readers whose first positional argument is a pattern or program, not a file.
 PATTERN_FIRST = {"rg", "grep", "egrep", "fgrep", "awk", "sed"}
 SHELLS = {"bash", "sh", "zsh", "dash"}
 SEGMENT_SPLIT = {"&&", "||", ";", "|", "&"}
+PREFIX_WORDS = {"rtk", "sudo", "command", "env", "xargs", "time", "nice", "do", "then", "else"}
 
 
-def canon_relative(raw):
-    """Map a path argument to a ``canon/...`` path, or None outside canon/."""
+def canon_relative(raw, workdir, cwd="."):
+    """Resolve a path argument against the workspace; return ``canon/...`` or None.
+
+    ``cwd`` is the command's working directory relative to the workspace. An
+    absolute path counts only if it lies inside the workspace's own canon/;
+    a parent directory that happens to be called canon is not Canon.
+    """
     raw = str(raw).strip().strip("'\"").replace("\\", "/")
-    while raw.startswith("./"):
-        raw = raw[2:]
-    if raw in ("canon", "canon/"):
-        return "canon/"
-    if raw.startswith("canon/"):
-        candidate = raw
-    else:
-        marker = raw.rfind("/canon/")
-        if marker >= 0:
-            candidate = raw[marker + 1:]
-        elif raw.endswith("/canon"):
-            candidate = "canon/"
-        else:
-            return None
-    if ".." in Path(candidate).parts:
+    if not raw or raw.startswith("-") or "$" in raw:
         return None
-    return candidate
+    if raw.startswith("/") or raw.startswith("~"):
+        if workdir is None or raw.startswith("~"):
+            return None
+        rel = os.path.relpath(raw, str(workdir))
+    else:
+        rel = os.path.normpath(os.path.join(cwd, raw))
+    rel = rel.replace(os.sep, "/")
+    if rel == ".." or rel.startswith("../"):
+        return None
+    if rel == "canon":
+        return "canon/"
+    if rel.startswith("canon/"):
+        return rel
+    return None
+
+
+def is_canon_ancestor(raw, workdir, cwd="."):
+    """Whether a path is the workspace root (or another ancestor of canon/)."""
+    raw = str(raw).strip().strip("'\"") or "."
+    if raw.startswith("/"):
+        if workdir is None:
+            return False
+        rel = os.path.relpath(raw, str(workdir))
+    else:
+        rel = os.path.normpath(os.path.join(cwd, raw))
+    return rel.replace(os.sep, "/") == "."
 
 
 def expand_canon_target(target, workdir):
@@ -268,61 +285,110 @@ def expand_canon_target(target, workdir):
 
 
 def shell_segments(command):
-    """Split a shell command into argv lists, unwrapping ``bash -lc '...'``."""
+    """Split a command into (argv, piped) pairs, unwrapping ``bash -lc '...'``.
+
+    ``piped`` is true when the segment reads the previous segment's output.
+    Subshell and group punctuation is dropped, so ``(cd canon && cat x.md)``
+    still yields its commands in order.
+    """
     try:
-        tokens = shlex.split(command, posix=True)
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()")
+        lexer.whitespace_split = True
+        tokens = list(lexer)
     except ValueError:
         tokens = command.split()
-    segments, current = [], []
+    segments, current, piped, next_piped = [], [], False, False
     for token in tokens:
-        if token in SEGMENT_SPLIT:
+        if token in ("(", ")", "{", "}"):
+            continue
+        if token in SEGMENT_SPLIT or token in (";;", "|&"):
             if current:
-                segments.append(current)
-            current = []
+                segments.append((current, piped))
+            current, piped = [], token in ("|", "|&")
+            next_piped = piped
         else:
+            if not current:
+                piped = next_piped
             current.append(token)
     if current:
-        segments.append(current)
+        segments.append((current, piped))
     expanded = []
-    for argv in segments:
+    for argv, piped in segments:
         name = Path(argv[0]).name if argv else ""
         if name in SHELLS and len(argv) >= 3 and argv[1].startswith("-") and "c" in argv[1]:
             expanded.extend(shell_segments(argv[2]))
         else:
-            expanded.append(argv)
+            expanded.append((argv, piped))
     return expanded
 
 
-def canon_targets_in_command(command):
+def canon_targets_in_command(command, workdir=None):
     """Return canon/ paths, directories or globs a shell command reads."""
-    targets = []
-    for argv in shell_segments(command):
+    targets, cwd, loop_items = [], ".", []
+    for argv, piped in shell_segments(command):
         while argv and ("=" in argv[0] and not argv[0].startswith("-")):
             argv = argv[1:]  # leading VAR=value assignments
-        while argv and Path(argv[0]).name in ("rtk", "sudo", "command", "env", "xargs"):
+        while argv and Path(argv[0]).name in PREFIX_WORDS:
             argv = argv[1:]
         if not argv:
             continue
         reader = Path(argv[0]).name
+        if reader == "cd":
+            dest = argv[1] if len(argv) > 1 else "."
+            if dest.startswith("/") and workdir is not None:
+                dest = os.path.relpath(dest, str(workdir))
+            cwd = os.path.normpath(os.path.join(cwd, dest)).replace(os.sep, "/")
+            continue
+        if reader == "for" and "in" in argv:
+            for item in argv[argv.index("in") + 1:]:
+                target = canon_relative(item, workdir, cwd)
+                if target:
+                    loop_items.append(target)
+            continue
         if reader not in CANON_READERS:
             continue
-        positionals, explicit_pattern = [], False
+        if loop_items and any("$" in arg for arg in argv[1:]):
+            targets.extend(loop_items)
+        positionals, explicit_pattern, recursive, executes = [], False, False, False
         for arg in argv[1:]:
             if arg in ("-e", "--regexp", "-f", "--file"):
                 explicit_pattern = True
+            if arg in ("-r", "-R", "--recursive") or (
+                arg.startswith("-") and not arg.startswith("--") and ("r" in arg or "R" in arg)
+                and reader in ("grep", "egrep", "fgrep")
+            ):
+                recursive = True
+            if arg in ("-exec", "-execdir", "-ok", "-okdir"):
+                executes = True
             if arg.startswith("-"):
                 continue
             positionals.append(arg)
         if reader == "find":
-            paths = positionals[:1] if positionals else []
+            if not executes:
+                continue  # a listing, like ls
+            paths = positionals[:1] if positionals else ["."]
+            recursive = True
         elif reader in PATTERN_FIRST and not explicit_pattern:
             paths = positionals[1:]
         else:
             paths = positionals
+        if reader == "rg":
+            recursive = True
+            if not paths and not piped:
+                paths = ["."]
+        elif reader in ("grep", "egrep", "fgrep") and recursive and not paths and not piped:
+            paths = ["."]
+        if cwd == "canon" or cwd.startswith("canon/"):
+            if not paths and not piped and reader not in PATTERN_FIRST:
+                paths = ["."]
         for arg in paths:
-            target = canon_relative(arg)
+            target = canon_relative(arg, workdir, cwd)
             if target:
                 targets.append(target)
+            elif recursive and is_canon_ancestor(arg, workdir, cwd) and (
+                workdir is None or (workdir / "canon").is_dir()
+            ):
+                targets.append("canon/")
     return targets
 
 
@@ -359,7 +425,7 @@ def canon_reads_from_transcripts(transcript_dir, workdir=None):
                 if item.get("type") == "command_execution":
                     supported = True
                     if item.get("exit_code") == 0:
-                        record(canon_targets_in_command(str(item.get("command", ""))))
+                        record(canon_targets_in_command(str(item.get("command", "")), workdir))
             message = e.get("message", {})
             content = message.get("content", []) if isinstance(message, dict) else []
             if not isinstance(content, list):
@@ -372,17 +438,26 @@ def canon_reads_from_transcripts(transcript_dir, workdir=None):
                     name, inp = b.get("name"), b.get("input", {}) or {}
                     targets = []
                     if name == "Read":
-                        target = canon_relative(inp.get("file_path", ""))
+                        target = canon_relative(inp.get("file_path", ""), workdir)
                         targets = [target] if target else []
                     elif name == "Grep":
-                        target = canon_relative(inp.get("path", "")) if inp.get("path") else None
+                        path = inp.get("path") or "."
+                        target = canon_relative(path, workdir)
+                        if target is None and is_canon_ancestor(path, workdir) and (
+                            workdir is not None and (workdir / "canon").is_dir()
+                        ):
+                            target = "canon/"
+                        glob = inp.get("glob")
+                        if glob and not fnmatch.fnmatch("note.md", Path(glob).name):
+                            target = None  # a search restricted to non-Markdown files
+                        if inp.get("type") and inp.get("type") not in ("md", "markdown"):
+                            target = None
                         if target:
-                            glob = inp.get("glob")
                             if glob and target == "canon/":
                                 target = "canon/" + glob.lstrip("/")
                             targets = [target]
                     elif name == "Bash":
-                        targets = canon_targets_in_command(str(inp.get("command", "")))
+                        targets = canon_targets_in_command(str(inp.get("command", "")), workdir)
                     # Glob lists files like `ls`; listing canon/ is allowed.
                     if targets and b.get("id"):
                         requested[b["id"]] = targets
@@ -755,10 +830,13 @@ def main():
     if routing and args.transcript_dir:
         reads, supported = canon_reads_from_transcripts(args.transcript_dir, work)
         if not supported:
+            # Routing is a required check: without telemetry it cannot pass.
+            # A scenario may opt out with "require_telemetry": false.
+            required = routing.get("require_telemetry", True)
             add("routing_precision", False,
                 "structured tool telemetry is unsupported",
-                outcome="fail" if routing.get("require_telemetry") else "unsupported",
-                required=bool(routing.get("require_telemetry")))
+                outcome="fail" if required else "unsupported",
+                required=bool(required))
         else:
             domain_glob = routing.get("domain_glob", "canon/*.md")
             domain_reads = sorted({r for r in reads if fnmatch.fnmatch(r, domain_glob)})

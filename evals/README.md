@@ -558,15 +558,20 @@ Additional contract blocks:
 
 The routing parser treats telemetry as supported once any structured tool
 event parses (Codex `command_execution` items, Claude `tool_use` blocks), so a
-session that read no Canon is a measured zero, not an unknown. A Canon read is
-a successful `cat`, `sed`, `head`, `tail`, `nl`, `less`, `rg`, `grep`, `find` or
-`awk` naming a path, directory or glob under `canon/` (also inside
-`bash -lc '...'`, and as relative or absolute paths), a Claude `Read` of a
-Canon file, or a Claude `Grep` scoped to `canon/`. A directory or glob counts
-as reading every note it matches. Listing (`ls canon/`, Claude `Glob`) is not
-a read. With `"require_telemetry": true`, missing telemetry fails the check
-instead of being recorded as `unsupported`. The check detail lists the reads
-in order.
+session that read no Canon is a measured zero, not an unknown. Paths resolve
+against the workspace and each command's working directory (`cd canon && cat
+x.md` counts); an absolute path counts only inside the workspace's own
+`canon/`, never because a parent directory happens to be called `canon`. A
+Canon read is a successful `cat`, `sed`, `head`, `tail`, `nl`, `less`, `wc`,
+`awk`, `rg` or `grep` on a path, directory or glob under `canon/` (also inside
+`bash -lc '...'`, subshells and `for` loops); a recursive `rg` or `grep -r`
+from the workspace root, which searches `canon/` too; `find` under `canon/`
+with `-exec`, `-execdir` or `-ok`; a Claude `Read` of a Canon file; or a
+Claude `Grep` over `canon/` or the root. A directory or glob counts as reading
+every note it matches. Listing (`ls`, plain `find`, Claude `Glob`) is not a
+read. Missing telemetry fails a routing check unless the scenario sets
+`"require_telemetry": false`, in which case it is recorded as `unsupported`.
+The check detail lists the reads in order.
 
 Always prove a scenario is winnable: implement a correct solution by hand and
 confirm every intended mechanical check and holdout passes. Extend

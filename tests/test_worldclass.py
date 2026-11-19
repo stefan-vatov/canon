@@ -148,7 +148,7 @@ class EvalIntegrityTests(unittest.TestCase):
             git(root, "add", "-A"); git(root, "-c", "commit.gpgsign=false", "commit", "-qm", "baseline")
             expected = root / "expected.json"
             write(expected, json.dumps({
-                "routing": {"must_read": ["canon/pricing.md"]}
+                "routing": {"must_read": ["canon/pricing.md"], "require_telemetry": False}
             }))
             transcripts = root / "transcripts"; transcripts.mkdir()
             out = root / "checks.json"
@@ -159,9 +159,12 @@ class EvalIntegrityTests(unittest.TestCase):
                            if row["id"] == "routing_precision")
             self.assertEqual(routing["outcome"], "unsupported")
 
-    def routing_check(self, events: list[dict], routing: dict) -> dict:
+    def routing_check(self, events, routing: dict, parent: str = "") -> dict:
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory) / parent / "workspace" if parent else Path(directory)
+            root.mkdir(parents=True, exist_ok=True)
+            if callable(events):
+                events = events(root)
             git(root, "init", "-q", "--template=")
             git(root, "config", "user.email", "test@example.invalid")
             git(root, "config", "user.name", "Test")
@@ -218,7 +221,13 @@ class EvalIntegrityTests(unittest.TestCase):
             [self.codex("bash -lc 'cat canon/pricing.md'")],
             [self.codex("nl ./canon/pricing.md | head")],
             [self.codex("grep -r fee canon/ && echo done")],
-            self.claude("Read", {"file_path": "/tmp/ws/canon/pricing.md"}),
+            [self.codex("cd canon && cat pricing.md")],
+            [self.codex("bash -lc '(cd canon; wc -w *.md)'")],
+            [self.codex("rg foo")],
+            [self.codex("grep -rn fee .")],
+            [self.codex("for f in canon/*.md; do head -3 \"$f\"; done")],
+            [self.codex("find canon -name '*.md' -exec cat {} +")],
+            lambda root: self.claude("Read", {"file_path": f"{root}/canon/pricing.md"}),
             self.claude("Bash", {"command": "sed -n 1,20p canon/tax.md"}),
             self.claude("Grep", {"pattern": "fee", "path": "canon"}),
         ):
@@ -228,9 +237,21 @@ class EvalIntegrityTests(unittest.TestCase):
 
     def test_failed_or_listing_commands_are_not_reads(self) -> None:
         cold = {"domain_glob": "canon/*", "max_domain_reads": 0}
-        events = [self.codex("cat canon/missing.md", exit_code=1), self.codex("ls canon")]
+        events = [self.codex("cat canon/missing.md", exit_code=1), self.codex("ls canon"),
+                  self.codex("find canon -type f"), self.codex("cat app.py | rg VALUE"),
+                  self.codex("grep VALUE app.py")]
         events += self.claude("Read", {"file_path": "canon/pricing.md"}, error=True)
         self.assertEqual(self.routing_check(events, cold)["outcome"], "pass")
+
+    def test_workspace_under_a_canon_parent_is_not_canon(self) -> None:
+        cold = {"domain_glob": "canon/*", "max_domain_reads": 0}
+
+        def events(root: Path) -> list[dict]:
+            return (self.claude("Read", {"file_path": f"{root}/app.py"})
+                    + [self.codex("cat app.py"), self.codex(f"cat {root}/app.py")])
+
+        row = self.routing_check(events, cold, parent="canon/evals/results")
+        self.assertEqual(row["outcome"], "pass", row)
 
     def test_bulk_read_fails_routing_and_targeted_read_passes(self) -> None:
         routing = {"domain_glob": "canon/*.md", "must_read": ["canon/pricing.md"],
