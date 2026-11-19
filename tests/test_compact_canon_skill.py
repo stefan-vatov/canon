@@ -4,10 +4,23 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / ".codex" / "skills" / "compact-canon"
 SCRIPT = SKILL / "scripts" / "analyze_canon.py"
+
+
+def git(repo: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", "-C", str(repo), "-c", "commit.gpgsign=false", *args],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+
+def write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
 
 
 class CompactCanonSkillTests(unittest.TestCase):
@@ -20,229 +33,99 @@ class CompactCanonSkillTests(unittest.TestCase):
         )
         return json.loads(result.stdout)
 
-    def test_analyzer_is_read_only_and_reports_growth_signals(self) -> None:
+    def legacy_repo(self, repo: Path) -> None:
+        git(repo, "init", "-q", "--template=")
+        git(repo, "config", "user.email", "test@example.invalid")
+        git(repo, "config", "user.name", "Test")
+        write(
+            repo / "AGENTS.md",
+            "First action: read canon/manifest.md and canon/glossary.md.\n",
+        )
+        write(repo / "canon/manifest.md", "- [Pricing](architecture/pricing.md)\n")
+        write(repo / "canon/glossary.md", "Ledger: the append-only record.\n")
+        write(
+            repo / "canon/architecture/pricing.md",
+            "---\nsources: [pricing.py]\nverified: aaaaaaa\n---\n# Pricing\n\nCaps at 40%.\n",
+        )
+        write(repo / "canon/decisions/2026-01-01-cap.md", "We decided 40%.\n")
+        write(repo / ".gitignore", "canon/scratch/\n")
+        write(repo / "canon/scratch/handover.md", "ignored session notes\n")
+        write(repo / "pricing.py", "# see canon/architecture/pricing.md\nCAP = 40\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "baseline")
+
+    def test_analyzer_is_read_only_and_inventories_legacy_canon(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             repo = Path(temp)
-            canon = repo / "canon"
-            (canon / "architecture").mkdir(parents=True)
-            (canon / "standards.md").write_text(
-                "---\nstatus: normative\nscope: [project-wide]\n---\n# Standards\n"
-            )
-            (canon / "manifest.md").write_text(
-                "---\nstatus: reference\n---\n"
-                "- [Standards](standards.md) — read for project rules\n"
-                "- [Topic](architecture/topic.md) — read for topic behavior\n"
-            )
-            repeated = (
-                "This durable paragraph is deliberately long enough to be "
-                "detected as repeated project knowledge across Canon pages."
-            )
-            (canon / "architecture/topic.md").write_text(
-                f"---\nstatus: normative\nscope: [topic]\n---\n# Topic\n\n{repeated}\n"
-            )
-            (canon / "architecture/duplicate.md").write_text(
-                f"---\nstatus: normative\nscope: [duplicate]\n---\n# Duplicate\n\n{repeated}\n"
-            )
+            self.legacy_repo(repo)
             before = {
-                path: path.read_bytes()
-                for path in canon.rglob("*")
-                if path.is_file()
+                path: path.read_bytes() for path in repo.rglob("*") if path.is_file()
             }
 
             report = self.analyze(repo)
 
             after = {
-                path: path.read_bytes()
-                for path in canon.rglob("*")
-                if path.is_file()
+                path: path.read_bytes() for path in repo.rglob("*") if path.is_file()
             }
             self.assertEqual(before, after)
-            self.assertEqual(report["summary"]["files"], 4)
+            canon = report["canon"]
+            self.assertEqual(canon["files"], 4)
+            self.assertEqual(canon["decision_records"], 1)
+            self.assertEqual(canon["front_matter_files"], 1)
+            self.assertEqual(canon["stamp_fields"], {"sources": 1, "verified": 1})
+            self.assertEqual(canon["per_directory"]["decisions"]["files"], 1)
+            self.assertNotIn("scratch", canon["per_directory"])
+
+    def test_analyzer_counts_stamp_only_touches(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            self.legacy_repo(repo)
+            pricing = repo / "canon/architecture/pricing.md"
+            pricing.write_text(pricing.read_text().replace("aaaaaaa", "bbbbbbb"))
+            git(repo, "commit", "-qam", "docs: reverify")
+            pricing.write_text(pricing.read_text().replace("40%", "45%"))
+            (repo / "pricing.py").write_text("CAP = 45\n")
+            git(repo, "commit", "-qam", "feat: raise cap")
+            (repo / "pricing.py").write_text("CAP = 45  # cap\n")
+            git(repo, "commit", "-qam", "chore: comment")
+
+            churn = self.analyze(repo)["churn"]
+
+            self.assertEqual(churn["commits"], 4)
+            self.assertEqual(churn["commits_touching_canon"], 3)
+            self.assertEqual(churn["stamp_only_touches"], 1)
+            self.assertEqual(churn["canon_file_touches"], 6)
+
+    def test_analyzer_reports_inbound_references_and_startup_reads(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            self.legacy_repo(repo)
+
+            report = self.analyze(repo)
+
+            inbound = report["inbound_references"]
+            self.assertIn("canon/architecture/pricing.md", inbound["targets"])
+            self.assertIn("canon/manifest.md", inbound["targets"])
+            startup = report["startup"]
             self.assertEqual(
-                report["missing_normative_routes"],
-                ["architecture/duplicate.md"],
+                startup["canon_files_named_with_read"],
+                ["canon/glossary.md", "canon/manifest.md"],
             )
-            self.assertTrue(report["repeated_paragraphs"])
+            self.assertGreater(startup["canon_words_named_with_read"], 0)
 
-    def test_analyzer_reports_status_metadata_and_legacy_inventory(self) -> None:
+    def test_analyzer_handles_a_repository_without_canon_or_git(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            repo = Path(temp)
-            canon = repo / "canon"
-            (canon / "architecture").mkdir(parents=True)
-            (canon / "manifest.md").write_text(
-                "---\nstatus: reference\n---\n"
-                "- [Standards](standards.md) — read for project rules\n"
-                "- [Runtime](architecture/runtime.md) — read for runtime behavior\n"
-            )
-            (canon / "standards.md").write_text(
-                "---\nstatus: normative\nscope:\n  - project-wide\n---\n# Standards\n"
-            )
-            runtime = canon / "architecture/runtime.md"
-            runtime.write_text(
-                "---\nstatus: normative\nscope:\n  [\n    runtime,\n    persistence,\n  ]\n"
-                "validation:\n  - tests/runtime_policy_test.py\n"
-                "---\n# Runtime\n"
-            )
+            report = self.analyze(Path(temp))
+            self.assertEqual(report["canon"]["files"], 0)
+            self.assertIsNone(report["churn"])
 
-            report = self.analyze(repo)
-            record = next(
-                item
-                for item in report["files"]
-                if item["path"] == "architecture/runtime.md"
-            )
-            self.assertEqual(record["status"], "normative")
-            self.assertEqual(report["summary"]["status"]["normative"], 2)
-            self.assertEqual(report["inventory_candidates"], [])
-
-            runtime.write_text(
-                "---\nstatus: normative\nsources: [src/runtime.py]\n"
-                "verified: deadbeef\n---\n# Runtime\n"
-            )
-            legacy = self.analyze(repo)
-            self.assertEqual(
-                legacy["inventory_candidates"][0]["legacy_fields"],
-                ["sources", "verified"],
-            )
-
-            runtime.write_text(
-                "---\nstatus: normative\nscope:\n  path: runtime\n---\n# Runtime\n"
-            )
-            malformed = self.analyze(repo)
-            record = next(
-                item
-                for item in malformed["files"]
-                if item["path"] == "architecture/runtime.md"
-            )
-            self.assertEqual(record["status"], "missing")
-
-    def test_analyzer_reports_symlinked_permanent_directories(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            repo = Path(temp)
-            canon = repo / "canon"
-            outside = repo / "outside"
-            canon.mkdir()
-            outside.mkdir()
-            (canon / "linked").symlink_to(outside, target_is_directory=True)
-            (canon / "manifest.md").write_text(
-                "---\nstatus: reference\n---\n# Manifest\n"
-            )
-            (canon / "standards.md").write_text(
-                "---\nstatus: normative\n---\n# Standards\n"
-            )
-
-            report = self.analyze(repo)
-
-            self.assertEqual(report["unsafe_paths"], ["linked"])
-
-    def test_analyzer_route_parser_matches_titled_and_angle_links(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            repo = Path(temp)
-            canon = repo / "canon"
-            (canon / "architecture").mkdir(parents=True)
-            (canon / "manifest.md").write_text(
-                "---\nstatus: reference\n---\n"
-                "- [Standards](standards.md \"title\") — read for project rules\n"
-                "- [Topic](<architecture/topic.md>) — read for topic behavior\n"
-            )
-            (canon / "standards.md").write_text(
-                "---\nstatus: normative\n---\n# Standards\n"
-            )
-            (canon / "architecture/topic.md").write_text(
-                "---\nstatus: normative\n---\n# Topic\n"
-            )
-
-            report = self.analyze(repo)
-
-            self.assertEqual(report["missing_normative_routes"], [])
-            self.assertEqual(report["dead_routes"], [])
-
-    def test_analyzer_rejects_catalog_entries_without_read_conditions(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            repo = Path(temp)
-            canon = repo / "canon"
-            (canon / "architecture").mkdir(parents=True)
-            (canon / "manifest.md").write_text(
-                "---\nstatus: reference\n---\n"
-                "- [Standards](standards.md) "
-                "[Topic](architecture/topic.md)\n"
-            )
-            (canon / "standards.md").write_text(
-                "---\nstatus: normative\n---\n# Standards\n"
-            )
-            (canon / "architecture/topic.md").write_text(
-                "---\nstatus: normative\n---\n# Topic\n"
-            )
-
-            report = self.analyze(repo)
-
-            self.assertEqual(
-                report["missing_normative_routes"],
-                ["architecture/topic.md", "standards.md"],
-            )
-
-    def test_analyzer_rejects_image_escaped_and_code_span_pseudo_links(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            repo = Path(temp)
-            canon = repo / "canon"
-            (canon / "architecture").mkdir(parents=True)
-            (canon / "standards.md").write_text(
-                "---\nstatus: normative\n---\n# Standards\n"
-            )
-            (canon / "architecture/topic.md").write_text(
-                "---\nstatus: normative\n---\n# Topic\n"
-            )
-            pseudo_links = (
-                "![Topic](architecture/topic.md)",
-                r"\[Topic](architecture/topic.md)",
-                "`[Topic](architecture/topic.md)`",
-            )
-            for pseudo_link in pseudo_links:
-                (canon / "manifest.md").write_text(
-                    "---\nstatus: reference\n---\n"
-                    "- [Standards](standards.md) — read for project rules\n"
-                    f"- {pseudo_link} — read when changing topic\n"
-                )
-
-                report = self.analyze(repo)
-
-                self.assertEqual(
-                    report["missing_normative_routes"],
-                    ["architecture/topic.md"],
-                    pseudo_link,
-                )
-
-    def test_analyzer_bounds_overlap_work(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            repo = Path(temp)
-            canon = repo / "canon"
-            (canon / "architecture").mkdir(parents=True)
-            (canon / "manifest.md").write_text(
-                "---\nstatus: reference\n---\n# Manifest\n"
-            )
-            (canon / "standards.md").write_text(
-                "---\nstatus: normative\n---\n# Standards\n"
-            )
-            for index in range(450):
-                (canon / "architecture" / f"page-{index:03}.md").write_text(
-                    "---\nstatus: reference\n---\n"
-                    f"# Reference {index}\n\nUnique token reference-{index}.\n"
-                )
-
-            report = self.analyze(repo)
-
-            self.assertTrue(report["summary"]["overlap_truncated"])
-            self.assertEqual(
-                report["summary"]["overlap_pairs_examined"],
-                100_000,
-            )
-
-    def test_skill_has_no_template_placeholders(self) -> None:
+    def test_skill_migrates_decision_records_out_and_installs_no_check(self) -> None:
         text = (SKILL / "SKILL.md").read_text()
         self.assertNotIn("TODO", text)
         self.assertIn("name: compact-canon", text)
-        self.assertIn("implementation inventories", text)
+        self.assertIn("Tag", text)
+        self.assertIn("decision records", text)
+        self.assertIn("installs no check", text)
 
 
 if __name__ == "__main__":

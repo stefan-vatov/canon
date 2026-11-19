@@ -1,175 +1,130 @@
 ---
 name: compact-canon
-description: Audit and safely rework an overgrown Project Canon (`canon/`) into a compact set of architectural laws, product invariants, decisions, and validation links. Use when asked to compact, prune, deduplicate, reorganize, migrate, or reduce Canon; remove implementation inventories or legacy `sources`/`verified` metadata; tighten manifest routing; or assess Canon maintenance burden in a dry run.
+description: One-time migration that slims an overgrown or legacy Project Canon (`canon/`) to a handful of flat notes. Use when a repository's canon has decision records, `sources`/`verified` or `status` front matter, a manifest, per-feature specs or mandatory session-start reads, or when asked to slim, compact, prune, migrate or assess what a canon costs. A dry run changes nothing. Not for routine upkeep, which the installed Canon block already covers.
 ---
 
 # Compact Canon
 
-Reduce maintenance burden without weakening durable architectural memory.
-Canon should survive file moves because it records why the system is shaped
-this way and what must remain true, not where every implementation lives.
+Take a canon that grew into a second codebase and leave what the current Canon
+block allows: at most twelve flat notes holding what code, tests and git cannot
+say. Most of what you find goes; git keeps all of it.
 
-## Choose the mode
+This skill was written from a real migration. One adopter ran the older rules
+for 30 days: 640 commits, 384 canon files, 200k words, 271 decision records.
+Canon was touched in 488 of 639 commits, about half of all canon file touches
+were `verified:` bumps, agents read about 23k tokens before any code, and an
+"immutable" approval record caused a finished piece of work to be reverted 18
+minutes after it landed. After the migration its canon is four notes.
 
-- Treat `audit`, `assess`, `mock`, `plan`, or `dry run` as read-only.
-- Treat an explicit request to `compact`, `clean`, `prune`, `deduplicate`,
-  `tighten`, `reorganize`, `migrate`, or `rework` as authorization to edit
-  `canon/` only.
-- Do not edit code, tests, build configuration, generated reports, or decision
-  records unless the user separately puts them in scope.
-- Do not commit, push, stash, reset, restore, stage, or delete unrelated work.
+Run this once per repository, then uninstall it. Afterwards the Canon block in
+the instruction file keeps canon small. This skill installs no check, hook,
+link checker or word budget, and recommends none.
 
-Apply mode requires a completely clean worktree at entry, including untracked
-files. If it is dirty, report the exact paths and stop after the audit. Record
-clean status and `BASE_HEAD` as the transaction boundary. Track every
-run-owned path and stop if unrelated dirt appears. Never delete an untracked
-Canon file.
+## Mode
 
-## Establish the baseline
+- `dry run`, `assess`, `audit` or `plan`: read-only. Produce the measurements,
+  the disposition table and the ordered plan below. Edit nothing.
+- An explicit request to migrate, slim, compact or prune: apply, in the order
+  below, one reviewable commit per step. Apply needs a clean worktree.
+- Follow the repository's own commit, branch and checkout rules. Never push;
+  where pushing deploys, say so and leave it to the owner. Change no code
+  behavior: outside `canon/` and the instruction files you touch only
+  comments, links and documentation that point into canon.
 
-1. Read applicable repository instructions.
-2. Record `git status --short`, `BASE_HEAD`, and hashes of every decision.
-3. Read `canon/manifest.md`, then the routed normative pages in manifest order.
-   Read reference or draft pages only when needed to classify them. Do not read
-   `canon/scratch/` unless the user explicitly included scratch in the task.
-4. Run the bundled analyzer, `scripts/analyze_canon.py`, from wherever this
-   skill is installed — commonly `.claude/skills/compact-canon/` or
-   `.codex/skills/compact-canon/`, but use this file's actual directory:
+## Ask the owner first
 
-   ```sh
-   python3 <this-skill-directory>/scripts/analyze_canon.py --root /path/to/repo
-   ```
+1. Which canon content have you or your agents actually used? Name files.
+2. Is anything to be kept without loss, such as a plan for unbuilt work?
+3. Which working rules do you keep repeating to agents that are written down
+   nowhere, or only in one agent's private memory?
 
-   Use `--json` when another tool will consume the report.
-5. Run `tools/canon-doctor.py --root <repo> --json` when it exists. Mechanical
-   findings are evidence, not permission to rewrite policy.
+The owner's answers outrank every heuristic below.
 
-Record before-metrics: permanent files, lines, bytes, status counts, normative
-route coverage, broken links, metadata errors, size-cap failures, repeated
-paragraphs, overlap candidates, implementation-inventory signals, doctor
-findings, and decision hashes.
+## Measure (read-only)
 
-## Classify every permanent page
+Run the bundled analyzer from this skill's directory:
 
-Assign one disposition and a short evidence statement:
+```sh
+python3 <this-skill-directory>/scripts/analyze_canon.py --root /path/to/repo [--days 30] [--json]
+```
 
-- **Keep** — unique durable law, invariant, decision, rationale, or validation
-  expectation.
-- **Merge** — durable content duplicated across pages that has one clear owner.
-- **Rewrite** — useful rules obscured by chronology, repetition, inventories,
-  or implementation detail.
-- **Move out** — useful commands, setup, troubleshooting, or generated state
-  that belongs in development or generated documentation.
-- **Delete** — content reconstructible from localized code or ordinary search,
-  obsolete current-state prose, completed-work narration, or exact duplicate.
-- **Abstain** — normative, ambiguous, weakly sourced, or unsafe to change.
+It reports files and words per directory, decision records, front matter and
+stamp fields, the share of recent commits touching `canon/` and of canon file
+touches that only bump a stamp, canon paths cited from outside `canon/`, and
+the canon files the instruction files tell an agent to read. Cited paths and
+the owner's answers are the evidence of value; size, age and tidiness are not.
 
-Retain a claim only when all are true:
+## Decide (one row per file)
 
-1. A future session is likely to need it.
-2. Getting it wrong would materially change a decision or implementation.
-3. It is stable and has an identified human owner or executable validation.
-4. It is not reliably reconstructible from code, tests, types, schemas,
-   manifests, build graphs, generated reports, or ordinary search.
+Write a disposition table outside the repository or in ignored
+`canon/scratch/`: `path<TAB>action<TAB>target-or-reason`, with actions
+`DELETE`, `KEEP`, `MOVE:<dest>`, `MERGE:<dest>` and `REWRITE:<dest>`. The
+default is `DELETE`. A file earns another action only if a future task needs
+it, getting it wrong is costly, and the code, tests and ordinary search
+cannot answer it.
 
-For a proposed merge, rewrite, move, or deletion, inspect only the smallest
-relevant repository evidence. Do not trust Canon prose as proof of its own
-value. Size, age, long lines, and lexical similarity are investigation
-signals, never deletion proof.
+| Found in canon | Goes to |
+| --- | --- |
+| Owner working rule, often filed as a decision | the instruction file, in the owner's words |
+| Operator procedure, deploy, recovery, key handling | the runbook beside the tool |
+| Single-module contract, limit, default, status code, field list | its code and tests; delete the prose |
+| Why one piece of code is unusual | a short comment at that code |
+| Cross-owner guarantee, accepted gap, measured dead end | a flat canon note, or a clause in one |
+| Owner-approved plan for unbuilt work | a flat canon note, losing nothing decided |
+| Decision record of any kind | its live rule to one of the homes above, then delete |
+| Retired stack, completed migration, approval, checkpoint, session direction | delete |
+| Manifest, index, overview, glossary, standards page | live lines to the instruction file; delete |
 
-## Preserve these boundaries
+## Apply (in this order)
 
-- Never edit, delete, rename, combine, or reuse an existing decision record.
-  A new human direction may supersede one only through a new record.
-- Treat legacy metadata inside an existing decision as immutable history. Do
-  not remove or retrofit it; only new decision records use the compact schema.
-- Preserve the `standards.md` body verbatim by default. An explicit migration
-  may add schema front matter; a semantic rewrite requires human direction.
-- Preserve supplied rationale, rejected alternatives, numeric limits,
-  exceptions, invalid cases, error behavior, negations, and uncertainty
-  exactly in meaning. Preserve the whole durable contract, not a representative
-  subset.
-- Keep `manifest.md` and `standards.md`. Keep every normative page routed.
-  Each route has exactly one local Markdown link and an explicit, non-empty
-  `read when ...` or `read for ...` condition.
-- Never route, cite, promote, or normally read `canon/scratch/`.
-- When scratch is explicitly in scope, retain active material only with an
-  owner and expiry condition where practical.
-- Do not archive deleted bloat into another permanent page or scratch.
-- A smaller Canon is not automatically better. Set no deletion quota.
-- Never fill a policy gap by guessing a value, rule, exception, owner, or
-  rationale. Abstain on the policy-dependent edit and report the exact missing
-  authority.
+1. **Tag first.** Tag the starting commit (for example `canon-v1`) and cite it
+   in every later commit body, so each deleted file is one
+   `git show canon-v1:<path>` away.
+2. **Instructions first.** Until they change, every later commit owes the old
+   ceremony. Replace the canon protocol in `AGENTS.md` with the current Canon
+   block; make `CLAUDE.md` import it (`@AGENTS.md`) rather than duplicate it;
+   reduce any system-prompt copy to a pointer. Remove session-start reads,
+   stamp duties, decision-record rules and cue-word triggers. Put the owner's
+   unwritten working rules into the instruction file, each with its reason.
+3. **Move runbooks beside their tools.** Operating, deploy and recovery
+   procedures move verbatim next to the tooling they drive: strip front
+   matter, fix links, change no meaning. Add only what the destination does
+   not already say.
+4. **Repoint citations.** Find every inbound reference with
+   `git grep -n "canon/" -- ':!canon'`. Point it at the live home, or drop it
+   where the citing sentence already states the rule. A dead pointer is worse
+   than none. A dated data artifact may keep an old path only if it names the
+   tag.
+5. **Delete decision records after moving still-live rules.** For each record,
+   ask whether a rule in it still governs work. If so, move that one rule to
+   its home as one clause. Rejected alternatives and history stay in git. Do
+   not build a register, a decision index or an archive directory. "Immutable"
+   records go too.
+6. **Delete specs that copy code.** Per-feature specifications, inventories,
+   limits, defaults and file maps go; the code and tests are the record. If a
+   spec states behavior no test covers, report it as a test gap instead of
+   keeping the prose.
+7. **Keep only** cross-owner guarantees, accepted gaps with their reason,
+   measured lessons (what, the number, the commit) and owner-approved plans.
+   Write any preserved plan in full before deleting its sources. Rewrite each
+   survivor from the code and the tag, not from old summaries: no front
+   matter, no stamps, current fact with its reason in a clause, naming the
+   code or test that enforces it. Flatten `canon/`; git-ignore `canon/scratch/`.
+8. **Review against the tag.** Check every row of the disposition table, every
+   item the owner asked to keep, and every live rule from a deleted record
+   against `canon-v1`, and confirm each landed in its new home. Run the
+   repository's own checks. Re-run the analyzer for the before/after numbers.
 
-## Apply the invariant-first model
+Never guess a rule, limit or reason to fill a gap; report the gap.
 
-Create an operation ledger before editing. Then:
+## Verify and report
 
-1. Rewrite rules in place before moving or deleting pages.
-2. Replace exhaustive instance lists with one general ownership or behavior
-   rule. Keep at most a few explicitly non-exhaustive examples when they aid
-   comprehension.
-3. Remove legacy `sources` and `verified` metadata from non-decision pages.
-   Add only truthful compact metadata:
+- `ls canon/` shows at most twelve flat notes, no `decisions/`, no manifest.
+- No front matter, stamps or status fields remain.
+- `git grep "canon/"` outside `canon/` finds only paths that exist.
+- No instruction file asks for a canon read at session start.
 
-   ```yaml
-   ---
-   status: normative
-   scope:
-     - package-or-architectural-area
-   validation:
-     - path/to/policy_test
-   related:
-     - ./related-page.md
-   ---
-   ```
-
-   Do not invent scopes, validation, or relationships. Validation entries are
-   existing regular, non-symlink files named from the repository root, never
-   paths relative to the Canon page. Missing automation is evidence debt to
-   report.
-4. Put each cross-cutting fact in one owning page and link from intentional
-   exceptions. Never copy whole policy tables between pages.
-5. Move operational guidance to existing development docs when separately
-   authorized; otherwise report the move as follow-up work.
-6. Update the manifest and inbound links atomically with every page move,
-   merge, or deletion. The manifest is a concern-to-page router, not a file
-   catalog.
-7. Remove changelog prose, completed-task summaries, speculative notes,
-   temporary migration status, internal function lists, line numbers, and
-   routine implementation detail.
-8. Leave uncertain norms and immutable history unchanged and list them under
-   `Abstained`.
-9. For an explicitly authorized supersession, make `supersedes` a non-empty
-   list of predecessor decision paths, preserve those records byte-for-byte,
-   and update the owning current-state page to state the active rule or value
-   explicitly. Keep each predecessor routed from the manifest as clearly
-   labeled historical decision context.
-
-Use patch-based edits. Preserve pre-existing user changes. Parallel workers,
-when explicitly authorized, must own disjoint paths; reserve shared indexes
-and the manifest for one coordinator.
-
-## Verify the result
-
-1. Run the repository formatter or formatting check only on run-owned paths.
-2. Re-run the analyzer and Canon doctor with `--baseline "$BASE_HEAD"`.
-   Resolve malformed front matter,
-   broken routes and links, missing normative routes, unsafe validation
-   references, size failures, and new inventory warnings.
-3. Run `git diff --check`; inspect the complete status and
-   `git diff BASE_HEAD -- canon/`. Reject every unowned change.
-4. Reconcile the operation ledger with the diff. Every removed durable claim
-   needs one retained owner; every deletion needs retention-test evidence.
-5. Search the final Canon for each active decision name, public contract,
-   security rule, numeric limit, exception, and domain term from the baseline.
-6. Give every normative rewrite a cold review against `BASE_HEAD`, final
-   formatted bytes, and the smallest relevant evidence.
-7. Confirm decision paths and hashes are identical and the standards body is
-   unchanged except for authorized schema metadata unless the user explicitly
-   authorized a semantic rewrite.
-
-Report before/after metrics, pages merged/moved/removed, inventory eliminated,
-durable rules preserved, abstentions, formatter/analyzer/doctor results,
-semantic-review corrections, `BASE_HEAD`, exact changed paths, and commit
-status. In a dry run, report candidates and projected savings without edits.
+Report files and words before and after, startup reads before and after, what
+moved where, what the owner asked to keep and where it is, references
+repointed, unresolved gaps, the tag and the command that recovers a deleted
+file, and the commits. Then tell the owner the skill can be uninstalled.

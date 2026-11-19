@@ -1,4 +1,4 @@
 interface:
   display_name: "Compact Canon"
-  short_description: "Turn Canon inventories into durable invariants"
-  default_prompt: "Use $compact-canon to remove implementation mirroring and safely reduce this repository’s Canon to architectural laws, product invariants, decisions, and validation links."
+  short_description: "Migrate an overgrown Canon to a handful of notes, once"
+  default_prompt: "Use $compact-canon for a dry run: measure this repository's canon and propose a disposition for every file."
