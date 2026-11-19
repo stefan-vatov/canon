@@ -461,13 +461,13 @@ const scenarios = [
             <span>setup — by hand</span>
           </figcaption>
           <div class="term-body" tabindex="0">
-            <span class="dim">$</span> git clone --depth 1 https://github.com/stefan-vatov/canon /tmp/project-canon<br />
-            <span class="dim">$</span> cp /tmp/project-canon/dist/AGENTS.md AGENTS.md<br />
-            <span class="dim">$</span> echo '@AGENTS.md' &gt; CLAUDE.md<span class="dim">&nbsp;&nbsp;# Claude Code reads it through the import</span><br />
-            <span class="dim">&nbsp;&nbsp;# file already exists? use the managed merge in INSTALL.md</span><br />
-            <span class="dim">$</span> claude<br />
-            <span class="pass">&gt;</span> set up Project Canon in this repository; write no notes<br />
-            <span class="dim">$</span> rm -rf /tmp/project-canon
+            <span class="dim">$</span> CANON="$(mktemp -d)" &amp;&amp; git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON"<br />
+            <span class="dim">$</span> test -e AGENTS.md || cp "$CANON/dist/AGENTS.md" AGENTS.md<br />
+            <span class="dim">$</span> test -e CLAUDE.md || echo '@AGENTS.md' &gt; CLAUDE.md<br />
+            <span class="dim">&nbsp;&nbsp;# a file already there? merge the block instead (INSTALL.md)</span><br />
+            <span class="dim">&nbsp;&nbsp;# your own rules go above or below the BEGIN/END markers</span><br />
+            <span class="dim">$</span> rm -rf "$CANON"; claude<br />
+            <span class="pass">&gt;</span> set up Project Canon in this repository; write no notes
           </div>
         </figure>
 
@@ -478,10 +478,12 @@ const scenarios = [
           </figcaption>
           <p class="prompt-text" id="agent-setup-prompt">
             Install Project Canon from https://github.com/stefan-vatov/canon:
-            shallow-clone it outside this repository and copy dist/AGENTS.md to
-            AGENTS.md. If AGENTS.md already exists, follow INSTALL.md's
-            managed merge instead. If Claude Code works here, make CLAUDE.md
-            import it with an @AGENTS.md line rather than a second copy.
+            shallow-clone it into a fresh temporary directory, stopping if the
+            clone fails. If AGENTS.md does not exist, copy dist/AGENTS.md there;
+            if it does, merge the marked block in with INSTALL.md's managed
+            merge and keep everything outside the markers. Never overwrite an
+            existing CLAUDE.md; if Claude Code works here, make CLAUDE.md
+            import AGENTS.md with an @AGENTS.md line rather than a second copy.
             Then set up the repository Canon: create canon/, add canon/scratch/
             to the repository-root .gitignore, and write no notes. Remove the
             clone and report what you changed.
@@ -499,8 +501,8 @@ const scenarios = [
           <p>
             dist/AGENTS.md for Codex, Pi and anything else that reads it; a
             CLAUDE.md that imports it for Claude Code, so there is one copy
-            of the rules. Generated means generated: the source is
-            canon-core.md, never the artifact.
+            of the rules. It is one marked block: your own rules go above or
+            below it, and upgrades replace only the block.
           </p>
         </li>
         <li>

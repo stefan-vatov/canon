@@ -26,7 +26,7 @@ commits; about half of all canon file touches were stamp bumps; about
 work 18 minutes after it landed. After a one-time migration its canon is
 four notes.
 
-Install: copy dist/AGENTS.md from https://github.com/stefan-vatov/canon to AGENTS.md; for Claude Code, make CLAUDE.md import it with an @AGENTS.md line
+Install: copy dist/AGENTS.md from https://github.com/stefan-vatov/canon to AGENTS.md (a managed block between BEGIN/END PROJECT CANON markers; project rules go outside it); for Claude Code, make CLAUDE.md import it with an @AGENTS.md line; never overwrite an existing file, merge the block instead (INSTALL.md)
 Version: Not stated in repository
 License: MIT
 Runtime: any agent that reads AGENTS.md or CLAUDE.md (Codex, Pi, Claude Code); the repository's own build and eval tools run via uv (Python 3.10+)
@@ -37,13 +37,15 @@ Maintainer: Stefan Vatov
 ## Quickstart
 
 ```bash
-CANON="${TMPDIR:-/tmp}/project-canon"
-git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON"
-cp "$CANON/dist/AGENTS.md" AGENTS.md
-printf '@AGENTS.md\n' > CLAUDE.md   # if Claude Code works here too
-# if a file already exists, follow the managed merge in INSTALL.md
-# in a fresh agent session: "Set up Project Canon in this repository; write no notes."
+CANON="$(mktemp -d)" && git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON" || exit 1
+if test -e AGENTS.md || test -e CLAUDE.md; then
+  echo 'AGENTS.md or CLAUDE.md exists: use the managed merge in INSTALL.md' >&2
+else
+  cp "$CANON/dist/AGENTS.md" AGENTS.md
+  printf '@AGENTS.md\n' > CLAUDE.md   # omit if Claude Code does not work here
+fi
 rm -rf "$CANON"
+# in a fresh agent session: "Set up Project Canon in this repository; write no notes."
 ```
 
 ## Why Project Canon

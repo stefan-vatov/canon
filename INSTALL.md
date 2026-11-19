@@ -54,9 +54,8 @@ git -C "$TARGET" status --short || exit 1
 printf 'Installing Canon revision %s\n' "$CANON_REF"
 ```
 
-Record `CANON_REF` in the target change or pull request. Safe whole-file
-upgrades and removals use it to prove that a Canon-owned file was not modified
-locally.
+Record `CANON_REF` in the target change or pull request, so the next upgrade
+can say what it replaced.
 
 ## Choose one integration
 
@@ -77,31 +76,21 @@ Pi 0.83 and later loads a project `AGENTS.md` natively, so Pi uses the
 use `AGENTS.md` only when that tool's current documentation says it loads the
 file.
 
-Both generated artifacts end with the small, removable provenance line
-`_Remembered with [Project Canon](https://agentcanon.dev)._`. Whole-file
-installs and managed merges preserve it as part of the Canon-owned payload.
+Each generated artifact is one managed block, wrapped in
+`<!-- BEGIN PROJECT CANON -->` and `<!-- END PROJECT CANON -->` markers, and
+ends with the small, removable provenance line
+`_Remembered with [Project Canon](https://agentcanon.dev)._`. The block says
+the owner's rules and any numbers the owner sets live in the same file, so the
+file is always shared: the owner's text goes above or below the markers, and
+installs and upgrades only ever touch what lies between them.
 
 Every `dist/` artifact is generated. Never edit `dist/` in the Canon checkout.
 
 ## Install when the target path is absent
 
-These commands deliberately refuse to overwrite anything. Run only the block
-for your agent.
-
-### Claude Code
-
-```sh
-(
-  set -eu
-  destination="$TARGET/CLAUDE.md"
-  if test -e "$destination" || test -L "$destination"; then
-    printf 'Refusing existing target: %s\n' "$destination" >&2
-    exit 1
-  fi
-  cp "$CANON/dist/CLAUDE.md" "$destination"
-  cmp -s "$CANON/dist/CLAUDE.md" "$destination"
-)
-```
+These commands refuse to overwrite anything. Run only the block for your
+agent. The copied file already carries the markers, so you can add the
+project's own rules above or below the block straight away.
 
 ### Codex, Pi, or another `AGENTS.md` reader
 
@@ -118,10 +107,7 @@ for your agent.
 )
 ```
 
-### Claude Code and other agents
-
-Install `AGENTS.md` with the block above, then create a `CLAUDE.md` that
-imports it:
+### Claude Code alone
 
 ```sh
 (
@@ -131,16 +117,34 @@ imports it:
     printf 'Refusing existing target: %s\n' "$destination" >&2
     exit 1
   fi
-  printf '@AGENTS.md\n' > "$destination"
+  cp "$CANON/dist/CLAUDE.md" "$destination"
+  cmp -s "$CANON/dist/CLAUDE.md" "$destination"
 )
 ```
 
-If `CLAUDE.md` already exists, add the `@AGENTS.md` line at its top and remove
-any copy of the Canon block from it, so the rules live in one file.
+### Claude Code and other agents
 
-An absent-target copy is **Canon-owned**: keep repository-specific rules in a
-different file or convert the target to a managed merge before adding local
-content. This ownership distinction makes later replacement and removal safe.
+Check both paths before writing either, then install `AGENTS.md` and a
+`CLAUDE.md` that imports it:
+
+```sh
+(
+  set -eu
+  for path in "$TARGET/AGENTS.md" "$TARGET/CLAUDE.md"; do
+    if test -e "$path" || test -L "$path"; then
+      printf 'Refusing existing target: %s\n' "$path" >&2
+      exit 1
+    fi
+  done
+  cp "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
+  cmp -s "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
+  printf '@AGENTS.md\n' > "$TARGET/CLAUDE.md"
+)
+```
+
+If either file already exists, use the managed merge below instead. For an
+existing `CLAUDE.md`, add the `@AGENTS.md` line at its top and remove any copy
+of the Canon block from it, so the rules live in one file.
 
 ## Back up before changing an existing target
 
@@ -185,9 +189,10 @@ the target repository or commit it.
 
 ## Merge into an existing instruction file
 
-Use a delimited managed block for an existing `AGENTS.md` or `CLAUDE.md`.
-Repository-specific text stays outside the block. Future upgrades replace only
-the block.
+Use the managed block for an existing `AGENTS.md` or `CLAUDE.md`, and for
+every upgrade. Repository-specific text stays outside the markers; the helper
+appends the block when the file has none and replaces only the marked block
+when it has one.
 
 Define this helper in the current shell:
 
@@ -210,19 +215,22 @@ if target.is_symlink() or not target.is_file():
 if source.is_symlink() or not source.is_file():
     raise SystemExit(f"refusing non-regular source: {source}")
 
+block = source.read_text(encoding="utf-8").strip("\n")
+if not (block.startswith(begin) and block.endswith(end)) \
+        or block.count(begin) != 1 or block.count(end) != 1:
+    raise SystemExit(f"refusing source without exactly one marker pair: {source}")
+
 original = target.read_text(encoding="utf-8")
-payload = source.read_text(encoding="utf-8").rstrip("\n")
 begin_count = original.count(begin)
 end_count = original.count(end)
 
 if begin_count == 0 and end_count == 0:
     prefix = original.rstrip("\n")
-    merged = (prefix + "\n\n" if prefix else "")
-    merged += f"{begin}\n{payload}\n{end}\n"
+    merged = (prefix + "\n\n" if prefix else "") + block + "\n"
 elif begin_count == 1 and end_count == 1 and original.index(begin) < original.index(end):
     before, remainder = original.split(begin, 1)
     _, after = remainder.split(end, 1)
-    merged = before + f"{begin}\n{payload}\n{end}" + after
+    merged = before + block + after
 else:
     raise SystemExit("refusing malformed or duplicate Project Canon markers")
 
@@ -273,8 +281,8 @@ grep -Fqx '_Remembered with [Project Canon](https://agentcanon.dev)._' \
   "$MERGED_FILE"
 ```
 
-Inspect the surrounding repository-specific text as well; byte comparison
-applies only to Canon-owned whole files.
+Inspect the surrounding repository-specific text as well: the project's own
+rules belong there, outside the markers.
 
 ## Install the `compact-canon` skill (migration only)
 
@@ -345,9 +353,8 @@ one there as a maintenance skill), replace it through [Upgrade the installed
 skill](#upgrade-the-installed-skill), then rerun with only the remaining
 destinations.
 
-Each copied directory is Canon-owned in the same sense as a whole-file
-integration: keep repository-specific instructions out of it so upgrades and
-removal stay safe.
+Each copied skill directory belongs to Canon: keep repository-specific
+instructions out of it so upgrades and removal stay safe.
 
 Invoke it by name once installed. The trigger syntax belongs to the harness —
 `$compact-canon` in Codex, "use the compact-canon skill" in Claude Code, and
@@ -469,97 +476,22 @@ printf 'Upgrading Canon from %s to %s\n' "$INSTALLED_REF" "$CANON_REF"
 
 Create a fresh backup before upgrading.
 
-### Upgrade a Canon-owned whole file
+### Upgrade the managed block
 
-Define this guard. It reconstructs the artifact from the recorded installed
-revision and refuses a locally modified, symlinked, or ambiguous target:
-
-```sh
-canon_assert_owned() {
-  destination=$1
-  artifact=$2
-  installed_ref=$3
-  previous="$(mktemp)"
-
-  if test -L "$destination" || test ! -f "$destination"; then
-    printf 'Refusing non-regular Canon-owned target: %s\n' "$destination" >&2
-    rm -f "$previous"
-    return 1
-  fi
-  if ! git -C "$CANON" show "${installed_ref}:${artifact}" > "$previous"; then
-    printf 'Cannot read %s at %s\n' "$artifact" "$installed_ref" >&2
-    rm -f "$previous"
-    return 1
-  fi
-  if ! cmp -s "$destination" "$previous"; then
-    printf 'Refusing locally modified or ambiguous target: %s\n' "$destination" >&2
-    rm -f "$previous"
-    return 1
-  fi
-  rm -f "$previous"
-}
-
-canon_replace_owned() {
-  destination=$1
-  artifact=$2
-  installed_ref=$3
-  source=$4
-
-  canon_assert_owned "$destination" "$artifact" "$installed_ref" || return 1
-  python3 - "$destination" "$source" <<'PY'
-from pathlib import Path
-import os
-import stat
-import sys
-import tempfile
-
-target = Path(sys.argv[1])
-source = Path(sys.argv[2])
-if target.is_symlink() or not target.is_file():
-    raise SystemExit(f"refusing non-regular target: {target}")
-if source.is_symlink() or not source.is_file():
-    raise SystemExit(f"refusing non-regular source: {source}")
-mode = stat.S_IMODE(target.stat().st_mode)
-descriptor, temporary_name = tempfile.mkstemp(
-    prefix=f".{target.name}.canon-", dir=target.parent
-)
-try:
-    with os.fdopen(descriptor, "wb") as temporary:
-        temporary.write(source.read_bytes())
-        temporary.flush()
-        os.fsync(temporary.fileno())
-    os.chmod(temporary_name, mode)
-    os.replace(temporary_name, target)
-finally:
-    if os.path.exists(temporary_name):
-        os.unlink(temporary_name)
-PY
-  cmp -s "$source" "$destination"
-}
-```
-
-Run the matching upgrade:
+Re-define `canon_merge_block` in the current shell, then run it against each
+installed file. With one valid marker pair, it replaces only the block and
+keeps every line the project wrote around it:
 
 ```sh
-# Canon-owned AGENTS.md
-canon_replace_owned \
-  "$TARGET/AGENTS.md" dist/AGENTS.md "$INSTALLED_REF" \
-  "$CANON/dist/AGENTS.md"
-
-# Canon-owned CLAUDE.md
-canon_replace_owned \
-  "$TARGET/CLAUDE.md" dist/CLAUDE.md "$INSTALLED_REF" \
-  "$CANON/dist/CLAUDE.md"
+canon_merge_block "$TARGET/AGENTS.md" "$CANON/dist/AGENTS.md"
+# Claude Code alone:
+canon_merge_block "$TARGET/CLAUDE.md" "$CANON/dist/CLAUDE.md"
 ```
 
-If an ownership guard refuses a Markdown file, do not overwrite it. Restore the
-backup, identify the local rules, and use the managed-block procedure.
-
-### Upgrade a managed block
-
-Re-define `canon_merge_block` in the current shell, then run the same merge
-command used during installation. When one valid marker pair exists, the
-helper replaces only its contents and preserves all repository-specific text.
+A file installed whole under an earlier Canon revision has no markers, so the
+helper would append a second copy. Replace its old Canon text with the new
+block by hand instead, keeping any lines the project added, and review the
+diff. A `CLAUDE.md` that imports `AGENTS.md` needs nothing.
 
 ### Upgrade the installed skill
 
@@ -671,8 +603,9 @@ canon_restore_file "$BACKUP_DIR/AGENTS.md" "$TARGET/AGENTS.md"
 canon_restore_file "$BACKUP_DIR/CLAUDE.md" "$TARGET/CLAUDE.md"
 ```
 
-If the integration path did not exist before installation, rollback is the
-same as uninstalling that Canon-owned path.
+If the integration path did not exist before installation and still holds
+nothing but the block, rollback is deleting it; otherwise remove the block as
+described under uninstall.
 
 After restoring, start a new session and review the target's status.
 
@@ -738,29 +671,8 @@ canon_remove_block "$TARGET/CLAUDE.md"
 Choose only the command for the installed integration. Review the diff before
 deleting the backup.
 
-### Remove a Canon-owned whole file
-
-Set `INSTALLED_REF` to the Canon revision currently installed and re-define
-`canon_assert_owned`. Then verify before deleting:
-
-The artifact paths below apply to installations made after this repository
-adopted the `dist/` layout. For an older recorded revision — including a
-retired integration that this repository no longer generates — inspect that
-revision's tree and supply its historical artifact path; a missing path is a
-safe refusal, not permission to delete.
-
-```sh
-# Choose only the installed integration.
-canon_assert_owned "$TARGET/AGENTS.md" dist/AGENTS.md "$INSTALLED_REF" && \
-  rm "$TARGET/AGENTS.md"
-
-canon_assert_owned "$TARGET/CLAUDE.md" dist/CLAUDE.md "$INSTALLED_REF" && \
-  rm "$TARGET/CLAUDE.md"
-```
-
-The guard refuses removal if the file differs from the recorded artifact. Do
-not bypass that refusal: preserve local rules and remove only the Canon text
-through a reviewed merge.
+If the file held nothing but the block, the helper leaves it empty; delete
+it. A `CLAUDE.md` whose only line is `@AGENTS.md` goes with `AGENTS.md`.
 
 ### Remove the installed skill
 
@@ -804,11 +716,11 @@ Finish by starting a new agent session and reviewing repository status.
 The absent-target command found a file or directory. Back it up and use the
 matching merge procedure; do not delete it to make the copy command pass.
 
-### `Refusing locally modified or ambiguous target`
+### `refusing malformed or duplicate Project Canon markers`
 
-The whole-file ownership proof failed. Confirm `INSTALLED_REF`. If the file
-contains local rules, preserve them and use a reviewed managed block. Never
-force replacement or removal.
+The file has more than one block, an unmatched marker, or reversed markers.
+Fix it by hand so exactly one marker pair remains around the Canon text, then
+rerun the helper.
 
 ### Sessions still read `canon/` before every task
 

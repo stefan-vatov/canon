@@ -303,6 +303,15 @@ class EvalIntegrityTests(unittest.TestCase):
                 {"rule:one_note": True, "rule:rationale": True, "rule:files_only": False},
             )
 
+    def test_generated_artifacts_are_one_managed_block(self) -> None:
+        core = (ROOT / "canon-core.md").read_text()
+        for name in ("AGENTS.md", "CLAUDE.md"):
+            text = (ROOT / "dist" / name).read_text()
+            with self.subTest(artifact=name):
+                self.assertTrue(text.startswith("<!-- BEGIN PROJECT CANON -->\n<!-- GENERATED"))
+                self.assertTrue(text.endswith(core + "<!-- END PROJECT CANON -->\n"))
+                self.assertEqual(text.count("<!-- BEGIN PROJECT CANON -->"), 1)
+
     def test_seeded_fixtures_carry_no_retired_canon_shape(self) -> None:
         for fixture in sorted((ROOT / "evals/scenarios").glob("*/fixture")):
             canon = fixture / "canon"

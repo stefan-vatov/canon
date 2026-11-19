@@ -87,19 +87,24 @@ The exact text is [canon-core.md](canon-core.md), about 700 words.
 ## Quick start
 
 ```sh
-CANON="${TMPDIR:-/tmp}/project-canon"
-git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON"
-cp "$CANON/dist/AGENTS.md" AGENTS.md
-printf '@AGENTS.md\n' > CLAUDE.md   # if Claude Code works here too
+CANON="$(mktemp -d)" && git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON" || exit 1
+if test -e AGENTS.md || test -e CLAUDE.md; then
+  echo 'AGENTS.md or CLAUDE.md exists: use the managed merge in INSTALL.md' >&2
+else
+  cp "$CANON/dist/AGENTS.md" AGENTS.md
+  printf '@AGENTS.md\n' > CLAUDE.md   # omit if Claude Code does not work here
+fi
+rm -rf "$CANON"
 ```
 
-The clone goes outside your repository, so it cannot collide with your own
-`canon/`. Claude Code alone can take `dist/CLAUDE.md` as its `CLAUDE.md`
-instead.
-With more than one agent, keep one copy of the rules in `AGENTS.md` and import
-it, so the copies cannot drift. For an existing instruction file, use the
-managed-block merge in [INSTALL.md](INSTALL.md); it also covers upgrade,
-rollback and uninstall.
+The clone goes to a fresh temporary directory, and nothing is written over an
+existing instruction file. The copied `AGENTS.md` is a managed block between
+`<!-- BEGIN PROJECT CANON -->` markers: put your project's own rules above or
+below it in the same file, and upgrades replace only the block. Claude Code
+alone can take `dist/CLAUDE.md` as its `CLAUDE.md` instead; with more than one
+agent, keep the one copy in `AGENTS.md` and import it. For an existing
+instruction file, use the managed merge in [INSTALL.md](INSTALL.md); it also
+covers upgrade, rollback and uninstall.
 
 Then bootstrap in a fresh session from the target repository:
 
@@ -161,8 +166,9 @@ and playbook are in [evals/](evals/README.md).
 | Codex, Pi, or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
 | Claude Code | `dist/AGENTS.md` imported from `CLAUDE.md`, or `dist/CLAUDE.md` | `CLAUDE.md` |
 
-Both artifacts contain the same generated block, which ends with a small,
-removable provenance link to Project Canon. Pi 0.83 and later loads a project
+Both artifacts contain the same generated block between
+`<!-- BEGIN PROJECT CANON -->` and `<!-- END PROJECT CANON -->` markers,
+ending with a small, removable provenance link to Project Canon. Pi 0.83 and later loads a project
 `AGENTS.md` natively.
 
 ## Maintain this repository

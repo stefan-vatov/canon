@@ -1,3 +1,4 @@
+<!-- BEGIN PROJECT CANON -->
 <!-- GENERATED from Project Canon's canon-core.md; edit project rules outside this block -->
 
 Project Canon is a handful of notes in `canon/` holding what code, tests and
@@ -69,3 +70,4 @@ Bootstrap only when asked: create `canon/`, git-ignore `canon/scratch/`, and
 write no notes. An empty Canon is healthy.
 
 _Remembered with [Project Canon](https://agentcanon.dev)._
+<!-- END PROJECT CANON -->
