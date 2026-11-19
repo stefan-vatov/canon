@@ -11,7 +11,12 @@ checks.json with one pass/fail entry per check. Checks:
   tests_pass            the fixture's test_cmd exits 0
   diff_scope            every changed file matches allowed_change_globs
   rules                 per-scenario file-count and content rules
-                        (min_matching_files / must_regex / forbid_regex)
+                        (min_matching_files / max_matching_files /
+                        must_regex / forbid_regex, narrowed by exclude_globs;
+                        search_commit_messages lets must_regex also match
+                        commit messages written after the baseline)
+  routing_precision     which canon notes the agent read, from structured
+                        transcript telemetry
   holdout_pass          hidden tests the agent never saw, copied in from the
                         scenario dir at scoring time, run, then removed; they
                         encode requirements stated in earlier sessions
@@ -96,6 +101,25 @@ def changed_files(workdir, baseline):
                    capture_output=True, check=True)
     out = git(workdir, "diff", "--cached", "--name-only", baseline)
     return [line for line in out.splitlines() if line.strip()]
+
+
+def commit_messages_since(workdir, baseline):
+    """Commit messages the agent wrote after the baseline, or "" without one."""
+    if not baseline:
+        return ""
+    result = subprocess.run(
+        ["git", "-C", str(workdir), "log", "--format=%B", f"{baseline}..HEAD"],
+        capture_output=True, text=True, check=False,
+    )
+    return result.stdout if result.returncode == 0 else ""
+
+
+def selected_files(workdir, glob, excluded=()):
+    """Files matching glob, minus any matching one of the excluded globs."""
+    return [
+        path for path in matching_files(workdir, glob)
+        if not any(fnmatch.fnmatch(str(path.relative_to(workdir)), g) for g in excluded)
+    ]
 
 
 def matching_files(workdir, glob):
@@ -401,8 +425,9 @@ def main():
             required=bool(expected.get("diff_scope_required", False)),
         )
 
+    commit_messages = None
     for rule in expected.get("rules", []):
-        files = matching_files(work, rule["glob"])
+        files = selected_files(work, rule["glob"], rule.get("exclude_globs", []))
         contents = {p: p.read_text(errors="replace") for p in files}
         ok, detail = True, ""
         if rule.get("min_matching_files") is not None:
@@ -419,8 +444,14 @@ def main():
                           f"allow at most {maximum}")
         if ok and rule.get("must_regex"):
             ok = any(re.search(rule["must_regex"], c) for c in contents.values())
+            if not ok and rule.get("search_commit_messages"):
+                if commit_messages is None:
+                    commit_messages = commit_messages_since(work, args.baseline)
+                ok = bool(re.search(rule["must_regex"], commit_messages))
             if not ok:
-                detail = f"no file matching {rule['glob']} contains /{rule['must_regex']}/"
+                where = " or a commit message" if rule.get("search_commit_messages") else ""
+                detail = (f"no file matching {rule['glob']}{where} "
+                          f"contains /{rule['must_regex']}/")
         if ok and rule.get("forbid_regex"):
             hits = [str(p.relative_to(work)) for p, c in contents.items()
                     if re.search(rule["forbid_regex"], c)]
@@ -483,7 +514,7 @@ def main():
         glob = spec.get("glob", payload["glob"])
         current = {
             str(path.relative_to(work)): file_digest(path)
-            for path in matching_files(work, glob)
+            for path in selected_files(work, glob, payload.get("exclude_globs", []))
         }
         original = payload["files"]
         missing = sorted(set(original) - set(current))
@@ -513,7 +544,7 @@ def main():
         if not state_dir or not state_key:
             add(check_id, False, "authenticated temporal state is unavailable", required=True)
             continue
-        files = matching_files(work, spec["glob"])
+        files = selected_files(work, spec["glob"], spec.get("exclude_globs", []))
         contents = {path: path.read_text(errors="replace") for path in files}
         problems = []
         exact = spec.get("exact_count")
@@ -529,6 +560,7 @@ def main():
             continue
         payload = {
             "glob": spec["glob"],
+            "exclude_globs": list(spec.get("exclude_globs", [])),
             "files": {str(path.relative_to(work)): file_digest(path) for path in files},
         }
         envelope = {

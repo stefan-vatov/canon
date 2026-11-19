@@ -41,30 +41,39 @@ for adoption decisions.
    sibling domain docs; only the correct domain (or code) holds the truth.
 3. **Abstention.** Asking for a policy that was never decided must yield
    "not established — surface the gap", not a fabricated value. Untested.
-4. **Temporal / supersession & selective forgetting.** A superseded decision
-   must not be re-applied; the current one wins. Partially tested by 04's cap
-   change; abstention + supersession deserve dedicated probes.
+4. **Temporal updating & selective forgetting.** A reversed value must not be
+   re-applied; the current one wins. Partially tested by 04's cap change;
+   abstention and reversal deserve dedicated probes.
 
 ## Scenarios built from this
 
-- **08-routing** — multi-domain manifest (~10 domains), one relevant, others
-  carry distractor constants. Scores correctness (holdout) AND a new
-  *routing-precision* mechanical check (transcript read analysis: read the
-  manifest + target domain, did NOT bulk-read sibling domains) AND distractor
-  resistance (wrong values absent from code). Failure modes: routing/retrieval,
-  distractor robustness, context budget.
+- **08-routing** — ten flat notes, one relevant, others carry distractor
+  constants. Scores correctness (holdout) AND a *routing-precision* mechanical
+  check (transcript read analysis: read the matching note, did NOT bulk-read
+  sibling notes) AND distractor resistance (wrong values absent from code).
+  Failure modes: routing/retrieval, distractor robustness, context budget.
 - **09-abstention** — task asks the agent to apply a policy that exists in no
-  Canon file and no code. Correct: surface the gap / propose recording a
-  decision; wrong: fabricate a constant. Failure mode: abstention.
-- **10-supersede** — a three-session chain establishes and then supersedes a
-  durable decision. Authenticated path-and-byte snapshots verify that the
-  predecessor survives unchanged while current-state files use only the active
-  successor. Failure modes: temporal updating, selective forgetting, and
-  immutable decision lineage.
+  Canon file and no code. Correct: surface the gap and ask the owner; wrong:
+  fabricate a constant. Failure mode: abstention.
+- **10-reversal** — the owner reverses a value a note states and calls final.
+  The note is edited in place: the old value disappears, the claim of
+  permanence goes, the cross-owner fact that still holds stays, and history is
+  left to git. An authenticated snapshot verifies a later session leaves the
+  corrected note alone. Failure modes: temporal updating and selective
+  forgetting.
+
+Selective forgetting argues for editing the current statement in place. The
+2026-08 suite instead rewarded keeping every superseded decision as an
+immutable, routed record; in a production adopter that produced 271 records
+the agents had to read past, and an immutable approval record overrode the
+owner's later instruction. Git already keeps every prior statement
+(`git log -S`), so Canon holds only what is true now.
 
 ## Remaining research frontier
 
 The current suite still lacks large-repository multi-hop aggregation,
 consolidation under repeated updates, package-local versus repository-wide
-routing, and controlled context-volume scaling. Add those as new scenarios;
-do not infer coverage from the existing ten.
+routing, controlled context-volume scaling, and the field costs no fixture is
+big enough to show (commit churn, stamp-only touches, words read before code).
+Add those as new scenarios or measure them on a real adopter; do not infer
+coverage from the existing fifteen.

@@ -8,30 +8,41 @@
       "description": "function exists with type hints"
     },
     {
-      "id": "policy_canonized",
-      "glob": "canon/*",
-      "must_regex": "40",
-      "description": "the 40% cap was recorded in the Canon"
+      "id": "terminology_kept_durably",
+      "glob": "*",
+      "exclude_globs": [
+        "test_*.py"
+      ],
+      "must_regex": "(?si)campaign.{0,300}expir|expir.{0,300}campaign",
+      "search_commit_messages": true,
+      "description": "the campaign definition (shared expiry) survives in a durable home: code, a note or a commit"
     },
     {
-      "id": "terminology_canonized",
-      "glob": "canon/architecture/pricing.md",
-      "must_regex": "(?si)promo.*campaign|campaign.*promo",
-      "description": "promo and campaign terms recorded in the pricing architecture page"
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 1,
+      "description": "the decision and the terms add no Canon note"
     },
     {
-      "id": "expiry_in_campaign_definition",
-      "glob": "canon/architecture/pricing.md",
-      "must_regex": "(?i)expir",
-      "description": "campaign definition retains the shared expiry date"
-    }
-  ],
-  "capture": [
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
+    },
     {
-      "id": "promo_40_predecessor",
-      "glob": "canon/decisions/*.md",
-      "exact_count": 1,
-      "must_regex": "(?si)(40.*fixed|fixed.*40)"
+      "id": "no_metadata",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?m)\\A---\\s*$|^(?:status|sources|verified|supersedes|scope|validation):",
+      "description": "no front matter, status fields or stamps"
     }
   ],
   "holdout": {

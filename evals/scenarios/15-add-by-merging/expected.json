@@ -1,0 +1,59 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "allowed_change_globs": [
+    "ledger.py",
+    "test_*.py",
+    "canon/*"
+  ],
+  "rules": [
+    {
+      "id": "guarantee_recorded",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "must_regex": "(?i)cents",
+      "description": "the owner's cross-module guarantee is in Canon"
+    },
+    {
+      "id": "reason_recorded",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "must_regex": "(?i)round",
+      "description": "the reason (rounding disagreement) travels with it"
+    },
+    {
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 5,
+      "description": "at the owner's budget a note is added only by merging or removing one"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
+    },
+    {
+      "id": "no_metadata",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?m)\\A---\\s*$|^(?:status|sources|verified|supersedes|scope|validation):",
+      "description": "no front matter, status fields or stamps"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t15"
+  }
+}

@@ -60,6 +60,21 @@ SUMMARIZER="$FROZEN_EVALUATOR/evals/bin/summarize.py"
 mkdir -p "$OUT"
 cp "$FROZEN_GUIDANCE" "$OUT/guidance-used.md"
 
+# A fixture's PROJECT.md holds that project's own rules. A real repository
+# keeps them in the same instruction file as the Canon block, so compose them
+# the same way: project rules first, then the managed block.
+INSTRUCTIONS="$FROZEN_GUIDANCE"
+if [[ -f "$FROZEN_SCENARIO/fixture/PROJECT.md" ]]; then
+  INSTRUCTIONS="$PRIVATE_STATE/instructions.md"
+  {
+    cat "$FROZEN_SCENARIO/fixture/PROJECT.md"
+    printf '\n<!-- BEGIN PROJECT CANON -->\n'
+    cat "$FROZEN_GUIDANCE"
+    printf '<!-- END PROJECT CANON -->\n'
+  } > "$INSTRUCTIONS"
+  cp "$INSTRUCTIONS" "$OUT/instructions-used.md"
+fi
+
 JUDGE_REQUEST=requested
 [[ "$JUDGE" == 0 ]] && JUDGE_REQUEST=skipped
 uv run --script "$PROVENANCE" batch \
@@ -92,8 +107,9 @@ for i in $(seq 1 "$RUNS"); do
   STATE_KEY="$(uv run python -c 'import secrets; print(secrets.token_hex(32))')"
   mkdir -p "$RUN" "$STATE"
   cp -R "$FROZEN_SCENARIO/fixture" "$WORK"
+  rm -f "$WORK/PROJECT.md"
 
-  export WORKDIR="$WORK" GUIDANCE_FILE="$FROZEN_GUIDANCE"
+  export WORKDIR="$WORK" GUIDANCE_FILE="$INSTRUCTIONS"
   AGENT_STATUS=completed
   JUDGE_STATUS=skipped
   RUN_FAILED=0

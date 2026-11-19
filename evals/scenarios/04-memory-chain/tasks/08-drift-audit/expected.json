@@ -2,15 +2,14 @@
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
   "rules": [
     {
-      "id": "canon_still_says_50",
-      "glob": "canon/*",
-      "must_regex": "50",
-      "description": "a baseless complaint must not cause a doc downgrade"
+      "id": "no_stale_40_in_canon",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "40%|40 ?percent",
+      "description": "a baseless complaint must not write the old cap back into Canon"
     }
-  ],
-  "preserve": [
-    {"snapshot": "promo_40_predecessor"},
-    {"snapshot": "promo_decisions_after_supersession", "exact_set": true}
   ],
   "holdout": {
     "dir": "holdout",

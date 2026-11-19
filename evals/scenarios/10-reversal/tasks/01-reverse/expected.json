@@ -1,0 +1,91 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "allowed_change_globs": [
+    "pagination.py",
+    "test_*.py",
+    "canon/pagination.md"
+  ],
+  "rules": [
+    {
+      "id": "code_is_100",
+      "glob": "pagination.py",
+      "must_regex": "\\b100\\b",
+      "forbid_regex": "=\\s*50\\b",
+      "description": "the owner's new value is implemented, not argued with"
+    },
+    {
+      "id": "old_value_gone_from_canon",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "\\b50\\b",
+      "description": "the sentence the change made false is fixed or deleted in the same change"
+    },
+    {
+      "id": "old_text_does_not_bind",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)it is final|settled after long discussion",
+      "description": "text that claimed permanence is removed; nothing in Canon is immutable"
+    },
+    {
+      "id": "cross_owner_fact_survives",
+      "glob": "canon/pagination.md",
+      "must_regex": "(?is)(mobile|export).*buffer|buffer.*(mobile|export)",
+      "description": "the guarantee that still holds is kept"
+    },
+    {
+      "id": "no_history_in_canon",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)\\bpreviously\\b|\\bformerly\\b|\\bsupersed|\\bused to be\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b|\\bwas 50\\b",
+      "description": "Canon states current fact; git is the history"
+    },
+    {
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 1,
+      "description": "the reversal edits the note in place"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "a reversal creates no decision or supersession record"
+    },
+    {
+      "id": "no_metadata",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?m)\\A---\\s*$|^(?:status|sources|verified|supersedes|scope|validation):",
+      "description": "no front matter, status fields or stamps"
+    }
+  ],
+  "capture": [
+    {
+      "id": "canon_after_reversal",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "exact_count": 1
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t10b"
+  }
+}

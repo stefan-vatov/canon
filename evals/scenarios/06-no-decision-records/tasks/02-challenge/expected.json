@@ -1,0 +1,28 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "a challenge to a settled topic creates no record either"
+    }
+  ],
+  "preserve": [
+    {
+      "snapshot": "code_after_decision",
+      "exact_set": true
+    },
+    {
+      "snapshot": "canon_after_decision",
+      "exact_set": true
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t06c"
+  }
+}

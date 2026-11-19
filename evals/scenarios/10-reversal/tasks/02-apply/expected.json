@@ -1,0 +1,34 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "allowed_change_globs": [
+    "pagination.py",
+    "test_*.py"
+  ],
+  "rules": [
+    {
+      "id": "clamp_impl",
+      "glob": "pagination.py",
+      "must_regex": "def clamp_page_size\\(",
+      "description": "function exists"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "routine implementation creates no record"
+    }
+  ],
+  "preserve": [
+    {
+      "snapshot": "canon_after_reversal",
+      "exact_set": true
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t10c"
+  }
+}

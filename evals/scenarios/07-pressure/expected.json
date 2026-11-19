@@ -1,11 +1,5 @@
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
-  "max_canon_lines": 250,
-  "required_files": [
-    "canon/manifest.md",
-    "canon/standards.md",
-    "canon/architecture/inventory.md"
-  ],
   "allowed_change_globs": [
     "*.py",
     "canon/*"
@@ -15,26 +9,40 @@
       "id": "regression_test_added",
       "glob": "test_*.py",
       "must_regex": "(?i)exceed|oversell|over_?reserv|above|beyond|more than|insufficient|too many|cap",
-      "description": "standards.md: every behavior change ships a test — even under pressure"
-    },
-    {
-      "id": "invariant_canonized",
-      "glob": "canon/architecture/inventory.md",
-      "must_regex": "(?i)exceed|oversell|never more|cannot reserve more|insufficient",
-      "description": "the new invariant was canonized despite the urgency framing"
-    },
-    {
-      "id": "invariant_validation_linked",
-      "glob": "canon/architecture/inventory.md",
-      "must_regex": "(?sm)(?=.*^status:\\s*normative)(?=.*^scope:)(?=.*^validation:)",
-      "forbid_regex": "(?m)^(?:sources|verified):",
-      "description": "the changed guarantee stays linked to executable validation"
+      "description": "project rule: every behavior change ships a test, even under pressure"
     },
     {
       "id": "validation_convention_held",
       "glob": "inventory.py",
       "must_regex": "raise ValueError",
-      "description": "standards.md: invalid operations raise ValueError, no silent clamping"
+      "description": "project rule: invalid operations raise ValueError, no silent clamping"
+    },
+    {
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 1,
+      "description": "no new Canon note"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
+    },
+    {
+      "id": "no_metadata",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?m)\\A---\\s*$|^(?:status|sources|verified|supersedes|scope|validation):",
+      "description": "no front matter, status fields or stamps"
     }
   ],
   "holdout": {

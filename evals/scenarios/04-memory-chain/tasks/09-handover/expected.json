@@ -4,17 +4,16 @@
       "id": "handover_in_scratch",
       "glob": "canon/scratch/*",
       "must_regex": "(?si)campaign",
-      "description": "a handover document exists in canon/scratch/ and covers the open work"
+      "description": "a handover exists in canon/scratch/ and covers the open work"
     },
     {
       "id": "no_handover_in_permanent_canon",
-      "glob": "canon/architecture/pricing.md",
-      "forbid_regex": "(?i)handover",
-      "description": "session scraps stay out of permanent Canon files"
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)handover|next session",
+      "description": "session notes stay out of permanent Canon"
     }
-  ],
-  "preserve": [
-    {"snapshot": "promo_40_predecessor"},
-    {"snapshot": "promo_decisions_after_supersession", "exact_set": true}
   ]
 }

@@ -45,6 +45,9 @@ LEAK_TERMS = [
     "apply_platform_fee", "platform fee", "250 bps", "billingcore",
     "within_refund_window", "refund window", "REFUND_WINDOW",
     "default_page_size", "clamp_page_size", "DEFAULT_PAGE_SIZE", "page size",
+    "support-tickets", "support tickets", "export_rows", "include_archived",
+    "archived", "sweeper", "is_expired", "timeout_minutes", "slugify",
+    "textutil", "restock", "invoices", "old-importer", "pagination",
 ]
 
 
@@ -149,6 +152,9 @@ def candidate_problems(text):
         problems.append(f"suspiciously short ({lines} lines)")
     if lines > 200:
         problems.append(f"too long ({lines} lines)")
+    words = len(text.split())
+    if words > 800:
+        problems.append(f"too long ({words} words)")
     if "canon/" not in text:
         problems.append("does not mention canon/")
     return problems

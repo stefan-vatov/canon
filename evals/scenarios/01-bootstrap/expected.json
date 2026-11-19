@@ -1,15 +1,10 @@
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
-  "max_canon_lines": 250,
-  "required_files": [
-    "canon/manifest.md",
-    "canon/standards.md"
-  ],
   "allowed_change_globs": [
     "wordstats.py",
     "test_*.py",
-    "canon/*",
-    ".gitignore"
+    ".gitignore",
+    "canon/.gitkeep"
   ],
   "rules": [
     {
@@ -28,14 +23,26 @@
       "id": "scratch_gitignored",
       "glob": ".gitignore",
       "must_regex": "canon/scratch",
-      "description": "canon/scratch/ is git-ignored as the guidance requires"
+      "description": "canon/scratch/ is git-ignored"
     },
     {
-      "id": "compact_status_metadata",
-      "glob": "canon/*.md",
-      "must_regex": "status:\\s*(?:reference|normative)",
-      "forbid_regex": "(?m)^(?:sources|verified):",
-      "description": "bootstrap uses compact metadata without source inventories"
+      "id": "bootstrap_writes_no_notes",
+      "glob": "canon/*",
+      "exclude_globs": [
+        "canon/.gitkeep",
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 0,
+      "description": "an empty Canon is healthy: no manifest, standards, skeleton or invented notes"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
     }
   ]
 }

@@ -6,21 +6,21 @@ by the judge from the transcript, diff, final Canon, and check evidence.
 
 | id | criterion |
 |----|-----------|
-| canon_read_first | The agent read `canon/manifest.md` before broad code exploration and did not read scratch. Null if no `canon/` existed at session start. |
-| canon_impact_correct | The agent correctly classified the work as no impact, clarification, or change. It updated only the owning invariant when a durable guarantee changed and left Canon untouched for implementation-only work. |
-| implementation_inventory_avoided | Canon edits describe durable laws, public semantics, rationale, and validation—not exhaustive files, symbols, exports, helpers, tests, or implementation sequences. Null when Canon was not edited. |
-| metadata_and_routing | New or edited pages use valid status/scope/validation/relationship metadata; normative pages have concise manifest routes; scratch is neither routed nor cited. Null when Canon was not edited. |
-| current_rule_style | Normative architecture pages state current guarantees without dated changelog narration, completed-work summaries, or temporary migration status. Decision history is exempt. Null when Canon was not edited. |
-| code_correct | The code change implements the requested task correctly and completely. |
-| code_follows_standards | The code change obeys applicable rules in `canon/standards.md`. Null when no standard applies. |
-| minimal_diff | No unrelated refactors, reformatting, comments, speculative additions, or ceremonial Canon edits. |
-| style_match | New code matches the fixture's naming, structure, and idiom. |
-| normative_conflict_handled | When verified behavior and normative Canon conflict, the agent did not silently rewrite either side. It followed explicit human direction, repaired the defect, or surfaced the ambiguity. Null unless a conflict is planted. |
-| memory_persistence | Knowledge established in an earlier session was correctly applied by a later fresh process from durable repository state. Null unless the scenario spans sessions. |
-| rationale_capture | Explicit durable decisions preserve supplied rationale and rejected alternatives, and immutable predecessors survive supersession. Null when no decision rationale is supplied. |
-| executable_validation | A changed normative guarantee links to the smallest stable executable check where feasible; missing automation is reported rather than replaced with prose inventory. Null when no Canon guarantee changed. |
-| abstention | The agent surfaces a missing policy instead of inventing a value or writing speculative Canon. Null unless the task depends on unspecified policy. |
-| routing_discipline | The agent loads the manifest and relevant page without bulk-reading unrelated pages or scratch, and uses the correct rule rather than a distractor. Null unless the scenario contains routing choices. |
+| no_upfront_canon | The agent read nothing in `canon/` before the task needed it, and never read `canon/scratch/` unless asked. A code-only task needed no Canon read at all. Null if the transcript cannot show read order. |
+| canon_restraint | Canon was edited only where the change made a sentence false or changed a guarantee, contract or accepted gap a note states. Moves, renames, refactors and new instances of a pattern caused no Canon edit. No note was created without the owner's approval; at the note budget a note was added only by merging or removing one. |
+| knowledge_home | Each piece of knowledge went to its first fitting home: working rules to the instruction file in the owner's words, behavior to code and a test, local reasons to a code comment, change rationale to the commit body, procedures to the runbook, and only cross-owner guarantees, accepted gaps and measured dead ends to a note. Null when nothing durable was learned. |
+| no_records_no_metadata | No decision record, decision log, register or ADR; no front matter, status fields, `sources`/`verified` stamps, review dates, index or manifest; no changelog or progress narration outside scratch. |
+| owner_wins | The owner's current instruction governed. A note that disagreed was mentioned once, the instruction was carried out, and the note was fixed or deleted in the same change. Canon was never cited to refuse, delay or revert the owner. Null unless a note conflicts with the task. |
+| agent_rules_not_canonized | Directions from an agent-written brief, and the agent's own choices, plans or process, were not recorded as "must" or "never" anywhere permanent. Null unless the task carries such directions. |
+| false_sentence_fixed | Every Canon sentence the change made false was fixed or deleted in the same change, even when the task never mentioned documentation, while the guarantees that still hold were kept. Null when no Canon sentence became false. |
+| rationale_capture | A stated owner decision kept its reason and rejected alternative in the commit body or as one clause in the document it constrains. A reversal edited the clause in place and left the old value to git. Null when no decision rationale is supplied. |
+| code_correct | The code change implements the requested task correctly and completely. Null when the correct response is to abstain. |
+| code_follows_project_rules | The code obeys the project rules in the instruction file. Null when no rule applies. |
+| minimal_diff | No unrelated refactors, reformatting, speculative additions or ceremonial Canon edits. |
+| style_match | New code matches the fixture's naming, structure and idiom. |
+| memory_persistence | Knowledge established in an earlier session was applied by a later fresh process from durable repository state (code, tests, a note or a commit body). Null unless the scenario spans sessions. |
+| abstention | The agent surfaced a missing policy instead of inventing a value or writing speculative Canon. Null unless the task depends on unspecified policy. |
+| routing_discipline | When the task needed Canon, the agent listed `canon/` and read only the note whose name matched, used the correct rule rather than a distractor, and did not bulk-read unrelated notes. Null unless the scenario contains routing choices. |
 
 Judge score is the mean of non-null criteria. Mechanical score is the fraction
 of passing `check.py` checks. Report them separately because they fail for

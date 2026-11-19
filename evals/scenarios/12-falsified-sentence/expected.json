@@ -1,0 +1,83 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "required_files": [
+    "canon/sessions.md"
+  ],
+  "allowed_change_globs": [
+    "sessions.py",
+    "test_*.py",
+    "canon/sessions.md"
+  ],
+  "rules": [
+    {
+      "id": "timeout_configurable",
+      "glob": "sessions.py",
+      "must_regex": "def is_expired\\([^)]*timeout_minutes",
+      "description": "the requested parameter exists"
+    },
+    {
+      "id": "falsified_sentence_gone",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)every session expires after exactly 30 minutes",
+      "description": "the task never mentioned documentation, yet the sentence it made false is fixed or deleted"
+    },
+    {
+      "id": "cross_owner_fact_kept",
+      "glob": "canon/sessions.md",
+      "must_regex": "(?i)sweeper",
+      "description": "the note still says an outside sweeper depends on expiry"
+    },
+    {
+      "id": "limits_not_transcribed",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "\\b240\\b",
+      "description": "the new range lives in code and tests; Canon does not copy it"
+    },
+    {
+      "id": "no_history_in_canon",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)\\bpreviously\\b|\\bformerly\\b|\\bsupersed|\\bused to be\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
+      "description": "Canon states current fact; git is the history"
+    },
+    {
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 1,
+      "description": "no new Canon note"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
+    },
+    {
+      "id": "no_metadata",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?m)\\A---\\s*$|^(?:status|sources|verified|supersedes|scope|validation):",
+      "description": "no front matter, status fields or stamps"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t12"
+  }
+}

@@ -24,15 +24,55 @@ on a machine where the named archive has been retained.
   baseline, not a delta.
 - Treat old entries as historical facts. Correct factual errors in place, but
   never rewrite old scores to match a newer harness or guidance revision.
-- When this file approaches 250 lines, collapse superseded entries into the
-  experiment index with a Git record pointer; Git history remains the detailed
-  archive.
+- When this file grows long, collapse superseded entries into the experiment
+  index with a Git record pointer; Git history remains the detailed archive.
 - Update the current baseline only after the required gates in `PLAYBOOK.md`
   pass. Routine code or file moves require no ledger edit.
 
-## Current accepted baseline
+## Current core
 
-### 2026-08-01 — minimal AGENTS.md-only guidance adopted
+### 2026-11-19 — lean core adopted on field evidence (eval baseline pending)
+
+**Question.** Should the core that bloated a production adopter be replaced,
+even though it passed this suite?
+
+**Decision.** Adopt the lean core a production adopter now carries in its
+`AGENTS.md`, without an eval win. The previous suite rewarded the very
+behaviors the field showed to be costly, so its scores could not decide this.
+
+**Field evidence.** One adopter ran the older rules for 30 days: 640 commits,
+384 canon files, 200k words, 271 decision records. `canon/` was touched in
+488 of 639 commits; 2,722 of 5,687 canon file touches only bumped a
+`verified:` stamp; agents read about 23k tokens before any code; an immutable
+approval record reverted a finished retirement 18 minutes after it landed;
+and specs that copied code drifted to wrong production defaults. After a
+one-time migration its canon is four notes.
+
+**What changed in the harness.** The Canon doctor and every line, size and
+manifest check are gone. `06-decisions` and `10-supersede` are replaced by
+`06-no-decision-records` and `10-reversal`; `11-owner-wins`,
+`12-falsified-sentence`, `13-cold-start`, `14-executor-brief` and
+`15-add-by-merging` are new; the other fixtures lost their manifest, front
+matter and `standards.md` (now `PROJECT.md`, composed into the instruction
+file). The rubric and improver prompt now require no up-front reads, no
+records, no stamps, no gates, and the owner's current instruction above every
+note.
+
+**Decisive result.** None yet. The stub plumbing run completes for every
+scenario. No paid batch has run on the new set; record the first judged
+comparison (retired core versus lean core, at least three runs per cell) here
+before any public claim that the lean core is eval-verified.
+
+**Limits.** Field numbers come from one adopter and one 30-day window.
+
+## Retired-core baselines
+
+Every entry below measured the retired core on the retired scenario set
+(manifest routing, front matter, decision records, the doctor). They are
+historical facts about that core, not evidence for or against the current
+one, and no score below may be compared with a run on the new set.
+
+### 2026-08-01 — minimal AGENTS.md-only guidance adopted (retired)
 
 **Question.** After removing every system-prompt delivery path (Canon now
 ships only as generated `CLAUDE.md`/`AGENTS.md`), can a much smaller guidance
@@ -75,7 +115,7 @@ change (`--allowedTools` for headless writes). Result bundles under
 `evals/results/20260801-*`; each batch's `guidance-used.md` is the
 adopted-bytes authority.
 
-### 2026-07-24 — invariant-first guidance adopted (superseded)
+### 2026-07-24 — invariant-first guidance adopted (retired)
 
 **Question.** Is the invariant-first rework ready for release across capable
 and weaker live model tiers?

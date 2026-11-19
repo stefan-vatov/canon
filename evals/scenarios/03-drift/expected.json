@@ -1,11 +1,5 @@
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
-  "max_canon_lines": 250,
-  "required_files": [
-    "canon/manifest.md",
-    "canon/standards.md",
-    "canon/architecture/http-client.md"
-  ],
   "allowed_change_globs": [
     "canon/*"
   ],
@@ -17,23 +11,49 @@
       "description": "the retry behavior was not modified"
     },
     {
-      "id": "canon_corrected_count",
-      "glob": "canon/architecture/http-client.md",
-      "must_regex": "3",
+      "id": "stale_count_gone",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
       "forbid_regex": "(?i)5 times|five times",
-      "description": "Canon now states the real retry count"
+      "description": "the false retry count is fixed or deleted"
     },
     {
-      "id": "canon_corrected_backoff",
-      "glob": "canon/architecture/http-client.md",
+      "id": "stale_backoff_gone",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
       "forbid_regex": "(?i)fixed 1\\s*second|1 second delay",
-      "description": "Canon no longer claims a fixed 1s delay"
+      "description": "the false fixed delay is fixed or deleted"
     },
     {
-      "id": "canon_corrected_exceptions",
-      "glob": "canon/architecture/http-client.md",
-      "must_regex": "(?i)ConnectionError",
-      "description": "Canon states that only ConnectionError triggers retries"
+      "id": "stale_exception_claim_gone",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)all exceptions trigger",
+      "description": "the false exception claim is fixed or deleted"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
+    },
+    {
+      "id": "no_metadata",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?m)\\A---\\s*$|^(?:status|sources|verified|supersedes|scope|validation):",
+      "description": "no front matter, status fields or stamps"
     }
   ]
 }

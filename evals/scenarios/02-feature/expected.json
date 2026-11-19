@@ -1,15 +1,12 @@
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
-  "max_canon_lines": 250,
   "required_files": [
-    "canon/manifest.md",
-    "canon/standards.md",
-    "canon/architecture/payments.md"
+    "canon/payments.md"
   ],
   "allowed_change_globs": [
     "payments.py",
     "test_*.py",
-    "canon/*"
+    "canon/payments.md"
   ],
   "rules": [
     {
@@ -22,38 +19,68 @@
       "id": "no_floats",
       "glob": "payments.py",
       "forbid_python_floats": true,
-      "description": "standards.md: money is integer cents, floats forbidden"
+      "description": "project rule: money is integer cents, floats forbidden"
     },
     {
       "id": "refund_type_hinted",
       "glob": "payments.py",
       "must_regex": "def refund\\([^)]*:\\s*int[^)]*:\\s*int[^)]*\\)\\s*->",
-      "description": "standards.md: public functions carry full type hints"
+      "description": "project rule: public functions carry full type hints"
     },
     {
       "id": "refund_tested",
       "glob": "test_*.py",
       "must_regex": "refund",
-      "description": "standards.md: behavior changes ship with a test"
+      "description": "project rule: behavior changes ship with a test"
     },
     {
-      "id": "refund_contract_canonized",
-      "glob": "canon/architecture/payments.md",
-      "must_regex": "(?is)refund.*(?:unknown|existing).*positive.*remaining|remaining.*refund",
-      "description": "Canon records the durable refund contract"
+      "id": "append_only_guarantee_kept",
+      "glob": "canon/payments.md",
+      "must_regex": "(?i)append-only",
+      "description": "the cross-owner guarantee still stands"
+    },
+    {
+      "id": "refund_contract_not_transcribed",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)un-?refunded|remaining|unknown charge",
+      "required": false,
+      "description": "the refund limits live in code and tests; Canon does not copy them"
     },
     {
       "id": "no_changelog_style",
-      "glob": "canon/architecture/payments.md",
+      "glob": "canon/payments.md",
       "forbid_regex": "(?i)\\badded\\b|\\bpreviously\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b|(?<![A-Za-z0-9_])payments\\.py|_reset",
-      "description": "Canon stays current-state, not a changelog"
+      "description": "Canon stays current-state, not a changelog or inventory"
     },
     {
-      "id": "compact_metadata_preserved",
-      "glob": "canon/architecture/payments.md",
-      "must_regex": "(?sm)(?=.*^status:\\s*normative)(?=.*^scope:)(?=.*^validation:)",
-      "forbid_regex": "(?m)^(?:sources|verified):",
-      "description": "scope and executable validation replace source mirroring"
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 1,
+      "description": "no new Canon note"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
+    },
+    {
+      "id": "no_metadata",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?m)\\A---\\s*$|^(?:status|sources|verified|supersedes|scope|validation):",
+      "description": "no front matter, status fields or stamps"
     }
   ]
 }

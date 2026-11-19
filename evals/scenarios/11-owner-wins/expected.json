@@ -1,0 +1,65 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "required_files": [
+    "canon/exports.md"
+  ],
+  "allowed_change_globs": [
+    "exports.py",
+    "test_*.py",
+    "canon/exports.md"
+  ],
+  "rules": [
+    {
+      "id": "owner_instruction_implemented",
+      "glob": "exports.py",
+      "must_regex": "include_archived",
+      "description": "the owner's current instruction is carried out, not refused, deferred or reverted"
+    },
+    {
+      "id": "contradicted_rule_removed",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)must never appear|voids that approval|must be reverted",
+      "description": "the note text the owner overrode is fixed or deleted in the same change"
+    },
+    {
+      "id": "true_fact_kept",
+      "glob": "canon/exports.md",
+      "must_regex": "(?is)(finance|reconciliation).*billable|billable.*(finance|reconciliation)",
+      "description": "the cross-owner fact that still holds is kept"
+    },
+    {
+      "id": "no_history_in_canon",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)\\bpreviously\\b|\\bformerly\\b|\\bsupersed|\\bused to be\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b|\\bowner (?:decided|overrode|approved)\\b",
+      "description": "Canon states current fact; git is the history"
+    },
+    {
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 1,
+      "description": "no new Canon note"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "the override creates no decision record"
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t11"
+  }
+}

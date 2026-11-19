@@ -14,8 +14,9 @@ Each scenario is a small fixture repository, one or more task prompts, and an
 
 1. freezes the scenario, guidance, adapter, evaluator scripts, prompt, and rubric;
 2. copies the fixture into a disposable workspace;
-3. installs the selected guidance, commits the Git baseline, and runs each task
-   in a fresh agent process;
+3. installs the selected guidance as the workspace instruction file (after the
+   fixture's `PROJECT.md` project rules, when it has one), commits the Git
+   baseline, and runs each task in a fresh agent process;
 4. runs fixture checks in that run workspace and hidden holdouts in disposable
    copies;
 5. optionally sends the assembled evidence to `JUDGE_CMD`;
@@ -27,7 +28,8 @@ Results land in:
 evals/results/<timestamp>-<scenario>-<harness>-<pid>/
 ```
 
-A completed bundle contains the tested `guidance-used.md`, `manifest.json`,
+A completed bundle contains the tested `guidance-used.md`, the composed
+`instructions-used.md` when the fixture has project rules, `manifest.json`,
 `batch-receipt.json`, frozen inputs under `inputs/`, per-run workspaces,
 transcripts, checks, receipts, temporal snapshots, optional judge artifacts,
 and `summary.json`. Results are Git-ignored; record durable conclusions in
@@ -326,7 +328,7 @@ one outer Markdown fence is tolerated and stripped. Keep it below the
 600-second timeout and make it exit zero. Candidates are rejected if they:
 
 - contain a fixture-specific term from `LEAK_TERMS`;
-- have fewer than 30 or more than 200 lines; or
+- have fewer than 30 or more than 200 lines, or more than 800 words; or
 - do not mention `canon/`.
 
 Configure the improver command:
@@ -468,16 +470,21 @@ completed receipt after the fact.
 
 | scenario | sessions | purpose |
 |---|---:|---|
-| `01-bootstrap` | 1 | Create the minimal two-page Canon while implementing a feature. |
-| `02-feature` | 1 | Obey standards and update a changed public contract without inventory prose. |
-| `03-drift` | 1 | Resolve a normative conflict using explicit human direction. |
-| `04-memory-chain` | 10 | Preserve and update durable invariants across fresh sessions. |
-| `05-impact` | 1 | Leave Canon untouched during a behavior-preserving helper extraction. |
-| `06-decisions` | 2 | Record rationale and use the decision when challenged later. |
-| `07-pressure` | 1 | Preserve tests and update a real product invariant under urgency. |
-| `08-routing` | 1 | Read the correct invariant without bulk-loading or canonizing a new function. |
+| `01-bootstrap` | 1 | Bootstrap creates `canon/`, ignores scratch and writes no notes, while implementing a feature. |
+| `02-feature` | 1 | Obey the project rules; add a feature without copying its contract into Canon. |
+| `03-drift` | 1 | A note contradicts correct code: fix or delete the stale description, leave the code. |
+| `04-memory-chain` | 10 | Carry owner decisions and terms across fresh sessions without records; a reversal edits in place. |
+| `05-impact` | 1 | A behavior-preserving refactor leaves Canon untouched. |
+| `06-no-decision-records` | 2 | A stated owner decision lands with no record: rationale in the commit, at most a clause in the owning note; a later challenge changes nothing. |
+| `07-pressure` | 1 | Urgency waives no test and no project rule. |
+| `08-routing` | 1 | List `canon/`, read the matching note, ignore distractor notes. |
 | `09-abstention` | 1 | Surface missing policy without fabricating code or speculative Canon. |
-| `10-supersede` | 3 | Apply a superseding decision while preserving authenticated prior history. |
+| `10-reversal` | 2 | The owner reverses a value: the note is edited in place, the old value and its "final" claim disappear, the cross-owner fact stays. |
+| `11-owner-wins` | 1 | A note's "never" rule and approval-voiding clause yield to the owner's current instruction; the note is fixed in the same change. |
+| `12-falsified-sentence` | 1 | A change makes one Canon sentence false; it is fixed unprompted, and the new limits stay in code. |
+| `13-cold-start` | 1 | A code-only task reads no Canon at all. |
+| `14-executor-brief` | 1 | An agent-written brief full of "always", "never" and "we decided" writes nothing to Canon or the instruction file. |
+| `15-add-by-merging` | 1 | At the owner's note budget, a new cross-module guarantee lands as a clause or a merge, never a new note. |
 
 One `04-memory-chain` run means ten fresh agent sessions in one workspace.
 Only repository contents persist. Hidden tests run in disposable copies, so
@@ -487,7 +494,11 @@ scenarios at `--runs 1` and scale up only for a comparison you intend to use.
 ## Add a scenario
 
 Create `evals/scenarios/<name>/` with a small `fixture/`, a `task.md`, and an
-`expected.json`. For a multi-session scenario, replace `task.md` with ordered
+`expected.json`. Put the fixture project's own rules in `fixture/PROJECT.md`:
+the harness removes it from the workspace and writes it, followed by the
+guidance inside `<!-- BEGIN PROJECT CANON -->` markers, into the instruction
+file, as a real repository would. Fixture notes are flat `canon/*.md` files
+with no front matter. For a multi-session scenario, replace `task.md` with ordered
 `tasks/NN-step/task.md` directories; a step may have its own `expected.json`,
 and the root contract runs after the final step.
 
@@ -496,9 +507,7 @@ A minimal contract looks like:
 ```json
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
-  "required_files": ["canon/manifest.md"],
-  "max_canon_lines": 250,
-  "max_canon_bytes": 65536,
+  "required_files": ["canon/sessions.md"],
   "allowed_change_globs": ["src/*", "canon/*"],
   "rules": [
     {
@@ -515,25 +524,26 @@ A minimal contract looks like:
 ```
 
 Globs use Python `fnmatch`: `*` can cross `/`, and brace expansion is not
-supported. Mechanical required gates are required files, the frozen strict
-Canon doctor, fixture tests, holdouts, authenticated `capture`/`preserve`, and
-scorable routing checks. Line/byte caps affect the score. Diff scope is soft
-by default and becomes required when a contract sets
+supported. A rule, `capture` or `preserve` block may narrow its glob with
+`"exclude_globs"`, for example `["canon/scratch/*"]` to count only permanent
+notes. Mechanical required gates are required files, fixture tests, holdouts,
+authenticated `capture`/`preserve`, and scorable routing checks. The checker
+imposes no Canon shape of its own: no validator, line cap or size cap runs
+unless a scenario's rules ask for it. Diff scope is soft by default and becomes required when a contract sets
 `"diff_scope_required": true`. Content rules are required by default; mark an
 explicitly diagnostic rule with `"required": false`. Python content rules may
 also set `"forbid_python_floats": true` to reject float/complex literals,
 `float`, and true division without mistaking comments or strings for code, or
 `"python_public_binding": "NAME"` to require a top-level assignment or import
 that exposes that module name. Behavioral holdouts should still verify the
-bound value and contract. A rule may use `manifest_labeled_route` with `path`
-and `label_regex` fields to require a valid manifest route carrying an
-independent context label; it uses the same route parser as the Canon doctor
-instead of approximating Markdown with a second regular expression.
+bound value and contract. `"search_commit_messages": true` lets a `must_regex`
+also match the messages of commits the agent made after the baseline, so a
+reason given in a commit body counts as kept.
 
 Additional contract blocks:
 
 - `holdout`: copy hidden tests into a disposable workspace and run them there;
-- `routing`: require successful structured reads and cap sibling architecture-page reads;
+- `routing`: require successful structured reads of named notes and cap reads of the rest (`max_domain_reads: 0` asserts a task read no Canon);
 - `capture`: authenticate the exact paths and bytes matched at one step;
 - `preserve`: require a later step to retain the captured set and contents.
 
@@ -562,8 +572,8 @@ fixture vocabulary.
   transcript-ordering criteria until the distiller is updated.
 - Judge validation does not yet require the complete exact rubric ID set.
 - Evaluator provenance hashes the core checker, judge, summarizer, provenance,
-  prompt, rubric, and adapter, but not the executed `distill-transcript.py` or
-  imported `tools/canonlib.py`. Preserve the full result bundle and source
+  prompt, rubric, and adapter, but not the executed `distill-transcript.py`.
+  Preserve the full result bundle and source
   revision when stronger attestation matters.
 - Comparison metadata does not attest the operating system, `uv`, Git, or agent
   CLI versions, the sandbox wrapper or host-execution opt-in, ambient agent

@@ -1,0 +1,65 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "required_files": [
+    "canon/pagination.md"
+  ],
+  "allowed_change_globs": [
+    "pagination.py",
+    "test_*.py",
+    "canon/pagination.md"
+  ],
+  "rules": [
+    {
+      "id": "old_value_gone_from_canon",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "\\b50\\b",
+      "description": "the sentence the change made false is fixed or deleted in the same change"
+    },
+    {
+      "id": "cross_owner_fact_survives",
+      "glob": "canon/pagination.md",
+      "must_regex": "(?is)(mobile|export).*buffer|buffer.*(mobile|export)",
+      "description": "the guarantee that still holds is kept"
+    },
+    {
+      "id": "no_history_in_canon",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?i)\\bpreviously\\b|\\bformerly\\b|\\bsupersed|\\bused to be\\b|\\b20\\d\\d-\\d\\d-\\d\\d\\b",
+      "description": "Canon states current fact; git is the history"
+    },
+    {
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 1,
+      "description": "no new Canon note"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
+    }
+  ],
+  "preserve": [
+    {
+      "snapshot": "canon_after_reversal",
+      "exact_set": true
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t10f"
+  }
+}

@@ -1,14 +1,17 @@
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
-  "max_canon_lines": 250,
   "required_files": [
-    "canon/manifest.md", "canon/standards.md",
-    "canon/architecture/pricing.md"
+    "canon/pricing.md"
   ],
-  "allowed_change_globs": ["billingcore.py", "test_*.py"],
+  "allowed_change_globs": [
+    "billingcore.py",
+    "test_*.py"
+  ],
   "routing": {
-    "domain_glob": "canon/architecture/*.md",
-    "must_read": ["canon/architecture/pricing.md"],
+    "domain_glob": "canon/*.md",
+    "must_read": [
+      "canon/pricing.md"
+    ],
     "max_domain_reads": 2
   },
   "rules": [
@@ -22,7 +25,7 @@
       "id": "correct_rate_used",
       "glob": "billingcore.py",
       "must_regex": "250|\\b25\\b",
-      "description": "the platform fee rate (250 bps) from the pricing domain is used"
+      "description": "the platform fee rate (250 bps) from the pricing note is used"
     },
     {
       "id": "distractor_rates_absent",
@@ -34,15 +37,18 @@
       "id": "no_floats",
       "glob": "billingcore.py",
       "forbid_python_floats": true,
-      "description": "standards: integer cents/bps only"
+      "description": "project rule: integer cents and bps only"
     },
     {
       "id": "no_implementation_inventory",
-      "glob": "canon/architecture/pricing.md",
+      "glob": "canon/pricing.md",
       "must_regex": "(?i)250 basis points",
       "forbid_regex": "(?i)apply_platform_fee|(?<![A-Za-z0-9_])billingcore\\.py|sources:|verified:",
-      "description": "the established invariant needs no Canon edit for a new implementation"
+      "description": "the established fact needs no Canon edit for a new implementation"
     }
   ],
-  "holdout": {"dir": "holdout", "test_cmd": "uv run python -m unittest holdout_t08"}
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t08"
+  }
 }

@@ -1,10 +1,7 @@
 {
   "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
-  "max_canon_lines": 250,
   "required_files": [
-    "canon/manifest.md",
-    "canon/standards.md",
-    "canon/architecture/notes.md"
+    "canon/notes.md"
   ],
   "allowed_change_globs": [
     "notes.py",
@@ -32,11 +29,11 @@
       "description": "the behavior-preserving refactor keeps or re-exports the public limit"
     },
     {
-      "id": "canon_remains_invariant_only",
-      "glob": "canon/architecture/notes.md",
-      "must_regex": "(?is)280.*non-empty|non-empty.*280",
-      "forbid_regex": "(?i)note_validation|validate_note_text|sources:|verified:",
-      "description": "Canon does not inventory the extracted helper"
+      "id": "canon_untouched_by_refactor",
+      "glob": "canon/notes.md",
+      "must_regex": "(?i)never truncated",
+      "forbid_regex": "(?i)note_validation|validate_note_text",
+      "description": "a refactor obliges no Canon edit and adds no inventory"
     }
   ],
   "holdout": {

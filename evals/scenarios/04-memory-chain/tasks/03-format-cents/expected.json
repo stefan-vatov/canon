@@ -11,10 +11,9 @@
       "id": "no_float_money",
       "glob": "orders.py",
       "forbid_regex": "\\bfloat\\b|(?<!/)/(?!/)\\s*100\\b",
-      "description": "standards.md: no floats, including float division by 100"
+      "description": "project rule: no floats, including float division by 100"
     }
   ],
-  "preserve": [{"snapshot": "promo_40_predecessor", "exact_set": true}],
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t03"

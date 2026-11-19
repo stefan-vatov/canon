@@ -6,49 +6,31 @@ and adopt or recover safely. Run every command from the repository root.
 `evals/README.md` documents the harness and scenarios; `BASELINES.md` is the
 compact adoption ledger; `RESEARCH.md` records the evidence behind scenarios.
 
-## Current state: 2026-08-01
+## Current state: 2026-11-19
 
-The 2026-08-01 adoption replaced the guidance core with a 3,511-byte minimal
-version and removed every system-prompt delivery path: Canon ships only as
-the generated `dist/CLAUDE.md` and `dist/AGENTS.md` repository instruction
-files, the Pi adapter installs `AGENTS.md`, and the Claude adapter pre-allows
-core tools for headless runs. See `BASELINES.md` for the panel, judge change,
-and limits. The state notes below describe the 2026-07-24 rework they built on.
+The 2026-11-19 core replaced the 2026-08-01 core on field evidence rather than
+on an eval win. One adopter ran the older rules at production scale for 30
+days: 640 commits, 384 canon files, 200k words and 271 decision records.
+Canon was touched in 488 of 639 commits, about half of all canon file touches
+were `verified:` stamp bumps, agents read about 23k tokens before any code,
+and an immutable approval record reverted a finished piece of work 18 minutes
+after it landed. The new core reads nothing up front, forbids decision
+records, stamps and front matter, puts the owner's current instruction above
+every note, and keeps Canon small by rule. The Canon doctor is retired: the
+harness runs no Canon validator and imposes no line or size caps.
 
-## Prior state: 2026-07-24
+The scenario set changed with it. `06-decisions` and `10-supersede` rewarded
+records, manifest routes and immutable predecessors and are gone;
+`06-no-decision-records` and `10-reversal` replace them, and `11` to `15`
+test owner-wins, an unprompted fix of a falsified sentence, a zero-read cold
+start, an agent-written brief, and add-by-merging at the note budget.
+Fixtures carry their project rules in `PROJECT.md`, composed into the
+instruction file, instead of a `canon/standards.md`.
 
-The current worktree contains the invariant-first rework:
-
-- schema-v2 batch and run receipts bind canonical checks, successful judge
-  output, temporal state, retained guidance, scenarios, and selected evaluator
-  inputs with SHA-256;
-- Canon records architectural laws, product invariants, decisions, and
-  validation links rather than source inventories;
-- the doctor validates metadata, normative routes, links, scratch isolation,
-  and safe repository-relative validation evidence paths without coupling
-  source changes to docs;
-- scenario 05 requires no Canon edit for a behavior-preserving extraction, and
-  scenario 08 rejects function-level inventory prose;
-- scenarios 04 and 10 use authenticated path-and-byte snapshots for temporal
-  preservation checks;
-- missing routing telemetry is `unsupported`, never an automatic pass;
-- holdout tests run in disposable copies; fixture tests run in the per-run
-  workspace under the configured test sandbox;
-- deterministic regressions cover Canon validation and eval integrity;
-- `canon-core.md` supplies the shared Canon section; `tools/build.py` writes
-  `dist/CLAUDE.md` and `dist/AGENTS.md` from it. Canon ships only as
-  repository instruction files.
-
-The July 18 integrity work remains in place, but its model scores predate the
-new guidance, rubric, and scenario set. A live six-worker baseline was
-established on 2026-07-24 with GPT 5.6 Sol, GPT 5.6 Terra, GLM 5.1, DeepSeek
-V4 Pro, MiniMax M3, and Kimi K2.5, all judged by Gemini 3.1 Pro at high
-reasoning. The evolutionary-workflow labels `GPT 5.5 high` and `GPT Spark`
-refer to the pinned GPT 5.6 Sol/high and GPT 5.6 Terra/medium workers,
-respectively. Both capable Codex tiers passed every required batch at 1.000
-mechanical and judge means; weaker-tier failures remain recorded rather than
-being averaged away. See `BASELINES.md` for the decision, comparison key,
-result floors, evidence boundary, and final supersession confirmation.
+Every score in `BASELINES.md` before this date measures the retired core on
+the retired scenarios. None transfers. The new core has not yet been measured
+on the new set; run it through the comparison wave below before claiming it is
+eval-verified.
 
 ## Prerequisites and pins
 
@@ -112,7 +94,7 @@ worktree and toolchain.
 ## Run the deterministic integrity gate
 
 Run this gate before spending model credits and after changing the evaluator,
-doctor, scenarios, or guidance:
+scenarios, or guidance:
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 \
@@ -194,7 +176,7 @@ set -euo pipefail
 : "${JUDGE_CMD:?export the pinned judge command}"
 export EVAL_MODEL EVAL_REASONING JUDGE_CMD
 
-SCENARIO=10-supersede
+SCENARIO=10-reversal
 RUNS=3
 HARNESS=codex
 ROUND_DIR="$(mktemp -d "${TMPDIR:-/tmp}/canon-ab.XXXXXX")"
@@ -298,9 +280,9 @@ required correctness/integrity checks passed.
 
 Known provenance boundary: transcripts, workspaces, raw judge I/O, and the
 derived summary are not receipt-bound canonical artifacts. The selected
-evaluator hash map includes the checker, Canon doctor, and shared Canon path
-library, but still omits retained files such as `run-eval.sh` and
-`distill-transcript.py`. This is why an unchanged same-wave toolchain and a
+evaluator hash map includes the checker, judge, summarizer, provenance script,
+judge prompt, rubric and adapter, but still omits retained files such as
+`run-eval.sh` and `distill-transcript.py`. This is why an unchanged same-wave toolchain and a
 durable runtime record remain mandatory even after the validator passes.
 
 ## Decide whether to adopt
@@ -321,6 +303,12 @@ following:
    have been read, and unsupported telemetry is not claimed as success.
 6. The diff is general guidance, not encoded fixture answers, and every change
    is explainable from observed failures.
+7. The change does not raise the costs a real adopter pays. Before adopting,
+   check it against one long-running adopter's numbers: the share of commits
+   that touch `canon/`, canon file touches that only bump a stamp, and the
+   words an agent reads before its first code action. The compact-canon
+   skill's `analyze_canon.py` reports all three. Fixtures are too small to
+   show these costs; the 2026-11-19 core change came from them.
 
 Retain raw bundles with exact runtime details. Record only the decision,
 comparison key, decisive passes or floors, artifact-set key, and known
@@ -394,7 +382,7 @@ set -euo pipefail
 export IMPROVER_CMD EVAL_MODEL EVAL_REASONING JUDGE_CMD
 
 uv run --script evals/bin/optimize.py \
-  --scenarios 06-decisions,08-routing \
+  --scenarios 06-no-decision-records,08-routing \
   --harness codex \
   --runs 3 \
   --iterations 3 \

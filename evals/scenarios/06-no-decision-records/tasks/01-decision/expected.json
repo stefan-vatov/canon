@@ -1,0 +1,66 @@
+{
+  "test_cmd": "uv run python -m unittest discover -s . -p 'test_*.py'",
+  "rules": [
+    {
+      "id": "format_timestamp_implemented",
+      "glob": "reports.py",
+      "must_regex": "def format_timestamp\\(",
+      "description": "function exists"
+    },
+    {
+      "id": "rationale_kept",
+      "glob": "*",
+      "exclude_globs": [
+        "test_*.py",
+        "canon/scratch/*"
+      ],
+      "must_regex": "(?is)(local|time ?zone).{0,300}(correlat|ticket)|(correlat|ticket).{0,300}(local|time ?zone)",
+      "search_commit_messages": true,
+      "description": "why local time was rejected survives in the commit body, at the code, or as one clause in the note"
+    },
+    {
+      "id": "canon_did_not_grow",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "max_matching_files": 1,
+      "description": "the decision adds no Canon note, at most a clause in the one it constrains"
+    },
+    {
+      "id": "no_decision_records",
+      "glob": "*decision*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no decision record, log, register or ADR anywhere"
+    },
+    {
+      "id": "no_metadata",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "forbid_regex": "(?m)\\A---\\s*$|^(?:status|sources|verified|supersedes|scope|validation):",
+      "description": "no front matter, status fields or stamps"
+    }
+  ],
+  "capture": [
+    {
+      "id": "code_after_decision",
+      "glob": "*.py"
+    },
+    {
+      "id": "canon_after_decision",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ]
+    }
+  ],
+  "holdout": {
+    "dir": "holdout",
+    "test_cmd": "uv run python -m unittest holdout_t06d"
+  }
+}

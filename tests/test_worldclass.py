@@ -243,6 +243,50 @@ class EvalIntegrityTests(unittest.TestCase):
             self.assertEqual(payload["checks"], [])
             self.assertTrue(payload["required_pass"])
 
+    def test_rules_exclude_globs_and_match_commit_messages(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            git(root, "init", "-q", "--template=")
+            git(root, "config", "user.email", "test@example.invalid")
+            git(root, "config", "user.name", "Test")
+            write(root / "canon/notes.md", "# Notes\n")
+            git(root, "add", "-A")
+            git(root, "-c", "commit.gpgsign=false", "commit", "-qm", "baseline")
+            baseline = git(root, "rev-parse", "HEAD")
+            write(root / "canon/scratch/handover.md", "session notes\n")
+            write(root / "app.py", "VALUE = 1\n")
+            git(root, "add", "app.py")
+            git(root, "-c", "commit.gpgsign=false", "commit", "-qm",
+                "feat: add value\n\nlocal time was rejected for UTC")
+            expected = root / "expected.json"
+            write(expected, json.dumps({"rules": [
+                {"id": "one_note", "glob": "canon/*.md",
+                 "exclude_globs": ["canon/scratch/*"], "max_matching_files": 1},
+                {"id": "rationale", "glob": "*.py", "must_regex": "rejected for UTC",
+                 "search_commit_messages": True},
+                {"id": "files_only", "glob": "*.py", "must_regex": "rejected for UTC"},
+            ]}))
+            out = root / "checks.json"
+            run(sys.executable, str(ROOT / "evals/bin/check.py"), "--workdir", str(root),
+                "--expected", str(expected), "--out", str(out), "--baseline", baseline,
+                cwd=ROOT)
+            checks = {row["id"]: row["pass"] for row in json.loads(out.read_text())["checks"]}
+            self.assertEqual(
+                checks,
+                {"rule:one_note": True, "rule:rationale": True, "rule:files_only": False},
+            )
+
+    def test_seeded_fixtures_carry_no_retired_canon_shape(self) -> None:
+        for fixture in sorted((ROOT / "evals/scenarios").glob("*/fixture")):
+            canon = fixture / "canon"
+            with self.subTest(fixture=fixture.parent.name):
+                self.assertFalse((canon / "manifest.md").exists())
+                self.assertFalse((canon / "standards.md").exists())
+                self.assertFalse((canon / "decisions").exists())
+                for note in canon.rglob("*.md") if canon.is_dir() else []:
+                    self.assertEqual(note.parent, canon, "Canon notes are flat")
+                    self.assertFalse(note.read_text().startswith("---"), note.name)
+
     def test_diff_scope_can_be_a_required_no_impact_gate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
