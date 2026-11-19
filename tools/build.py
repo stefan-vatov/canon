@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "dist"
-HEADER = "<!-- GENERATED from canon-core.md by tools/build.py - edit canon-core.md instead -->\n\n"
+HEADER = "<!-- GENERATED from Project Canon's canon-core.md; edit project rules outside this block -->\n\n"
 
 
 def main():
