@@ -1,16 +1,15 @@
 # How to install and maintain Project Canon
 
 This guide installs Project Canon in a target repository and covers the full
-consumer lifecycle: first install, safe merges, the `compact-canon` maintenance
-skill, bootstrap, verification, upgrade, rollback, and uninstall.
+consumer lifecycle: first install, safe merges, bootstrap, migrating a canon
+built under older rules, verification, upgrade, rollback, and uninstall.
 
-Project Canon is repository-scoped agent guidance. Install only the integration
-for the agent you use, then start a new agent session from the target repository.
-
-An installation has two parts: the generated instruction file every session
-loads, and the `compact-canon` skill that audits and compacts an overgrown
-`canon/` on demand. Install both — the skill lives only in this checkout, so a
-target that skips it has no compaction path once the checkout is gone.
+Project Canon is repository-scoped agent guidance: one managed block of rules
+in the instruction file every session already loads. Nothing else is
+installed, nothing runs in hooks or CI, and nothing needs to be read at session
+start. The optional `compact-canon` skill is a one-time migration for a
+repository whose `canon/` grew under older rules; install it only for that,
+and remove it afterwards.
 
 ## Prerequisites
 
@@ -18,7 +17,8 @@ target that skips it has no compaction path once the checkout is gone.
   tag you can record.
 - A target Git repository.
 - A POSIX-compatible shell and Python 3.10 or later.
-- [`uv`](https://docs.astral.sh/uv/) for `canon-doctor.py` verification.
+- [`uv`](https://docs.astral.sh/uv/) to confirm the generated artifacts are
+  fresh before you copy them.
 - A clean or understood target worktree. The commands below do not stage or
   commit changes.
 - Exclusive access to the target integration paths while each command runs;
@@ -32,7 +32,6 @@ CANON="$(git -C /absolute/path/to/project-canon rev-parse --show-toplevel)" || e
 TARGET="$(git -C /absolute/path/to/target-repository rev-parse --show-toplevel)" || exit 1
 
 test -f "$CANON/dist/AGENTS.md" || exit 1
-test -f "$CANON/tools/canon-doctor.py" || exit 1
 test -f "$CANON/tools/build.py" || exit 1
 
 test -z "$(git -C "$CANON" status --porcelain --untracked-files=all)" || {
@@ -63,8 +62,14 @@ locally.
 
 | Agent | Source artifact | Target path |
 |---|---|---|
-| Claude Code | `dist/CLAUDE.md` | `CLAUDE.md` |
 | Codex, Pi, or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
+| Claude Code alone | `dist/CLAUDE.md` | `CLAUDE.md` |
+| Claude Code and other agents | `dist/AGENTS.md` | `AGENTS.md`, plus a `CLAUDE.md` that imports it |
+
+When more than one agent works in the repository, keep one copy of the rules.
+Put the Canon block in `AGENTS.md` and make `CLAUDE.md` import it with an
+`@AGENTS.md` line, followed only by anything Claude-specific. Two copies of
+the same block drift apart, and agents then follow whichever they loaded.
 
 The always-loaded guidance ships exclusively as repository instruction files.
 Pi 0.83 and later loads a project `AGENTS.md` natively, so Pi uses the
@@ -75,11 +80,6 @@ file.
 Both generated artifacts end with the small, removable provenance line
 `_Remembered with [Project Canon](https://agentcanon.dev)._`. Whole-file
 installs and managed merges preserve it as part of the Canon-owned payload.
-
-The `compact-canon` skill is installed separately, into whichever skill
-directories your agents read — one integration file, but as many skill copies
-as the target needs; see [Install the `compact-canon`
-skill](#install-the-compact-canon-skill).
 
 Every `dist/` artifact is generated. Never edit `dist/` in the Canon checkout.
 
@@ -117,6 +117,26 @@ for your agent.
   cmp -s "$CANON/dist/AGENTS.md" "$destination"
 )
 ```
+
+### Claude Code and other agents
+
+Install `AGENTS.md` with the block above, then create a `CLAUDE.md` that
+imports it:
+
+```sh
+(
+  set -eu
+  destination="$TARGET/CLAUDE.md"
+  if test -e "$destination" || test -L "$destination"; then
+    printf 'Refusing existing target: %s\n' "$destination" >&2
+    exit 1
+  fi
+  printf '@AGENTS.md\n' > "$destination"
+)
+```
+
+If `CLAUDE.md` already exists, add the `@AGENTS.md` line at its top and remove
+any copy of the Canon block from it, so the rules live in one file.
 
 An absent-target copy is **Canon-owned**: keep repository-specific rules in a
 different file or convert the target to a managed merge before adding local
@@ -256,13 +276,14 @@ grep -Fqx '_Remembered with [Project Canon](https://agentcanon.dev)._' \
 Inspect the surrounding repository-specific text as well; byte comparison
 applies only to Canon-owned whole files.
 
-## Install the `compact-canon` skill
+## Install the `compact-canon` skill (migration only)
 
-The instruction file governs how sessions read and change Canon day to day. It
-does not carry the maintenance procedure for a Canon that has already grown
-inventories, repeated rules, legacy metadata, or routing gaps. That procedure
-is the `compact-canon` skill, and it is loaded from the target repository's own
-skill directory — not from this checkout, which the target will not have.
+A new repository does not need this. The instruction block keeps a new
+`canon/` small on its own. Install the skill only when the target already has
+a canon built under older rules — decision records, a manifest, front matter
+or `sources`/`verified` stamps, per-feature specs, or session-start reads — and
+you want to migrate it once. It is loaded from the target repository's own
+skill directory, not from this checkout.
 
 The skill is a portable `SKILL.md` directory with a Python analyzer beside it.
 It lives at `.codex/skills/compact-canon/` in this repository because that is
@@ -328,12 +349,11 @@ removal stay safe.
 Invoke it by name once installed. The trigger syntax belongs to the harness —
 `$compact-canon` in Codex, "use the compact-canon skill" in Claude Code, and
 whatever your agent documents elsewhere. Every form accepts a `dry run`
-request, which reports candidates and changes nothing.
+request, which measures and proposes and changes nothing.
 
 For an agent with no project skill directory, skip this section and paste the
-skill's procedure, or a request naming it, into the session instead. The
-migration and maintenance prompts below still work without the skill; they
-lose the procedure, not the intent.
+skill's `SKILL.md` into the session instead. After the migration, remove the
+skill with the procedure under [Uninstall Canon](#remove-the-installed-skill).
 
 ## Bootstrap Canon in the first session
 
@@ -344,96 +364,56 @@ If `canon/` is absent, send this prompt exactly:
 
 ```text
 Set up Project Canon in this repository now. Preserve all existing repository
-instructions. Create canon/manifest.md with status: reference and
-canon/standards.md with status: normative. Create canon/architecture/,
-canon/decisions/, and canon/scratch/, and add canon/scratch/ to the
-repository-root .gitignore without removing existing entries. Do not invent
-standards, decisions, architecture, rationale, or domain terms. Do not create
-source-file inventories or sources/verified metadata. Do not change application
-code. Report the files created and any unresolved knowledge gaps.
+instructions. Create canon/ and add canon/scratch/ to the repository-root
+.gitignore without removing existing entries. Write no notes: no manifest,
+index, standards, overview, glossary, decision or architecture files. Do not
+change application code. Report what you changed.
 ```
 
-If `canon/` already exists, do not run the bootstrap prompt. Start a fresh
-session and ask the agent to inspect Canon health before the first real task.
+That is the whole bootstrap. An empty `canon/` is healthy; Git does not track
+an empty directory, so the first note the owner approves is what brings it
+into history. Do not bulk-document the codebase during installation: a note
+earns its place when a task needs a guarantee that spans several owners, an
+accepted gap, a measured dead end, or an owner-approved plan, and code, tests
+and git cannot hold it.
 
-Large repositories should start with only the core structure. Add focused
-architecture pages only when work first needs a durable law or product
-invariant; do not bulk-document the codebase during installation.
+If `canon/` already exists and was built under the rules described below, do
+not run the bootstrap prompt; migrate it.
 
-## Migrate an existing repository Canon
+## Migrate a canon built under older rules
 
-Upgrading the agent guidance does not silently rewrite the target repository's
-`canon/`. Existing decisions and human standards need reviewed migration.
+Upgrading the instruction block does not rewrite the target's `canon/`. A canon
+built under older Project Canon rules usually has decision records, a
+manifest, `standards.md`, front matter or `sources`/`verified` stamps,
+per-feature specs, and instructions that make every session read it first.
+Those are what made it expensive: in one production adopter, canon was touched
+in 488 of 639 commits and about half of all canon file touches were stamp
+bumps.
 
-Start from a clean target worktree. In a session that can load the installed
-[`compact-canon`](.codex/skills/compact-canon/SKILL.md) skill, invoke it
-explicitly — Codex users can write `$compact-canon` in place of the first
-clause. If you skipped the skill install, give the same request without the
-first sentence:
-
-```sh
-MIGRATION_BASE="$(git -C "$TARGET" rev-parse HEAD)" || exit 1
-printf 'Legacy decision baseline: %s\n' "$MIGRATION_BASE"
-```
+Install the [`compact-canon`](.codex/skills/compact-canon/SKILL.md) skill,
+start from a clean target worktree, and ask for a dry run first:
 
 ```text
-Use the compact-canon skill to rework this repository's Canon into the
-invariant-first shape. Preserve human standards and every existing decision byte-for-byte.
-Remove implementation inventories and legacy sources/verified metadata from
-non-decision pages; legacy metadata inside an existing decision is immutable
-history. Replace removed metadata only with truthful status, package or
-architectural scope, executable validation, and relationship links. Make
-manifest.md a compact concern-to-page router, keep scratch out of normal
-context, and move operational guidance only when an existing development-doc
-destination is in scope. Run the Canon doctor with the pre-migration commit as
-`--baseline` in strict mode and report all abstentions.
+Use the compact-canon skill for a dry run: measure this repository's canon and
+propose a disposition for every file.
 ```
 
-Review every changed Canon paragraph against this test:
+Review the disposition with the project owner, then ask the skill to migrate.
+It works in this order, one reviewable commit per step: tag the starting
+commit; replace the old canon protocol in the instruction files first; move
+runbooks beside their tools; repoint citations into `canon/`; delete decision
+records after moving any still-live rule to its home; delete specs that copy
+code; keep only cross-owner guarantees, accepted gaps, measured lessons and
+owner-approved plans as flat notes without front matter; and review the
+result against the tag. Every deleted file stays one `git show <tag>:<path>`
+away.
 
-> Canon changed because the system must now guarantee that ...
-
-If the explanation is only a file or symbol move, remove that paragraph from
-Canon instead of translating the inventory into a new form. Run migration and
-application refactors as separate changes when practical; this makes deleted
-mirroring easy to distinguish from changed guarantees.
+The migration installs no check. Remove the skill when it is done.
 
 ## Verify the installation
 
-Verification is required before committing the target change.
-
-Run the normal check first:
-
-```sh
-uv run --script "$CANON/tools/canon-doctor.py" --root "$TARGET"
-```
-
-Normal mode exits nonzero for errors. It prints warnings but exits zero when
-there are no errors. Warnings identify likely implementation inventories and
-changelog-style prose.
-
-For a migrated Canon with legacy decision records, add
-`--baseline "$MIGRATION_BASE"` to every normal and strict doctor invocation.
-Keep that reviewed commit reachable; the doctor uses it only to grandfather
-unchanged historical decision records — their legacy metadata, stale links,
-and oversize bodies are all waived, since immutable bytes could never be
-repaired — and still protects every decision present at the current `HEAD`.
-
-Then run the release gate:
-
-```sh
-uv run --script "$CANON/tools/canon-doctor.py" --root "$TARGET" --strict
-```
-
-`--strict` exits nonzero for **any** finding, including warnings. A clean
-installation prints:
-
-```text
-canon doctor: all checks passed
-```
-
-Finally review staged, unstaged, and untracked target changes, and confirm that
-no backup is inside the worktree:
+Review staged, unstaged, and untracked target changes, and confirm that no
+backup is inside the worktree:
 
 ```sh
 git -C "$TARGET" status --short --untracked-files=all
@@ -441,14 +421,21 @@ git -C "$TARGET" diff --check
 git -C "$TARGET" diff --cached --check
 git -C "$TARGET" diff --no-ext-diff
 git -C "$TARGET" diff --cached --no-ext-diff
+git -C "$TARGET" check-ignore -q canon/scratch/probe && echo 'scratch is ignored'
 ```
 
 `git diff` does not print untracked file contents. Open every untracked path
 listed by `git status` before staging it.
 
-Doctor validates `canon/`; it does not prove that the agent launcher loaded
-`AGENTS.md` or `CLAUDE.md`. The fresh-session bootstrap behavior is that
-end-to-end check.
+Then check the wiring end to end: start a fresh agent session from the target
+and give it a small code-only task. It should read the instruction file and
+nothing in `canon/`. If it opens canon notes before the task needs them, an
+older copy of the Canon rules is still being loaded from somewhere, such as a
+system-prompt file or a duplicate block in `CLAUDE.md`; remove it.
+
+Do not wire a Canon checker, link checker or size gate into the target's
+hooks or CI. Canon stays small because the rules say so at the moment of
+writing; a gate only adds commits that exist to satisfy it.
 
 ## Upgrade Canon
 
@@ -568,8 +555,9 @@ helper replaces only its contents and preserves all repository-specific text.
 
 ### Upgrade the installed skill
 
-Upgrade the skill in the same change as the instruction file, so the target
-never mixes revisions. Define this guard, which reconstructs the skill from the
+Only a target in the middle of a migration still has the skill installed.
+Upgrade it in the same change as the instruction file, so the target never
+mixes revisions. Define this guard, which reconstructs the skill from the
 recorded installed revision and refuses a locally modified copy:
 
 ```sh
@@ -628,10 +616,13 @@ revision, move any repository-specific text out of the skill directory, and
 rerun. The loop stops at the first refusal; the printed lines show which
 destinations were already upgraded.
 
-If the skill was never installed, use the first-install command instead.
+If the skill is not installed, there is nothing to upgrade; it is needed only
+for a migration.
 
-After either upgrade path, start a new agent session, run doctor in strict
-mode, review the diff, and record the new `CANON_REF`.
+After either upgrade path, start a new agent session, review the diff, and
+record the new `CANON_REF`. If the previous install predates the current
+rules, its `canon/` may still carry decision records, a manifest or front
+matter; migrate it as described above.
 
 ## Roll back a failed integration change
 
@@ -674,7 +665,7 @@ canon_restore_file "$BACKUP_DIR/CLAUDE.md" "$TARGET/CLAUDE.md"
 If the integration path did not exist before installation, rollback is the
 same as uninstalling that Canon-owned path.
 
-After restoring, start a new session and rerun doctor.
+After restoring, start a new session and review the target's status.
 
 ## Uninstall Canon
 
@@ -790,15 +781,12 @@ Remove a now-empty skills parent only if nothing else uses it.
 
 ### Decide separately whether to remove `canon/`
 
-The `canon/` directory may contain valuable project-authored standards and
-decisions. Remove it only with explicit project-owner approval and only after
-backing it up. No automated deletion command is provided because that action
-cannot be inferred from uninstalling an agent integration.
+The `canon/` directory may contain guarantees and accepted gaps the project
+still relies on. Remove it only with explicit project-owner approval. No
+automated deletion command is provided because that action cannot be inferred
+from uninstalling an agent integration. Git keeps every removed note.
 
-Finish by starting a new agent session and reviewing repository status. Doctor
-should now report `no canon/ directory` if you intentionally removed project
-knowledge; that is expected after a complete uninstall, not a passing health
-check.
+Finish by starting a new agent session and reviewing repository status.
 
 ## Troubleshooting
 
@@ -813,24 +801,25 @@ The whole-file ownership proof failed. Confirm `INSTALLED_REF`. If the file
 contains local rules, preserve them and use a reviewed managed block. Never
 force replacement or removal.
 
-### Doctor reports warnings but the command succeeds
+### Sessions still read `canon/` before every task
 
-That is normal-mode behavior. Run with `--strict`; warnings then fail the
-command and must be resolved before release.
+An older copy of the Canon rules is still loaded. Look for a second copy of the
+block in `CLAUDE.md`, a system-prompt file such as `.codex/system.md`, or a
+first-action paragraph outside the managed block, and remove it. With
+`CLAUDE.md` importing `AGENTS.md`, there is one copy to maintain.
 
-### Doctor rejects `sources` or `verified`
+### The canon has decision records, a manifest or `sources`/`verified` stamps
 
-These fields belong to the retired repository-mirroring model. Remove the
-source inventory and commit hash. Classify the page as `normative`,
-`reference`, `draft`, or `deprecated`; replace implementation paths with
-package or architectural `scope` values, and link only stable executable
-checks under `validation`.
+It was built under older rules. Do not replace the stamps with new metadata,
+and do not add a check to keep them out. Migrate once with the
+`compact-canon` skill.
 
-### Doctor reports an implementation inventory
+### Agents keep adding notes or decision files
 
-Replace exhaustive files, symbols, exports, or repository instances with one
-general ownership or behavior rule. Keep a few examples only when they are
-explicitly non-exhaustive and materially improve comprehension.
+The instruction file still carries old rules, or a note is being treated as a
+rule an agent can write. Confirm the managed block matches `dist/AGENTS.md` at
+the installed revision. The current rules allow a new note only with the
+owner's approval and forbid decision records outright.
 
 ## For Project Canon maintainers
 

@@ -1,6 +1,6 @@
 # Evaluation adoption ledger
 
-This is the durable decision record for Canon evaluations. It answers which
+This is the adoption ledger for Canon evaluations. It answers which
 guidance was adopted or rejected, on what evidence, and within which limits.
 It is not a run database, a current repository inventory, or an input to the
 build and test tooling.

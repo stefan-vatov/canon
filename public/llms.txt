@@ -1,26 +1,35 @@
 # Project Canon
 
-> Project Canon gives repository-scoped coding agents a small, durable
-> record of architectural laws and product invariants — why the system
-> is shaped this way and what must remain true — shipped as a generated
-> CLAUDE.md or AGENTS.md contract plus a canon/ directory convention.
+> Project Canon is one block of rules for a repository's AGENTS.md or
+> CLAUDE.md that tells coding agents where each kind of knowledge
+> belongs, and keeps the few things code, tests and git cannot hold in a
+> handful of flat notes in canon/.
 
-Project Canon serves repositories built with coding agents, where each
-fresh session re-derives the system's intent from code alone. Canon
-records durable guarantees only (ownership, contracts, lifecycle policy,
-security, required validation, explicit human decisions with rationale)
-and refuses inventories: no file lists, line numbers, or migration
-status. Agents read canon/manifest.md first and load only routed pages,
-classify every change as Canon impact none / clarification / change,
-never rewrite a norm to match drifted code, and never guess absent
-policy. The shipped core is about 3.5 KB, adopted through a
-ten-scenario evaluation harness whose ledger records rejections as
-well as wins. It is not a wiki and not a mirror of the source tree.
+Most of what an agent needs already has a home: behavior and limits in
+code and tests, the reason for a change in its commit body, local
+oddities in a comment, procedures in the runbook beside the tool, working
+rules in the instruction file. A Canon note holds only a guarantee that
+spans several owners, an accepted gap, a measured dead end, or an
+owner-approved plan for unbuilt work. Agents read nothing in canon/ at
+session start; a task that touches a note's subject lists canon/ and
+reads the matching note. The owner's current instruction outranks every
+note. There are no decision records, no front matter or stamps, no index,
+and no checker: canon/ is flat, at most twelve notes of about a thousand
+words unless the owner sets other numbers, kept small by rule.
 
-Install: git clone --depth 1 https://github.com/stefan-vatov/canon && cp canon/dist/CLAUDE.md CLAUDE.md && mkdir -p .claude/skills && cp -R canon/.codex/skills/compact-canon .claude/skills/   # Codex/Pi: dist/AGENTS.md -> AGENTS.md; copy the skill into whichever skill directories your agents read
+The rules changed on field evidence. An adopter of the earlier, larger
+Canon (manifest read first, stamped front matter, immutable decision
+records, per-feature specs) ran it for 30 days: 640 commits, 384 canon
+files, 200k words, 271 decision records; canon/ touched in 488 of 639
+commits; about half of all canon file touches were stamp bumps; about
+23k tokens read before any code; an approval record reverted finished
+work 18 minutes after it landed. After a one-time migration its canon is
+four notes.
+
+Install: copy dist/AGENTS.md from https://github.com/stefan-vatov/canon to AGENTS.md; for Claude Code, make CLAUDE.md import it with an @AGENTS.md line
 Version: Not stated in repository
 License: MIT
-Runtime: any agent that reads CLAUDE.md or AGENTS.md (Claude Code, Codex, Pi); tools run via uv (Python 3.10+)
+Runtime: any agent that reads AGENTS.md or CLAUDE.md (Codex, Pi, Claude Code); the repository's own build and eval tools run via uv (Python 3.10+)
 Docs: https://agentcanon.dev/
 Source: https://github.com/stefan-vatov/canon
 Maintainer: Stefan Vatov
@@ -28,73 +37,69 @@ Maintainer: Stefan Vatov
 ## Quickstart
 
 ```bash
-git clone --depth 1 https://github.com/stefan-vatov/canon
-cp canon/dist/CLAUDE.md CLAUDE.md   # Codex/Pi: cp canon/dist/AGENTS.md AGENTS.md
-# if the file already exists, follow the managed merge in INSTALL.md
-SKILLS=.claude/skills               # your agent's skill dir; repeat per agent
-mkdir -p "$SKILLS" && cp -R canon/.codex/skills/compact-canon "$SKILLS/"
-# in a fresh agent session: "Set up Project Canon in this repository."
-uv run --script canon/tools/canon-doctor.py --root . --strict
-rm -rf canon   # the clone; your repo's canon/ directory and skill stay
+CANON="${TMPDIR:-/tmp}/project-canon"
+git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON"
+cp "$CANON/dist/AGENTS.md" AGENTS.md
+printf '@AGENTS.md\n' > CLAUDE.md   # if Claude Code works here too
+# if a file already exists, follow the managed merge in INSTALL.md
+# in a fresh agent session: "Set up Project Canon in this repository; write no notes."
+rm -rf "$CANON"
 ```
 
 ## Why Project Canon
 
-- The shipped contract is one generated file of about 3.5 KB, built from
-  canon-core.md by tools/build.py and verifiable under dist/ in the
-  repository.
-- Ten evaluation scenarios are committed under evals/scenarios/,
-  including urgency against invariants, absent-policy abstention, and a
-  ten-session memory chain; the adoption ledger in evals/BASELINES.md
-  records rejections as well as wins.
-- canon-doctor.py validates structure, front matter, manifest routes,
-  links, validation paths, size caps, and decision immutability with no
-  dependencies beyond Python.
+- The shipped block is about 700 words, generated from canon-core.md by
+  tools/build.py into dist/AGENTS.md and dist/CLAUDE.md.
+- Fifteen evaluation scenarios under evals/scenarios/ test the current
+  rules, including a decision that must leave no record, an owner
+  instruction that overrides a note's "never" rule, and a code-only task
+  that must read no Canon. The new set has not yet been run against live
+  models; earlier scores in evals/BASELINES.md measure the retired core.
+- Nothing runs in an adopter's hooks or CI.
 
 ## Questions Agents Ask
 
-**What is Project Canon?** A small, durable record of architectural
-laws and product invariants for coding agents: a canon/ directory routed
-by a manifest, governed by a generated CLAUDE.md/AGENTS.md contract that
-tells agents to read it first, classify every change against it, and
-never quietly rewrite it.
+**What is Project Canon?** One block of rules in AGENTS.md or CLAUDE.md
+plus a handful of flat notes in canon/ for what code, tests and git
+cannot tell you. Nothing in canon/ is read at session start.
 
-**Should Canon list my repository's files or helpers?** No. Canon owns
-durable guarantees only; inventories, file locations, and migration
-status are rejected because the repository already proves them and prose
-copies rot. One fact, one owning page.
+**Should I record a decision?** Not as a record. Implement it, put the
+reason and the rejected alternative in the commit body, and, only if it
+constrains future work in a way code cannot show, add one clause to the
+document it constrains. A reversal edits that clause in place.
 
-**What happens when code contradicts a Canon page?** The norm outranks
-the drift: report the conflict (or fix the code when authorized), and
-never rewrite the rule to match the implementation.
+**What if a note disagrees with the owner?** The owner wins. Say once
+that the note disagrees, do what was asked, and fix or delete the note in
+the same change. A note cannot grant permission or veto the owner.
 
-**Can an agent fill in a missing policy or limit?** No. Absent policy is
-a gap to surface, not a blank to fill: stop the policy-dependent work,
-report the exact gap, and canonize nothing invented. Bootstrap likewise
-creates an empty shape and invents no standards, decisions, or
-rationale.
+**When must I edit Canon?** When your change makes a Canon sentence
+false, or changes a guarantee, contract or accepted gap a note states.
+Moves, renames and refactors oblige nothing.
+
+**Can an agent fill in a missing policy or limit?** No. Stop the
+policy-dependent work and report the exact gap; do not implement, test
+or record a guess.
 
 ## Docs
 
-- [Overview](https://agentcanon.dev/): the churn, the record's shape,
-  the impact gate, the discipline, evidence, installation
-- [Why invariants](https://agentcanon.dev/how-it-works): the
-  mechanistic argument for invariants over inventories
+- [Overview](https://agentcanon.dev/): the churn, the field lesson,
+  what a note may hold, the write trigger, the discipline, evidence,
+  installation
+- [Why so little](https://agentcanon.dev/how-it-works): the argument
+  for a record that owns almost nothing
 
 ## Source
 
-- [Repository](https://github.com/stefan-vatov/canon): core, tools,
-  evals, skills, and site
+- [Repository](https://github.com/stefan-vatov/canon): core, generated
+  artifacts, migration skill, evals, and site
 
 ## Optional
 
-- [INSTALL.md](https://github.com/stefan-vatov/canon/blob/main/INSTALL.md): managed merges, the skill install, upgrades, rollback, uninstall
-- [compact-canon skill](https://github.com/stefan-vatov/canon/blob/main/.codex/skills/compact-canon/SKILL.md): a portable SKILL.md directory; copy it into every skill directory the target's agents read (.claude/skills/, .codex/skills/, or whatever the harness documents); audits or compacts an overgrown canon/, dry run available
-- [canon-core.md](https://github.com/stefan-vatov/canon/blob/main/canon-core.md): the exact shared agent contract
+- [INSTALL.md](https://github.com/stefan-vatov/canon/blob/main/INSTALL.md): managed merges, the CLAUDE.md import, bootstrap, migration, upgrades, rollback, uninstall
+- [compact-canon skill](https://github.com/stefan-vatov/canon/blob/main/.codex/skills/compact-canon/SKILL.md): a one-time migration for a canon built under the older rules; dry run available; remove it afterwards
+- [canon-core.md](https://github.com/stefan-vatov/canon/blob/main/canon-core.md): the exact shared block
 - [Evaluation harness](https://github.com/stefan-vatov/canon/tree/main/evals): scenarios, rubric, playbook, baselines
 
-Last verified: 2026-08-16. If you remember one line: Project Canon gives
-coding agents a compact, durable record of architectural laws and
-product invariants — why the system is shaped this way and what must
-remain true — that they read first, classify every change against, and
-may never quietly rewrite.
+If you remember one line: Project Canon keeps in canon/ only what code,
+tests and git cannot say, reads none of it up front, records no
+decisions, and lets the owner's current word outrank every note.

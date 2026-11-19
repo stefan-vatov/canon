@@ -2,7 +2,7 @@
 
 # Project Canon
 
-**Compact architectural laws and product invariants for coding agents.**
+**A handful of notes holding what code, tests and git cannot tell your agents.**
 
 *Code remembers where. Canon remembers why.*
 
@@ -19,330 +19,156 @@
 
 </div>
 
-Every fresh agent session rebuilds its picture of your system from code
-alone — and code cannot say why the system is shaped this way. The cap
-that is a product promise, the gateway rule that ended an outage, the
-decision that was argued for a week and settled: none of it survives
-compilation, so each session re-derives what it can and guesses the rest.
+Every fresh agent session rebuilds its picture of your system from code. Most
+of what it needs is there: behavior in the code, limits in the tests, the
+reason for a change in its commit. A few things are not: a guarantee two
+services both rely on, a gap the owner accepted on purpose, an approach that
+was measured and dropped. Project Canon is one block of rules for your
+`AGENTS.md` or `CLAUDE.md` that tells agents where each kind of knowledge
+belongs, and keeps the few notes in `canon/` small, current and subordinate to
+the owner.
 
-Project Canon gives repository-scoped coding agents a small, durable
-record of the rules that must survive implementation churn:
+## Why it looks like this
 
-> Canon explains why the system is shaped this way and what must remain true.
-> Code, schemas, package manifests, build graphs, and generated reports explain
-> where the implementation currently lives.
+An earlier Canon asked for much more: a manifest read at every session start,
+front matter with `sources`/`verified` stamps, immutable decision records,
+per-feature specs, a checker. One adopter ran it at production scale for 30
+days:
 
-Canon is not a manually synchronized mirror of the repository. File moves,
-renames, helper extraction, test refactors, and new instances of an established
-pattern should normally produce `Canon impact: none`.
+- 640 commits, 384 canon files, 200k words, 271 decision records;
+- `canon/` was touched in 488 of 639 commits, and about half of all canon file
+  touches were `verified:` stamp bumps;
+- agents read about 23k tokens before any code;
+- an "immutable" approval record caused a finished piece of work to be
+  reverted 18 minutes after it landed;
+- specs that copied the code drifted, down to wrong production defaults.
 
-## What you get
+That canon is now four notes. The current rules are written so no adopter ends
+up there again.
 
-- **One generated contract, ~3.5 KB** — drops in as `CLAUDE.md` or
-  `AGENTS.md`; no framework, nothing to build in your repo. It ends with a
-  small, removable provenance link to Project Canon.
-- **A five-part `canon/` convention** — manifest-routed, so a session loads
-  the one or two pages a task needs instead of the whole record.
-- **A three-way impact gate** — every change is classified none /
-  clarification / change, so the record cannot rot into a changelog.
-- **`canon-doctor`** — dependency-free Python validation of structure, front
-  matter, routes, links, validation paths, size caps, and decision
-  immutability.
-- **`compact-canon`** — an agent skill you install alongside the contract; it
-  audits or compacts a record that already grew inventories, repeated rules,
-  and routing gaps, and a dry run changes nothing.
-- **An open evaluation lab** — ten scenarios, two independent scores per
-  run, and an adoption ledger that records rejections as well as wins.
+## The rules, in short
+
+- **Nothing up front.** The instruction file is the only session-start
+  context. A task that touches a cross-module guarantee, a production
+  operation or a previously tried approach runs `ls canon/` and reads the note
+  whose name matches. A code-only task reads none.
+- **The owner wins.** The owner's current instruction outranks every note. If
+  a note disagrees, the agent says so once, does what was asked, and fixes or
+  deletes the note in the same change. Only the owner's words make a rule; an
+  agent never records its own choices as "must" or "never".
+- **No decision records.** No `decisions/` directory, log, register or ADR. A
+  decision's reason and the rejected alternative go in the commit body; if it
+  constrains future work in a way code cannot show, one clause goes in the
+  document it constrains. A reversal edits that clause in place.
+- **No stamps, no index.** No front matter, status fields, `sources`/`verified`
+  metadata, review dates, manifest or changelog.
+- **Write only when something became false.** A change must fix or delete
+  every Canon sentence it makes false. Moves, renames and refactors oblige
+  nothing.
+- **Small by rule, not by tooling.** `canon/` is flat, at most twelve notes of
+  about a thousand words, unless the owner sets other numbers. At the limit, a
+  note is added only by removing or merging one. There is no checker.
+
+## Where knowledge goes
+
+| Knowledge | Home |
+|---|---|
+| How to work here | the instruction file, in the owner's words |
+| Behavior, limits, formats, error cases | code, and a test named for the behavior |
+| Why this code is odd, what was tried here | a comment at that code |
+| Why a change was made, what was rejected | the commit body |
+| How to operate, deploy or recover | the runbook beside the tool |
+| A guarantee spanning several owners, an accepted gap, a measured dead end | a Canon note |
+| An owner-approved plan for unbuilt work | a Canon note, deleted once built |
+| Handovers and session notes | `canon/scratch/`, git-ignored and never cited |
+
+The exact text is [canon-core.md](canon-core.md), about 700 words.
 
 ## Quick start
 
-This installs the generated integration into a repository that does not
-already have one. For managed merges, upgrades, rollback, or uninstall, use
-[INSTALL.md](INSTALL.md).
-
 ```sh
-git clone --depth 1 https://github.com/stefan-vatov/canon
-cp canon/dist/CLAUDE.md CLAUDE.md   # Codex / Pi: cp canon/dist/AGENTS.md AGENTS.md
-
-SKILLS=.claude/skills               # your agent's project skill directory
-mkdir -p "$SKILLS" && cp -R canon/.codex/skills/compact-canon "$SKILLS/"
+CANON="${TMPDIR:-/tmp}/project-canon"
+git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON"
+cp "$CANON/dist/AGENTS.md" AGENTS.md
+printf '@AGENTS.md\n' > CLAUDE.md   # if Claude Code works here too
 ```
 
-The second copy installs [`compact-canon`](.codex/skills/compact-canon/SKILL.md),
-the on-demand skill that audits and compacts an overgrown record. It ships only
-in this repository, so a target that skips it keeps no compaction path after
-the clone is gone.
+The clone goes outside your repository, so it cannot collide with your own
+`canon/`. Claude Code alone can take `dist/CLAUDE.md` as its `CLAUDE.md`
+instead.
+With more than one agent, keep one copy of the rules in `AGENTS.md` and import
+it, so the copies cannot drift. For an existing instruction file, use the
+managed-block merge in [INSTALL.md](INSTALL.md); it also covers upgrade,
+rollback and uninstall.
 
-The skill is a portable `SKILL.md` directory; its location in this repository
-is where *this* repository's agent reads skills, not a requirement for yours.
-Repeat the copy for every skill directory the agents in your repository read —
-`.claude/skills/`, `.codex/skills/`, or whatever your harness documents.
-Duplicate copies do not conflict.
-
-Then bootstrap the record in a fresh agent session from the target
-repository:
+Then bootstrap in a fresh session from the target repository:
 
 ```text
-Set up Project Canon in this repository. Preserve all existing instructions.
-Create canon/manifest.md with status: reference and canon/standards.md with
-status: normative. Create canon/architecture/, canon/decisions/, and
-canon/scratch/, and add canon/scratch/ to the repository-root .gitignore.
-Do not invent standards, decisions, architecture, rationale, or domain terms.
-Do not create source-file inventories or sources/verified metadata. Report
-anything that still needs human input.
+Set up Project Canon in this repository now. Preserve all existing repository
+instructions. Create canon/ and add canon/scratch/ to the repository-root
+.gitignore without removing existing entries. Write no notes. Report what you
+changed.
 ```
 
-And verify:
+An empty Canon is healthy. A note arrives when a task needs one and the owner
+agrees.
 
-```sh
-uv run --script canon/tools/canon-doctor.py --root . --strict
-```
+### Migrating an older canon
 
-Exit `0` means the structure, metadata, normative routes, links, validation
-references, scratch boundary, and size limits pass. The record starts empty
-on purpose: standards and decisions enter it only when a human states them.
-
-<details>
-<summary><b>Verified install</b> — refuses to overwrite an existing file and
-checks that the generated artifacts are fresh</summary>
-
-Replace both paths:
-
-```sh
-CANON="$(git -C /absolute/path/to/canon rev-parse --show-toplevel)" || exit 1
-TARGET="$(git -C /absolute/path/to/target-repository rev-parse --show-toplevel)" || exit 1
-export CANON TARGET
-
-(
-  set -eu
-  test -f "$CANON/dist/AGENTS.md"
-  test -z "$(git -C "$CANON" status --porcelain --untracked-files=all)"
-  uv run --script "$CANON/tools/build.py" >/dev/null
-  test -z "$(git -C "$CANON" status --porcelain --untracked-files=all)" || {
-    echo "generated Canon artifacts were stale" >&2
-    exit 1
-  }
-  CANON_REF="$(git -C "$CANON" rev-parse HEAD)"
-  if test -e "$TARGET/AGENTS.md" || test -L "$TARGET/AGENTS.md"; then
-    echo "refusing existing target: $TARGET/AGENTS.md" >&2
-    exit 1
-  fi
-  cp "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
-  cmp -s "$CANON/dist/AGENTS.md" "$TARGET/AGENTS.md"
-  grep -Fqx '_Remembered with [Project Canon](https://agentcanon.dev)._' \
-    "$TARGET/AGENTS.md"
-
-  skill_source="$CANON/.codex/skills/compact-canon"
-
-  # one entry per skill directory your agents read; edit this list
-  set -- \
-    "$TARGET/.codex/skills/compact-canon" \
-    "$TARGET/.claude/skills/compact-canon"
-
-  for skill_dest do
-    if test -e "$skill_dest" || test -L "$skill_dest"; then
-      echo "refusing existing target: $skill_dest" >&2
-      exit 1
-    fi
-    mkdir -p "${skill_dest%/*}" || exit 1
-    cp -R "$skill_source" "$skill_dest" || exit 1
-    find "$skill_dest" -name '__pycache__' -type d -prune -exec rm -rf {} +
-    diff -r -x '__pycache__' "$skill_source" "$skill_dest" >/dev/null || exit 1
-  done
-
-  printf 'Record installed Canon revision: %s\n' "$CANON_REF"
-)
-```
-
-The block refuses to overwrite an existing instruction file or skill
-directory. Follow the managed-merge procedure in [INSTALL.md](INSTALL.md) when
-one already exists.
-
-</details>
-
-## What Canon owns
-
-Canon is authoritative for:
-
-- package ownership and dependency direction;
-- public contract and user-visible behavior;
-- persistence, migration, retry, timeout, interruption, and lifecycle policy;
-- security, privacy, and platform guarantees;
-- required validation at risky boundaries;
-- explicit architectural decisions and supplied rationale.
-
-Canon does not maintain:
-
-- source-file, export, class, helper, schema, or test inventories;
-- current file locations, line numbers, barrel contents, or test shards;
-- temporary migration status or completed-work summaries;
-- facts already expressed by types, manifests, schemas, build graphs, or
-  generated reports.
-
-Documentation states the requirement. Tests and policy checks prove it. Code
-supplies the implementation.
-
-## Canon impact
-
-Every implementation change gets one classification:
-
-| Classification | Meaning | Canon action |
-|---|---|---|
-| No impact | Guarantees, ownership, contracts, and validation stay unchanged | Do not edit Canon |
-| Clarification | The intended rule is unchanged but materially ambiguous | Clarify the owning rule |
-| Change | A durable guarantee, boundary, behavior, risk policy, or required check changes | Update the smallest owning page |
-
-Before editing Canon, finish: `Canon changed because the system must now
-guarantee that ...`. If the reason is only that a file or symbol moved, leave
-Canon alone.
-
-When a guarantee changes, record its complete durable contract: supplied
-boundaries, invalid cases, error behavior, numeric limits, exceptions, and
-negations. When a required policy is absent, report the gap instead of
-guessing, implementing, testing, or canonizing a value.
-
-## Repository Canon shape
-
-```text
-canon/
-    manifest.md          # compact concern-to-page router
-    standards.md         # project-wide architectural laws
-    architecture/        # focused subsystem and product invariants
-    decisions/           # immutable explicit human decisions
-    scratch/             # ignored, temporary, non-authoritative work
-```
-
-Only `manifest.md` and `standards.md` are required files. Canon grows when a
-durable invariant needs an owner, not whenever the source tree grows.
-
-Every new permanent page uses compact metadata:
-
-```yaml
----
-status: normative
-scope:
-  - "@example/persistence"
-validation:
-  - tests/architecture/test_dependency_policy.py
-related:
-  - ./runtime-services.md
----
-```
-
-`status` is `normative`, `reference`, `draft`, or `deprecated`. Normative pages
-must be routed from the manifest. Legacy `sources` lists and `verified` commit
-hashes are rejected: they created documentation churn without proving truth.
-Validation entries name existing regular, non-symlink files with
-repository-root-relative paths, never paths relative to the Canon page.
-Successor decisions use `supersedes` as a non-empty list of local predecessor
-decision paths, while current-state architecture pages state the active rule
-or value explicitly. Predecessors remain manifest-routed as clearly labeled
-historical decision context.
+If the repository already has a canon with decision records, a manifest,
+stamps or specs, the [`compact-canon`](.codex/skills/compact-canon/SKILL.md)
+skill migrates it once, the way the adopter above was migrated: tag first,
+instructions first, runbooks beside their tools, citations repointed, decision
+records deleted after their live rules move, specs that copy code deleted,
+review against the tag. Ask it for a `dry run` first; it measures churn,
+stamp-only touches and startup reads, and changes nothing.
+[INSTALL.md](INSTALL.md#migrate-a-canon-built-under-older-rules) has the
+steps. Remove the skill afterwards.
 
 ## Evidence
 
-The core is not hand-tuned prose; it is gated by this repository's own lab:
+The rules changed because of the field numbers above, not because of an eval
+win. The earlier core passed this repository's own lab, which rewarded
+manifest routing, decision records and immutable predecessors: the very
+behaviors that cost the adopter most. Those scores are kept in
+[BASELINES.md](evals/BASELINES.md), marked as measuring the retired core.
 
-- **Ten scenarios** drop real coding agents into seeded fixture repositories
-  and apply pressure — urgency against invariants, absent-policy abstention,
-  one invariant carried across ten fresh sessions, a supersession that tempts
-  a history rewrite.
-- **Two scores per run, reported separately**: mechanical checks (fixture
-  tests, validation paths, routing, abstention — with hidden holdout tests
-  run in disposable copies) and a judge scoring fifteen rubric criteria from
-  the distilled transcript, the diff, and the final Canon.
-- **The current 3,511-byte core** (36% of its 9,789-byte predecessor) was
-  adopted after a same-wave three-arm comparison across seven model lanes
-  and 70 judged batches.
-- **[BASELINES.md](evals/BASELINES.md) records rejections too** — an
-  apparent win traced to cross-batch variance is kept as a rejection, and
-  weak-tier failures stand as negative baselines rather than excuses.
-
-The harness, scenarios, rubric, and playbook are all in
-[evals/](evals/README.md).
+The lab now tests the current rules in fifteen scenarios, including a stated
+decision that must leave no record, a reversal edited in place, an owner
+instruction that overrides a note's "never" rule, a falsified sentence fixed
+unprompted, a code-only task that must read no Canon, an agent-written brief
+whose "always/never" lines must not become rules, and a new guarantee that
+arrives at the note budget. Each run gets mechanical checks with hidden
+holdout tests and a separate judge score. The new set has not yet been run
+against live models, so no score is claimed. The harness, scenarios, rubric
+and playbook are in [evals/](evals/README.md).
 
 ## What Canon is not
 
-- **Not a wiki, not a mirror.** Inventories, file locations, and migration
-  status are rejected by design — the doctor's smell tests flag them —
-  because the repository already proves those facts and prose copies rot.
-- **It will not write itself.** Bootstrap creates an empty shape and invents
-  nothing; filling it is the human's job.
-- **Not zero-tooling.** The artifacts are plain Markdown, but the validator
-  and build tooling run via [`uv`](https://docs.astral.sh/uv/) (Python 3.10+).
-- **Not a guarantee.** Adherence is measured per model and recorded, not
-  assumed — which is why the lab and its ledger are public.
+- **Not a mirror of the code.** Limits, defaults, status codes, field lists
+  and file inventories stay in code and tests, where they cannot drift.
+- **Not a decision log or a changelog.** Git is the history:
+  `git log -S`, `git log --grep`.
+- **Not a reading obligation.** Nothing in `canon/` is read at session start.
+- **Not a gate.** Nothing runs in hooks or CI; the rules act at the moment of
+  writing.
+- **Not a guarantee.** Adherence is measured per model, not assumed.
 
 ## Supported integrations
 
 | Agent or harness | Source | Default destination |
 |---|---|---|
 | Codex, Pi, or another `AGENTS.md` reader | `dist/AGENTS.md` | `AGENTS.md` |
-| Claude Code | `dist/CLAUDE.md` | `CLAUDE.md` |
+| Claude Code | `dist/AGENTS.md` imported from `CLAUDE.md`, or `dist/CLAUDE.md` | `CLAUDE.md` |
 
-Both artifacts contain the same generated Canon contract. Pi 0.83 and later
-loads a project `AGENTS.md` natively, so Pi consumes the `AGENTS.md`
-integration with no Pi-specific file.
-
-## Normal agent workflow
-
-The installed guidance directs an agent to:
-
-1. read `canon/manifest.md` and only the relevant routed pages;
-2. exclude `canon/scratch/` from normal context;
-3. identify applicable invariants and validation;
-4. implement and test the requested work;
-5. classify Canon impact and edit Canon only for a clarification or change;
-6. report `Canon impact: none` or the exact invariant updated.
-
-The manifest is a router, not a catalog. Each route has exactly one local
-Markdown link and an explicit, non-empty `read when ...` or `read for ...`
-condition. A well-routed agent should usually load one or two Canon pages,
-while loading any additional routed authority that jointly governs the task
-instead of treating the usual count as a cap.
-
-## Validate and compact
-
-The doctor is dependency-free Python:
-
-```sh
-uv run --script tools/canon-doctor.py --root /absolute/path/to/target
-uv run --script tools/canon-doctor.py --root /absolute/path/to/target --json
-uv run --script tools/canon-doctor.py --root /absolute/path/to/target --strict
-uv run --script tools/canon-doctor.py --root /absolute/path/to/target \
-  --baseline <trusted-pre-migration-commit> --strict
-```
-
-Without `--baseline`, existing decisions are still checked against `HEAD` for
-byte immutability, but historical records with invalid metadata, stale
-links, or oversize bodies are not grandfathered.
-Supply `--baseline` only with the reviewed commit recorded before migrating a
-legacy Canon; keep that commit pinned in subsequent validation.
-
-[`compact-canon`](.codex/skills/compact-canon/SKILL.md) is the on-demand audit
-and migration of an overgrown Canon. It identifies repeated rules,
-implementation inventories, legacy metadata, routing gaps, and reconstructible
-prose while preserving human standards and immutable decisions. Ask for a
-`dry run` to receive candidates without changing files.
-
-Install it alongside the instruction file, into each skill directory the target
-repository's agents read:
-
-```sh
-SKILLS=/path/to/target/.claude/skills   # or .codex/skills, or both
-mkdir -p "$SKILLS" && cp -R .codex/skills/compact-canon "$SKILLS/"
-```
-
-Then invoke it by name in a session started from that repository, using
-whatever trigger your harness documents — `$compact-canon` in Codex, "use the
-compact-canon skill" in Claude Code.
-[INSTALL.md](INSTALL.md#install-the-compact-canon-skill) covers the guarded
-install, upgrade, and removal for one or many locations.
+Both artifacts contain the same generated block, which ends with a small,
+removable provenance link to Project Canon. Pi 0.83 and later loads a project
+`AGENTS.md` natively.
 
 ## Maintain this repository
 
-`canon-core.md` is the source of both generated agent artifacts under `dist/`:
-`dist/CLAUDE.md` and `dist/AGENTS.md`. After changing the core:
+`canon-core.md` is the source of both generated artifacts under `dist/`. After
+changing it:
 
 ```sh
 uv run --script tools/build.py
@@ -352,29 +178,23 @@ PYTHONDONTWRITEBYTECODE=1 \
 git diff --check
 ```
 
-The second build must report both artifacts as `fresh`.
+The second build must report both artifacts as `fresh`. Measure a core change
+with [evals/PLAYBOOK.md](evals/PLAYBOOK.md) before adopting it, and check it
+against a real adopter's churn and startup reads.
 
-The website is maintained from this repository too: `npm install` once,
-`npm run dev` to preview, `npm run build` to build into `dist-site/` (never
-`dist/`, which holds the generated artifacts), and `npx wrangler deploy` to
-publish — the last one requires Cloudflare access to the agentcanon.dev
-zone.
-
-## Website
-
-[agentcanon.dev](https://agentcanon.dev) — the whole argument, walked: why
-sessions lose the why, what the record owns and refuses, the impact gate,
-the discipline under conflict and absence, the evaluation evidence, and
-installation.
+The website is maintained here too: `npm install` once, `npm run dev` to
+preview, `npm run build` to build into `dist-site/` (never `dist/`, which holds
+the generated artifacts), and `npx wrangler deploy` to publish, which requires
+Cloudflare access to the agentcanon.dev zone.
 
 ## Documentation
 
-- [INSTALL.md](INSTALL.md) — safe installation, merge, upgrade, rollback, and
-  uninstall procedures.
-- [canon-core.md](canon-core.md) — exact shared agent contract.
-- [evals/README.md](evals/README.md) — evaluation harness and scenarios.
-- [evals/PLAYBOOK.md](evals/PLAYBOOK.md) — improvement and adoption runbook.
-- [evals/BASELINES.md](evals/BASELINES.md) — compact evaluation adoption ledger.
+- [INSTALL.md](INSTALL.md): installation, merge, migration, upgrade, rollback
+  and uninstall.
+- [canon-core.md](canon-core.md): the exact shared block.
+- [evals/README.md](evals/README.md): evaluation harness and scenarios.
+- [evals/PLAYBOOK.md](evals/PLAYBOOK.md): improvement and adoption runbook.
+- [evals/BASELINES.md](evals/BASELINES.md): evaluation adoption ledger.
 
 Project Canon is MIT licensed and originated as a fork of
 [fjzeit's concept](https://github.com/fjzeit/lode).
@@ -382,8 +202,7 @@ Project Canon is MIT licensed and originated as a fork of
 ---
 
 **Companion project:** [Agent Constitution](https://agentconstitution.dev)
-([repo](https://github.com/stefan-vatov/agentconstitution)) — the law your
-agents build under, where Canon is the record they build on. The two share
-one visual language and complementary jobs: the constitution governs
-direction and values; Canon keeps the architectural invariants and the
-reasons behind them.
+([repo](https://github.com/stefan-vatov/agentconstitution)): the law your
+agents build under, where Canon is the record they build on. The constitution
+governs direction and values; Canon keeps the few cross-owner guarantees and
+the reasons behind them.
