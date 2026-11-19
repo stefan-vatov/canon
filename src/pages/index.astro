@@ -461,12 +461,22 @@ const scenarios = [
             <span>setup — by hand</span>
           </figcaption>
           <div class="term-body" tabindex="0">
-            <span class="dim">$</span> CANON="$(mktemp -d)" &amp;&amp; git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON"<br />
-            <span class="dim">$</span> test -e AGENTS.md || cp "$CANON/dist/AGENTS.md" AGENTS.md<br />
-            <span class="dim">$</span> test -e CLAUDE.md || echo '@AGENTS.md' &gt; CLAUDE.md<br />
-            <span class="dim">&nbsp;&nbsp;# a file already there? merge the block instead (INSTALL.md)</span><br />
-            <span class="dim">&nbsp;&nbsp;# your own rules go above or below the BEGIN/END markers</span><br />
-            <span class="dim">$</span> rm -rf "$CANON"; claude<br />
+            (<br />
+            &nbsp;&nbsp;set -eu<br />
+            &nbsp;&nbsp;for f in AGENTS.md CLAUDE.md; do<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;if test -e "$f" || test -L "$f"; then<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo "$f exists: merge the block instead (INSTALL.md, managed merge)" &gt;&amp;2<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exit 1<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;fi<br />
+            &nbsp;&nbsp;done<br />
+            &nbsp;&nbsp;tmp="$(mktemp -d)"<br />
+            &nbsp;&nbsp;trap 'rm -rf "$tmp"' EXIT<br />
+            &nbsp;&nbsp;git clone --depth 1 https://github.com/stefan-vatov/canon "$tmp/canon"<br />
+            &nbsp;&nbsp;cp "$tmp/canon/dist/AGENTS.md" AGENTS.md<br />
+            &nbsp;&nbsp;printf '@AGENTS.md\n' &gt; CLAUDE.md<span class="dim">&nbsp;&nbsp;# omit if Claude Code does not work here</span><br />
+            )<br />
+            <span class="dim"># your own rules go above or below the BEGIN/END markers</span><br />
+            <span class="dim">$</span> claude<br />
             <span class="pass">&gt;</span> set up Project Canon in this repository; write no notes
           </div>
         </figure>

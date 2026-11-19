@@ -87,18 +87,25 @@ The exact text is [canon-core.md](canon-core.md), about 700 words.
 ## Quick start
 
 ```sh
-CANON="$(mktemp -d)" && git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON" || exit 1
-if test -e AGENTS.md || test -e CLAUDE.md; then
-  echo 'AGENTS.md or CLAUDE.md exists: use the managed merge in INSTALL.md' >&2
-else
-  cp "$CANON/dist/AGENTS.md" AGENTS.md
+(
+  set -eu
+  for f in AGENTS.md CLAUDE.md; do
+    if test -e "$f" || test -L "$f"; then
+      echo "$f exists: merge the block instead (INSTALL.md, managed merge)" >&2
+      exit 1
+    fi
+  done
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  git clone --depth 1 https://github.com/stefan-vatov/canon "$tmp/canon"
+  cp "$tmp/canon/dist/AGENTS.md" AGENTS.md
   printf '@AGENTS.md\n' > CLAUDE.md   # omit if Claude Code does not work here
-fi
-rm -rf "$CANON"
+)
 ```
 
-The clone goes to a fresh temporary directory, and nothing is written over an
-existing instruction file. The copied `AGENTS.md` is a managed block between
+It runs in a subshell, so a refusal does not close your terminal. It checks
+both files before writing either, clones into a fresh temporary directory
+that is removed on exit, and writes nothing if either file already exists. The copied `AGENTS.md` is a managed block between
 `<!-- BEGIN PROJECT CANON -->` markers: put your project's own rules above or
 below it in the same file, and upgrades replace only the block. Claude Code
 alone can take `dist/CLAUDE.md` as its `CLAUDE.md` instead; with more than one

@@ -38,14 +38,20 @@ Maintainer: Stefan Vatov
 ## Quickstart
 
 ```bash
-CANON="$(mktemp -d)" && git clone --depth 1 https://github.com/stefan-vatov/canon "$CANON" || exit 1
-if test -e AGENTS.md || test -e CLAUDE.md; then
-  echo 'AGENTS.md or CLAUDE.md exists: use the managed merge in INSTALL.md' >&2
-else
-  cp "$CANON/dist/AGENTS.md" AGENTS.md
+(
+  set -eu
+  for f in AGENTS.md CLAUDE.md; do
+    if test -e "$f" || test -L "$f"; then
+      echo "$f exists: merge the block instead (INSTALL.md, managed merge)" >&2
+      exit 1
+    fi
+  done
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  git clone --depth 1 https://github.com/stefan-vatov/canon "$tmp/canon"
+  cp "$tmp/canon/dist/AGENTS.md" AGENTS.md
   printf '@AGENTS.md\n' > CLAUDE.md   # omit if Claude Code does not work here
-fi
-rm -rf "$CANON"
+)
 # in a fresh agent session: "Set up Project Canon in this repository; write no notes."
 ```
 
