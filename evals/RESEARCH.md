@@ -64,7 +64,7 @@ for adoption decisions.
 
 Selective forgetting argues for editing the current statement in place. The
 2026-08 suite instead rewarded keeping every superseded decision as an
-immutable, routed record; in a production adopter that produced 271 records
+immutable, routed record; in a production adopter that produced 272 records
 the agents had to read past, and an immutable approval record overrode the
 owner's later instruction. Git already keeps every prior statement
 (`git log -S`), so Canon holds only what is true now.

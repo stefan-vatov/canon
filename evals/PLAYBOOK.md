@@ -9,11 +9,11 @@ compact adoption ledger; `RESEARCH.md` records the evidence behind scenarios.
 ## Current state: 2026-11-19
 
 The 2026-11-19 core replaced the 2026-08-01 core on field evidence rather than
-on an eval win. One adopter ran the older rules at production scale for 30
-days: 640 commits, 384 canon files, 200k words and 271 decision records.
-Canon was touched in 488 of 639 commits, about half of all canon file touches
-were `verified:` stamp bumps, agents read about 23k tokens before any code,
-and an immutable approval record reverted a finished piece of work 18 minutes
+on an eval win. In one adopter's last 30 days under the older rules, canon
+was touched in 488 of 639 commits and about half of all canon file touches
+were `verified:` stamp bumps; at migration it held 384 files, about 200k words
+and 272 decision records. A typical fix was estimated, from document sizes,
+to read about 23k tokens of canon before any code, and an immutable approval record reverted a finished piece of work 18 minutes
 after it landed. The new core reads nothing up front, forbids decision
 records, stamps and front matter, puts the owner's current instruction above
 every note, and keeps Canon small by rule. The Canon doctor is retired: the

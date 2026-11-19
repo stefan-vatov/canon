@@ -40,10 +40,11 @@ even though it passed this suite?
 `AGENTS.md`, without an eval win. The previous suite rewarded the very
 behaviors the field showed to be costly, so its scores could not decide this.
 
-**Field evidence.** One adopter ran the older rules for 30 days: 640 commits,
-384 canon files, 200k words, 271 decision records. `canon/` was touched in
-488 of 639 commits; 2,722 of 5,687 canon file touches only bumped a
-`verified:` stamp; agents read about 23k tokens before any code; an immutable
+**Field evidence.** In one adopter's last 30 days under the older rules,
+`canon/` was touched in 488 of 639 commits and 2,722 of 5,687 canon file
+touches only bumped a `verified:` stamp; at migration it held 384 files, about
+200k words and 272 decision records. A typical fix was estimated, from
+document sizes, to read about 23k tokens of canon before any code; an immutable
 approval record reverted a finished retirement 18 minutes after it landed;
 and specs that copied code drifted to wrong production defaults. After a
 one-time migration its canon is four notes.

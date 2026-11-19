@@ -32,13 +32,13 @@ the owner.
 
 An earlier Canon asked for much more: a manifest read at every session start,
 front matter with `sources`/`verified` stamps, immutable decision records,
-per-feature specs, a checker. One adopter ran it at production scale for 30
-days:
+per-feature specs, a checker. One adopter ran it at production scale:
 
-- 640 commits, 384 canon files, 200k words, 271 decision records;
-- `canon/` was touched in 488 of 639 commits, and about half of all canon file
-  touches were `verified:` stamp bumps;
-- agents read about 23k tokens before any code;
+- in its last 30 days, `canon/` was touched in 488 of 639 commits, and about
+  half of all canon file touches were `verified:` stamp bumps;
+- at migration it held 384 files, about 200k words and 272 decision records;
+- a typical fix was estimated, from document sizes, to read about 23k tokens
+  of canon before any code;
 - an "immutable" approval record caused a finished piece of work to be
   reverted 18 minutes after it landed;
 - specs that copied the code drifted, down to wrong production defaults.
@@ -143,8 +143,8 @@ decision that must leave no record, a reversal edited in place, an owner
 instruction that overrides a note's "never" rule, a falsified sentence fixed
 unprompted, a code-only task that must read no Canon, an agent-written brief
 whose "always/never" lines must not become rules, and a new guarantee that
-arrives at the note budget. Each run gets mechanical checks with hidden
-holdout tests and a separate judge score. The new set has not yet been run
+arrives at the note budget. Each run gets mechanical checks, with hidden
+holdout tests in most scenarios, and a separate judge score. The new set has not yet been run
 against live models, so no score is claimed. The harness, scenarios, rubric
 and playbook are in [evals/](evals/README.md).
 
