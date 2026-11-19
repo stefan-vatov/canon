@@ -1,21 +1,26 @@
 # Brand
 
-- `og.html` — source for `public/og.png` (1200×630). Regenerate after edits:
+- `og.html` — source for `public/og.png` (1200×630). Regenerate after edits
+  with any headless Chrome or Chromium; a Linux render is acceptable (the
+  mono line falls back to the system monospace face):
 
   ```sh
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
     --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=4000 \
     --window-size=1200,630 --screenshot=public/og.png brand/og.html
+  # Linux: chromium --headless=new --disable-gpu --hide-scrollbars \
+  #   --virtual-time-budget=4000 --window-size=1200,630 \
+  #   --allow-file-access-from-files --screenshot=public/og.png brand/og.html
   ```
 
 - The mark is a **stone arch** — a voussoir ring on plinthed piers, the
   keystone articulated by two angled masonry joints, spring-line joints
   where the ring meets the piers. The companion project's mark is the pen
   (the instrument that writes the law); Canon's is the arch (the structure
-  that stays standing): it holds because the keystone holds — "the
-  implementation churns, the canon holds" — and it is also the threshold a
-  sentence crosses only when a change has made it false (§ IV). Joints are overprinted in the ground
-  color and dropped at tiny sizes, where the solid silhouette carries.
+  that stays standing): it holds because the keystone holds, and it is also
+  the threshold a sentence crosses only when a change has made it false
+  (§ IV). Joints are overprinted in the ground color and dropped at tiny
+  sizes, where the solid silhouette carries.
 - There is deliberately **no ratification-style seal**: ratification is the
   companion project's ritual, and Canon has none — the record starts empty,
   holds a handful of notes, and has no authority above the owner's current
