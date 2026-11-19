@@ -1,4 +1,4 @@
-"""Deterministic regressions for Canon validation and eval integrity."""
+"""Deterministic regressions for eval integrity."""
 
 from __future__ import annotations
 
@@ -14,8 +14,6 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "tools"))
-from canonlib import manifest_routes  # noqa: E402
 
 CHECK_SPEC = importlib.util.spec_from_file_location(
     "canon_eval_check",
@@ -49,103 +47,6 @@ def tree_digest(root: Path) -> str:
         value.update(path.relative_to(root).as_posix().encode())
         value.update(b"\0"); value.update(path.read_bytes()); value.update(b"\0")
     return value.hexdigest()
-
-
-class CanonValidationTests(unittest.TestCase):
-    def init_repo(self, root: Path) -> None:
-        git(root, "init", "-q", "--template=")
-        git(root, "config", "user.email", "test@example.invalid")
-        git(root, "config", "user.name", "Test")
-        write(root / ".gitignore", "canon/scratch/\n")
-        write(
-            root / "canon/standards.md",
-            "---\nstatus: normative\nscope: [project-wide]\n---\n# Standards\n",
-        )
-        write(root / "canon/manifest.md", """---
-status: reference
----
-# Manifest
-- [Standards](standards.md) — read for project-wide rules
-- [API](architecture/api.md) — read when changing API behavior
-""")
-
-    def commit(self, root: Path, message: str) -> str:
-        git(root, "add", "-A")
-        git(root, "-c", "commit.gpgsign=false", "commit", "-qm", message)
-        return git(root, "rev-parse", "HEAD")
-
-    def doctor(self, root: Path) -> dict:
-        proc = run(sys.executable, str(ROOT / "tools/canon-doctor.py"),
-                   "--root", str(root), "--json", cwd=ROOT, check=False)
-        self.assertTrue(proc.stdout, proc.stderr)
-        return json.loads(proc.stdout)
-
-    def test_manifest_routes_require_exact_safe_paths(self) -> None:
-        self.assertEqual(manifest_routes("overview.md beta/overview.md canon/gamma/overview.md"),
-                         set())
-        self.assertEqual(manifest_routes('[Beta](beta/overview.md "title") — read for beta'),
-                         {"beta/overview.md"})
-        self.assertEqual(manifest_routes("[Escape](../outside.md) [Abs](/tmp/x.md)"), set())
-        self.assertEqual(
-            manifest_routes(
-                "<!-- [Hidden](architecture/hidden.md) — read hidden -->\n"
-                "```\n[Code](architecture/code.md) — read code\n```\n"
-                "- [No hook](architecture/no-hook.md)\n"
-                "- [Live](<architecture/live.md>) — read when changing live behavior\n"
-            ),
-            {"architecture/live.md"},
-        )
-
-    def test_source_only_changes_do_not_require_canon_edits(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory); self.init_repo(root)
-            source = root / "app.py"
-            architecture = root / "canon/architecture/api.md"
-            write(source, "VALUE = 1\n")
-            write(
-                architecture,
-                "---\nstatus: normative\nscope: [api]\n---\n"
-                "# API\n\nResponses preserve the public contract.\n",
-            )
-            self.commit(root, "initial")
-            write(source, "VALUE = 2\n")
-            self.commit(root, "implementation only")
-
-            self.assertEqual(self.doctor(root)["findings"], [])
-
-    def test_legacy_source_inventory_is_rejected(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory); self.init_repo(root)
-            write(root / "app.py", "VALUE = 1\n")
-            write(
-                root / "canon/architecture/api.md",
-                "---\nstatus: normative\nsources: [app.py]\n"
-                "verified: HEAD\n---\n# API\n",
-            )
-            self.commit(root, "baseline")
-            findings = [
-                row
-                for row in self.doctor(root)["findings"]
-                if row["check"] == "frontmatter"
-            ]
-            self.assertTrue(findings)
-            self.assertTrue(all(
-                "retired implementation-inventory" in row["detail"]
-                for row in findings
-            ))
-
-    def test_symlinked_manifest_target_is_error(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory); self.init_repo(root)
-            outside = root.parent / f"{root.name}-outside.md"
-            write(outside, "secret\n")
-            (root / "canon/architecture").mkdir()
-            (root / "canon/architecture/api.md").symlink_to(outside)
-            self.commit(root, "fixture")
-            findings = self.doctor(root)["findings"]
-            self.assertTrue(any(row["severity"] == "error" and "symlink" in row["detail"]
-                                for row in findings))
-            outside.unlink(missing_ok=True)
 
 
 class EvalIntegrityTests(unittest.TestCase):
@@ -243,15 +144,11 @@ class EvalIntegrityTests(unittest.TestCase):
             git(root, "init", "-q", "--template=")
             git(root, "config", "user.email", "test@example.invalid")
             git(root, "config", "user.name", "Test")
-            write(
-                root / "canon/manifest.md",
-                "[Pricing](architecture/pricing.md) — read when changing pricing\n",
-            )
-            write(root / "canon/architecture/pricing.md", "# Pricing\n")
+            write(root / "canon/pricing.md", "# Pricing\n")
             git(root, "add", "-A"); git(root, "-c", "commit.gpgsign=false", "commit", "-qm", "baseline")
             expected = root / "expected.json"
             write(expected, json.dumps({
-                "routing": {"must_read": ["canon/architecture/pricing.md"]}
+                "routing": {"must_read": ["canon/pricing.md"]}
             }))
             transcripts = root / "transcripts"; transcripts.mkdir()
             out = root / "checks.json"
@@ -269,19 +166,7 @@ class EvalIntegrityTests(unittest.TestCase):
             git(root, "config", "user.email", "test@example.invalid")
             git(root, "config", "user.name", "Test")
             write(root / ".gitignore", "canon/scratch/\n")
-            write(
-                root / "canon/manifest.md",
-                "---\nstatus: reference\n---\n"
-                "[Pricing](architecture/pricing.md) — read when changing pricing\n",
-            )
-            write(
-                root / "canon/standards.md",
-                "---\nstatus: normative\n---\n# Standards\n",
-            )
-            write(
-                root / "canon/architecture/pricing.md",
-                "---\nstatus: normative\n---\n# Pricing\n",
-            )
+            write(root / "canon/pricing.md", "# Pricing\n")
             git(root, "add", "-A")
             git(
                 root,
@@ -293,7 +178,7 @@ class EvalIntegrityTests(unittest.TestCase):
             )
             expected = root / "expected.json"
             write(expected, json.dumps({
-                "routing": {"must_read": ["canon/architecture/pricing.md"]}
+                "routing": {"must_read": ["canon/pricing.md"]}
             }))
             transcripts = root / "transcripts"
             transcripts.mkdir()
@@ -301,7 +186,7 @@ class EvalIntegrityTests(unittest.TestCase):
                 "type": "item.completed",
                 "item": {
                     "type": "command_execution",
-                    "command": "nl canon/architecture/pricing.md",
+                    "command": "nl canon/pricing.md",
                     "exit_code": 0,
                 },
             }
@@ -328,35 +213,15 @@ class EvalIntegrityTests(unittest.TestCase):
             )
             self.assertEqual(routing["outcome"], "unsupported")
 
-    def test_eval_checker_uses_strict_doctor_status_routing(self) -> None:
+    def test_eval_checker_imposes_no_canon_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             git(root, "init", "-q", "--template=")
             git(root, "config", "user.email", "test@example.invalid")
             git(root, "config", "user.name", "Test")
-            write(root / ".gitignore", "canon/scratch/\n")
-            write(
-                root / "canon/manifest.md",
-                "---\nstatus: reference\n---\n"
-                "- [Standards](standards.md) — read for project rules\n",
-            )
-            write(
-                root / "canon/standards.md",
-                "---\nstatus: normative\n---\n# Standards\n",
-            )
-            write(
-                root / "canon/context.md",
-                "---\nstatus: reference\n---\n# Optional context\n",
-            )
+            write(root / "canon/long-note.md", "# Long note\n" + "line\n" * 400)
             git(root, "add", "-A")
-            git(
-                root,
-                "-c",
-                "commit.gpgsign=false",
-                "commit",
-                "-qm",
-                "baseline",
-            )
+            git(root, "-c", "commit.gpgsign=false", "commit", "-qm", "baseline")
             baseline = git(root, "rev-parse", "HEAD")
             expected = root / "expected.json"
             write(expected, "{}")
@@ -375,34 +240,8 @@ class EvalIntegrityTests(unittest.TestCase):
                 cwd=ROOT,
             )
             payload = json.loads(out.read_text())
-            doctor = next(
-                row for row in payload["checks"] if row["id"] == "canon_doctor"
-            )
-            self.assertTrue(doctor["pass"])
-
-            write(
-                root / "canon/context.md",
-                "---\nstatus: invented\n---\n# Invalid context\n",
-            )
-            run(
-                sys.executable,
-                str(ROOT / "evals/bin/check.py"),
-                "--workdir",
-                str(root),
-                "--expected",
-                str(expected),
-                "--out",
-                str(out),
-                "--baseline",
-                baseline,
-                cwd=ROOT,
-            )
-            payload = json.loads(out.read_text())
-            doctor = next(
-                row for row in payload["checks"] if row["id"] == "canon_doctor"
-            )
-            self.assertFalse(doctor["pass"])
-            self.assertFalse(payload["required_pass"])
+            self.assertEqual(payload["checks"], [])
+            self.assertTrue(payload["required_pass"])
 
     def test_diff_scope_can_be_a_required_no_impact_gate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -411,15 +250,7 @@ class EvalIntegrityTests(unittest.TestCase):
             git(root, "config", "user.email", "test@example.invalid")
             git(root, "config", "user.name", "Test")
             write(root / ".gitignore", "canon/scratch/\n")
-            write(
-                root / "canon/manifest.md",
-                "---\nstatus: reference\n---\n"
-                "- [Standards](standards.md) — read for project rules\n",
-            )
-            write(
-                root / "canon/standards.md",
-                "---\nstatus: normative\n---\n# Standards\n",
-            )
+            write(root / "canon/notes.md", "# Notes\n")
             write(root / "notes.py", "VALUE = 1\n")
             git(root, "add", "-A")
             git(
@@ -431,10 +262,7 @@ class EvalIntegrityTests(unittest.TestCase):
                 "baseline",
             )
             baseline = git(root, "rev-parse", "HEAD")
-            write(
-                root / "canon/standards.md",
-                "---\nstatus: normative\n---\n# Standards\n\nCeremonial rewrite.\n",
-            )
+            write(root / "canon/notes.md", "# Notes\n\nCeremonial rewrite.\n")
             expected = root / "expected.json"
             write(expected, json.dumps({
                 "allowed_change_globs": ["notes.py"],
@@ -485,9 +313,6 @@ class EvalIntegrityTests(unittest.TestCase):
         )
         impact = json.loads(
             (ROOT / "evals/scenarios/05-impact/expected.json").read_text()
-        )
-        supersede = json.loads(
-            (ROOT / "evals/scenarios/10-supersede/expected.json").read_text()
         )
 
         feature_inventory = next(
@@ -564,82 +389,22 @@ class EvalIntegrityTests(unittest.TestCase):
             )
         )
 
-        historical_route = next(
-            rule
-            for rule in supersede["rules"]
-            if rule["id"] == "historical_predecessor_routed"
-        )["manifest_labeled_route"]
-        self.assertTrue(
-            CHECK_MODULE.has_labeled_manifest_route(
-                "- [Historical page size](decisions/api-default-page-size-50.md)"
-                " — read when reviewing pagination decisions\n",
-                historical_route["path"],
-                historical_route["label_regex"],
-            )
-        )
-        self.assertTrue(
-            CHECK_MODULE.has_labeled_manifest_route(
-                '- [Decision history](<decisions/api-default-page-size-50.md>'
-                ' "retired default") — read when tracing pagination\n',
-                historical_route["path"],
-                historical_route["label_regex"],
-            )
-        )
-        self.assertTrue(
-            CHECK_MODULE.has_labeled_manifest_route(
-                "- [Decision history]"
-                "(decisions/api-default-page-size-50.md#rationale)"
-                " — read when tracing pagination\n",
-                historical_route["path"],
-                historical_route["label_regex"],
-            )
-        )
-        self.assertFalse(
-            CHECK_MODULE.has_labeled_manifest_route(
-                "- [Page size](decisions/api-default-page-size-50.md)"
-                " — read for the current default\n",
-                historical_route["path"],
-                historical_route["label_regex"],
-            )
-        )
-        self.assertFalse(
-            CHECK_MODULE.has_labeled_manifest_route(
-                "<!--\n"
-                "- [Decision history](decisions/api-default-page-size-50.md)"
-                " — read when tracing pagination\n"
-                "-->\n",
-                historical_route["path"],
-                historical_route["label_regex"],
-            )
-        )
-        self.assertFalse(
-            CHECK_MODULE.has_labeled_manifest_route(
-                "```markdown\n"
-                "- [Decision history](decisions/api-default-page-size-50.md)"
-                " — read when tracing pagination\n"
-                "```\n",
-                historical_route["path"],
-                historical_route["label_regex"],
-            )
-        )
-
     def test_authenticated_temporal_snapshot_detects_rewrite(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); state = root / "state"; key = "secret"
             git(root, "init", "-q", "--template=")
             git(root, "config", "user.email", "test@example.invalid")
             git(root, "config", "user.name", "Test")
-            decision = root / "canon/decisions/old.md"
-            write(decision, "40 percent; fixed amounts rejected\n")
-            write(root / "canon/manifest.md", "[Old](decisions/old.md)\n")
+            note = root / "canon/pricing.md"
+            write(note, "40 percent; fixed amounts rejected\n")
             git(root, "add", "-A"); git(root, "-c", "commit.gpgsign=false", "commit", "-qm", "baseline")
             capture = root / "capture.json"
-            write(capture, json.dumps({"capture": [{"id": "old", "glob": "canon/decisions/*.md",
+            write(capture, json.dumps({"capture": [{"id": "old", "glob": "canon/pricing.md",
                                                     "exact_count": 1, "must_regex": "40.*fixed"}]}))
             run(sys.executable, str(ROOT / "evals/bin/check.py"), "--workdir", str(root),
                 "--expected", str(capture), "--out", str(root / "capture-out.json"),
                 "--state-dir", str(state), "--state-key", key, cwd=ROOT)
-            write(decision, "rewritten 40 percent fixed\n")
+            write(note, "rewritten 40 percent fixed\n")
             preserve = root / "preserve.json"
             write(preserve, json.dumps({"preserve": [{"snapshot": "old", "exact_set": True}]}))
             run(sys.executable, str(ROOT / "evals/bin/check.py"), "--workdir", str(root),
@@ -661,8 +426,7 @@ class EvalIntegrityTests(unittest.TestCase):
             manifest = json.loads((out / "manifest.json").read_text())
             self.assertEqual(len(manifest["guidance"]["sha256"]), 64)
             self.assertIn("evals/bin/check.py", manifest["evaluator"])
-            self.assertIn("tools/canon-doctor.py", manifest["evaluator"])
-            self.assertIn("tools/canonlib.py", manifest["evaluator"])
+            self.assertNotIn("tools/canon-doctor.py", manifest["evaluator"])
             self.assertEqual(manifest["expected_runs"], ["run-1"])
 
 

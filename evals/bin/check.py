@@ -8,8 +8,6 @@ Reads the scenario's expected.json and the post-run workspace, emits
 checks.json with one pass/fail entry per check. Checks:
 
   required_files        files that must exist after the run
-  canon_doctor          final Canon passes the frozen strict validator
-  canon_line_limits     permanent canon files stay under max_canon_lines
   tests_pass            the fixture's test_cmd exits 0
   diff_scope            every changed file matches allowed_change_globs
   rules                 per-scenario file-count and content rules
@@ -27,6 +25,7 @@ import io
 import json
 import os
 import platform
+import posixpath
 import re
 import shutil
 import stat
@@ -35,11 +34,7 @@ import sys
 import tempfile
 import tokenize
 from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tools"))
-from canonlib import contained_regular_file, manifest_route_records  # noqa: E402
-
+from urllib.parse import urlsplit
 
 PYTHON_FLOAT_LITERAL_RE = re.compile(
     r"(?:"
@@ -57,6 +52,41 @@ def git(workdir, *args):
     ).stdout
 
 
+def contained_regular_file(root, relative):
+    """Validate a path as a non-symlink regular file beneath root."""
+    root = root.resolve()
+    raw = relative.strip()
+    parsed = urlsplit(raw)
+    route = posixpath.normpath(parsed.path)
+    if (
+        not raw
+        or "\\" in raw
+        or "\x00" in raw
+        or parsed.scheme
+        or parsed.netloc
+        or raw.startswith(("/", "~"))
+        or route in (".", "..")
+        or route.startswith("../")
+    ):
+        return False, "path is not a safe repository-relative path"
+
+    candidate = root / route
+    try:
+        resolved = candidate.resolve(strict=True)
+        resolved.relative_to(root)
+    except (FileNotFoundError, RuntimeError, ValueError):
+        return False, "path is missing or resolves outside its root"
+
+    current = root
+    for part in Path(route).parts:
+        current = current / part
+        if current.is_symlink():
+            return False, "symlinked paths are not valid evidence"
+    if not resolved.is_file():
+        return False, "path is not a regular file"
+    return True, ""
+
+
 def changed_files(workdir, baseline):
     if baseline:
         git(workdir, "cat-file", "-e", f"{baseline}^{{commit}}")
@@ -66,25 +96,6 @@ def changed_files(workdir, baseline):
                    capture_output=True, check=True)
     out = git(workdir, "diff", "--cached", "--name-only", baseline)
     return [line for line in out.splitlines() if line.strip()]
-
-
-def permanent_canon_files(workdir):
-    canon = workdir / "canon"
-    if canon.is_symlink() or not canon.is_dir():
-        return []
-    files = []
-    pending = [canon]
-    while pending:
-        directory = pending.pop()
-        for path in sorted(directory.iterdir()):
-            relative = path.relative_to(canon)
-            if relative.parts[0] == "scratch" or path.is_symlink():
-                continue
-            if path.is_dir():
-                pending.append(path)
-            elif path.is_file() and path.suffix == ".md":
-                files.append(path)
-    return sorted(files)
 
 
 def matching_files(workdir, glob):
@@ -146,14 +157,6 @@ def has_python_public_binding(text, name):
                 if bound_name == name:
                     return True
     return False
-
-
-def has_labeled_manifest_route(text, route, label_regex):
-    """Return whether one valid manifest route line labels the requested context."""
-    return any(
-        candidate == route and re.search(label_regex, visible_line)
-        for candidate, visible_line in manifest_route_records(text)
-    )
 
 
 def _canon_transcript_path(raw):
@@ -373,69 +376,6 @@ def main():
         safe, detail = contained_regular_file(work, rel)
         add(f"required:{rel}", safe, detail if not safe else "", required=True)
 
-    canon_files = permanent_canon_files(work)
-    doctor = ROOT / "tools" / "canon-doctor.py"
-    if doctor.is_file() and not doctor.is_symlink():
-        doctor_result = subprocess.run(
-            [
-                sys.executable,
-                str(doctor),
-                "--root",
-                str(work),
-                "--baseline",
-                args.baseline or "HEAD",
-                "--json",
-                "--strict",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        try:
-            doctor_payload = json.loads(doctor_result.stdout)
-            doctor_findings = doctor_payload.get("findings", [])
-            doctor_detail = "; ".join(
-                f"{item.get('check')}: {item.get('detail')}"
-                for item in doctor_findings[:8]
-            )
-            if len(doctor_findings) > 8:
-                doctor_detail += f"; {len(doctor_findings) - 8} more"
-            doctor_ok = (
-                doctor_result.returncode == 0
-                and doctor_payload.get("ok") is True
-            )
-        except (json.JSONDecodeError, AttributeError):
-            doctor_ok = False
-            doctor_detail = (
-                doctor_result.stderr
-                or doctor_result.stdout
-                or "invalid doctor output"
-            )[-500:]
-        add("canon_doctor", doctor_ok, doctor_detail, required=True)
-    else:
-        add(
-            "canon_doctor",
-            False,
-            "frozen Canon doctor is missing",
-            required=True,
-        )
-
-    max_lines = expected.get("max_canon_lines", 250)
-    too_long = [
-        f"{p.relative_to(work)} ({n})"
-        for p in canon_files
-        if (n := len(p.read_text().splitlines())) > max_lines
-    ]
-    if canon_files:
-        add("canon_line_limits", not too_long, ", ".join(too_long))
-    max_bytes = expected.get("max_canon_bytes", 64 * 1024)
-    too_large = [
-        f"{path.relative_to(work)} ({path.stat().st_size})"
-        for path in canon_files if path.stat().st_size > max_bytes
-    ]
-    if canon_files:
-        add("canon_size_limits", not too_large, ", ".join(too_large))
-
     test_cmd = expected.get("test_cmd")
     if test_cmd:
         try:
@@ -503,18 +443,6 @@ def main():
             ok = any(has_python_public_binding(content, name) for content in contents.values())
             if not ok:
                 detail = f"no file matching {rule['glob']} binds public name {name!r}"
-        if ok and rule.get("manifest_labeled_route"):
-            spec = rule["manifest_labeled_route"]
-            route, label_regex = spec["path"], spec["label_regex"]
-            ok = any(
-                has_labeled_manifest_route(content, route, label_regex)
-                for content in contents.values()
-            )
-            if not ok:
-                detail = (
-                    f"no file matching {rule['glob']} routes {route!r} "
-                    f"with label /{label_regex}/"
-                )
         add(
             f"rule:{rule['id']}",
             ok,
@@ -632,7 +560,7 @@ def main():
                 "structured successful-read telemetry is unsupported",
                 outcome="unsupported")
         else:
-            domain_glob = routing.get("domain_glob", "canon/architecture/*.md")
+            domain_glob = routing.get("domain_glob", "canon/*.md")
             domain_reads = sorted({r for r in reads if fnmatch.fnmatch(r, domain_glob)})
             must = routing.get("must_read", [])
             missing = [m for m in must if m not in reads]

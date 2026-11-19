@@ -32,24 +32,14 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: uv run python -m unittest discover -s tests -p 'test_*.py' -v
 
-      - name: Validate seeded Canon fixtures
+      - name: Run seeded fixture tests
         run: |
           for fixture in evals/scenarios/*/fixture; do
-            if test -f "$fixture/canon/manifest.md"; then
-              if test "$fixture" = \
-                "evals/scenarios/09-abstention/fixture"; then
-                uv run --script tools/canon-doctor.py \
-                  --root "$fixture" --baseline HEAD --strict
-              else
-                uv run --script tools/canon-doctor.py \
-                  --root "$fixture" --strict
-              fi
-              (
-                cd "$fixture"
-                PYTHONDONTWRITEBYTECODE=1 \
-                  uv run python -m unittest discover -s . -p 'test_*.py'
-              )
-            fi
+            (
+              cd "$fixture"
+              PYTHONDONTWRITEBYTECODE=1 \
+                uv run python -m unittest discover -s . -p 'test_*.py'
+            )
           done
 
       - name: Validate shell entry points
