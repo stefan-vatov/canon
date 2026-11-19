@@ -547,11 +547,17 @@ Additional contract blocks:
 - `capture`: authenticate the exact paths and bytes matched at one step;
 - `preserve`: require a later step to retain the captured set and contents.
 
-The routing parser recognizes successful Codex JSON `cat`, `sed`, `head`, and
-`tail` reads of Canon paths (optionally wrapped by `rtk`) and Claude structured
-`Read` results. Other command readers are treated as unsupported rather than
-as proof of a missed route. If an adapter provides no supported successful-read
-telemetry, routing is recorded as `unsupported`, not passed.
+The routing parser treats telemetry as supported once any structured tool
+event parses (Codex `command_execution` items, Claude `tool_use` blocks), so a
+session that read no Canon is a measured zero, not an unknown. A Canon read is
+a successful `cat`, `sed`, `head`, `tail`, `nl`, `less`, `rg`, `grep`, `find` or
+`awk` naming a path, directory or glob under `canon/` (also inside
+`bash -lc '...'`, and as relative or absolute paths), a Claude `Read` of a
+Canon file, or a Claude `Grep` scoped to `canon/`. A directory or glob counts
+as reading every note it matches. Listing (`ls canon/`, Claude `Glob`) is not
+a read. With `"require_telemetry": true`, missing telemetry fails the check
+instead of being recorded as `unsupported`. The check detail lists the reads
+in order.
 
 Always prove a scenario is winnable: implement a correct solution by hand and
 confirm every intended mechanical check and holdout passes. Extend
@@ -564,12 +570,10 @@ fixture vocabulary.
   the floor/no-regression gates in `PLAYBOOK.md`.
 - Mechanical checks are the trustworthy core; judge scores are relative signal
   and can inherit model-family bias.
-- Codex emits structured JSON and its successful reads are mechanically
-  scorable, but `distill-transcript.py` does not yet render the current Codex
-  event shape. Codex qualitative judge input therefore contains
-  `(no events parsed)` for transcript evidence; diff, Canon, and check evidence
-  still reaches the judge. Do not rely on Codex judge scores for
-  transcript-ordering criteria until the distiller is updated.
+- `distill-transcript.py` renders Claude stream-JSON and Codex exec JSON
+  (commands, messages, file changes). Other harnesses' JSON appears as
+  `(no events parsed)`; diff, Canon, and check evidence still reaches the
+  judge.
 - Judge validation does not yet require the complete exact rubric ID set.
 - Evaluator provenance hashes the core checker, judge, summarizer, provenance,
   prompt, rubric, and adapter, but not the executed `distill-transcript.py`.

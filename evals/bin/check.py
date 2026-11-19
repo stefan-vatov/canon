@@ -32,6 +32,7 @@ import os
 import platform
 import posixpath
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -183,29 +184,130 @@ def has_python_public_binding(text, name):
     return False
 
 
-def _canon_transcript_path(raw):
-    raw = str(raw).replace("\\", "/")
-    marker = raw.rfind("/canon/")
-    candidate = raw[marker + 1:] if marker >= 0 else raw
-    if not candidate.startswith("canon/"):
+CANON_READERS = {
+    "cat", "sed", "head", "tail", "rg", "grep", "egrep", "fgrep", "find",
+    "awk", "less", "more", "nl", "bat", "view", "strings", "xxd", "od",
+}
+# Readers whose first positional argument is a pattern or program, not a file.
+PATTERN_FIRST = {"rg", "grep", "egrep", "fgrep", "awk", "sed"}
+SHELLS = {"bash", "sh", "zsh", "dash"}
+SEGMENT_SPLIT = {"&&", "||", ";", "|", "&"}
+
+
+def canon_relative(raw):
+    """Map a path argument to a ``canon/...`` path, or None outside canon/."""
+    raw = str(raw).strip().strip("'\"").replace("\\", "/")
+    while raw.startswith("./"):
+        raw = raw[2:]
+    if raw in ("canon", "canon/"):
+        return "canon/"
+    if raw.startswith("canon/"):
+        candidate = raw
+    else:
+        marker = raw.rfind("/canon/")
+        if marker >= 0:
+            candidate = raw[marker + 1:]
+        elif raw.endswith("/canon"):
+            candidate = "canon/"
+        else:
+            return None
+    if ".." in Path(candidate).parts:
         return None
-    parts = Path(candidate).parts
-    if ".." in parts or len(parts) < 2 or not candidate.endswith(".md"):
-        return None
-    return "/".join(parts)
+    return candidate
 
 
-def canon_reads_from_transcripts(transcript_dir):
-    """Return successful structured Canon reads and telemetry support.
+def expand_canon_target(target, workdir):
+    """Expand a canon/ directory or glob into the notes it reads."""
+    if target.endswith(".md") and not any(ch in target for ch in "*?["):
+        return [target]
+    pattern = target.rstrip("/")
+    if not any(ch in pattern for ch in "*?["):
+        pattern = pattern + "/*"
+    notes = []
+    if workdir is not None and (workdir / "canon").is_dir():
+        for path in sorted((workdir / "canon").rglob("*.md")):
+            rel = path.relative_to(workdir).as_posix()
+            if fnmatch.fnmatch(rel, pattern) or fnmatch.fnmatch(rel, pattern + ".md"):
+                notes.append(rel)
+    return notes or [target]
 
-    A tool request is not evidence of a read. It counts only after a matching,
-    non-error tool result appears in the structured transcript.
+
+def shell_segments(command):
+    """Split a shell command into argv lists, unwrapping ``bash -lc '...'``."""
+    try:
+        tokens = shlex.split(command, posix=True)
+    except ValueError:
+        tokens = command.split()
+    segments, current = [], []
+    for token in tokens:
+        if token in SEGMENT_SPLIT:
+            if current:
+                segments.append(current)
+            current = []
+        else:
+            current.append(token)
+    if current:
+        segments.append(current)
+    expanded = []
+    for argv in segments:
+        name = Path(argv[0]).name if argv else ""
+        if name in SHELLS and len(argv) >= 3 and argv[1].startswith("-") and "c" in argv[1]:
+            expanded.extend(shell_segments(argv[2]))
+        else:
+            expanded.append(argv)
+    return expanded
+
+
+def canon_targets_in_command(command):
+    """Return canon/ paths, directories or globs a shell command reads."""
+    targets = []
+    for argv in shell_segments(command):
+        while argv and ("=" in argv[0] and not argv[0].startswith("-")):
+            argv = argv[1:]  # leading VAR=value assignments
+        while argv and Path(argv[0]).name in ("rtk", "sudo", "command", "env", "xargs"):
+            argv = argv[1:]
+        if not argv:
+            continue
+        reader = Path(argv[0]).name
+        if reader not in CANON_READERS:
+            continue
+        positionals, explicit_pattern = [], False
+        for arg in argv[1:]:
+            if arg in ("-e", "--regexp", "-f", "--file"):
+                explicit_pattern = True
+            if arg.startswith("-"):
+                continue
+            positionals.append(arg)
+        if reader == "find":
+            paths = positionals[:1] if positionals else []
+        elif reader in PATTERN_FIRST and not explicit_pattern:
+            paths = positionals[1:]
+        else:
+            paths = positionals
+        for arg in paths:
+            target = canon_relative(arg)
+            if target:
+                targets.append(target)
+    return targets
+
+
+def canon_reads_from_transcripts(transcript_dir, workdir=None):
+    """Return ordered successful Canon reads and whether telemetry is supported.
+
+    Telemetry is supported as soon as any structured tool event parses, so a
+    session with zero Canon reads is a measured zero, not an unknown. A tool
+    request counts as a read only after a matching, non-error result.
     """
     requested, successful = {}, []
-    saw_supported_read = False
+    supported = False
     tdir = Path(transcript_dir)
     if not tdir.is_dir():
         return successful, False
+
+    def record(targets):
+        for target in targets:
+            successful.extend(expand_canon_target(target, workdir))
+
     for tf in sorted(tdir.glob("transcript*.txt")):
         for raw in tf.read_text(errors="replace").splitlines():
             raw = raw.strip()
@@ -215,36 +317,45 @@ def canon_reads_from_transcripts(transcript_dir):
                 e = json.loads(raw)
             except json.JSONDecodeError:
                 continue
+            if not isinstance(e, dict):
+                continue
             if e.get("type") == "item.completed":
                 item = e.get("item", {})
                 if item.get("type") == "command_execution":
-                    command = str(item.get("command", ""))
-                    exit_code = item.get("exit_code")
-                    first = command.strip().split(maxsplit=2)
-                    reader = first[0] if first else ""
-                    if reader == "rtk" and len(first) > 1:
-                        reader = first[1]
-                    if exit_code == 0 and reader in ("cat", "sed", "head", "tail"):
-                        matches = list(re.finditer(
-                            r"(?<![A-Za-z0-9_./-])(canon/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.md)"
-                            r"(?![A-Za-z0-9_./-])",
-                            command,
-                        ))
-                        if matches:
-                            saw_supported_read = True
-                        for match in matches:
-                            successful.append(match.group(1))
-            for b in e.get("message", {}).get("content", []):
-                if b.get("type") == "tool_use" and b.get("name") == "Read":
-                    path = _canon_transcript_path(b.get("input", {}).get("file_path", ""))
-                    if path and b.get("id"):
-                        requested[b["id"]] = path
+                    supported = True
+                    if item.get("exit_code") == 0:
+                        record(canon_targets_in_command(str(item.get("command", ""))))
+            message = e.get("message", {})
+            content = message.get("content", []) if isinstance(message, dict) else []
+            if not isinstance(content, list):
+                continue
+            for b in content:
+                if not isinstance(b, dict):
+                    continue
+                if b.get("type") == "tool_use":
+                    supported = True
+                    name, inp = b.get("name"), b.get("input", {}) or {}
+                    targets = []
+                    if name == "Read":
+                        target = canon_relative(inp.get("file_path", ""))
+                        targets = [target] if target else []
+                    elif name == "Grep":
+                        target = canon_relative(inp.get("path", "")) if inp.get("path") else None
+                        if target:
+                            glob = inp.get("glob")
+                            if glob and target == "canon/":
+                                target = "canon/" + glob.lstrip("/")
+                            targets = [target]
+                    elif name == "Bash":
+                        targets = canon_targets_in_command(str(inp.get("command", "")))
+                    # Glob lists files like `ls`; listing canon/ is allowed.
+                    if targets and b.get("id"):
+                        requested[b["id"]] = targets
                 elif b.get("type") == "tool_result":
-                    path = requested.get(b.get("tool_use_id"))
-                    if path and not b.get("is_error", False):
-                        saw_supported_read = True
-                        successful.append(path)
-    return successful, saw_supported_read
+                    targets = requested.pop(b.get("tool_use_id"), None)
+                    if targets and not b.get("is_error", False):
+                        record(targets)
+    return successful, supported
 
 
 def file_digest(path):
@@ -586,11 +697,12 @@ def main():
     # explicit unsupported outcome rather than a pass or failure.
     routing = expected.get("routing")
     if routing and args.transcript_dir:
-        reads, supported = canon_reads_from_transcripts(args.transcript_dir)
+        reads, supported = canon_reads_from_transcripts(args.transcript_dir, work)
         if not supported:
             add("routing_precision", False,
-                "structured successful-read telemetry is unsupported",
-                outcome="unsupported")
+                "structured tool telemetry is unsupported",
+                outcome="fail" if routing.get("require_telemetry") else "unsupported",
+                required=bool(routing.get("require_telemetry")))
         else:
             domain_glob = routing.get("domain_glob", "canon/*.md")
             domain_reads = sorted({r for r in reads if fnmatch.fnmatch(r, domain_glob)})
@@ -598,12 +710,14 @@ def main():
             missing = [m for m in must if m not in reads]
             max_domains = routing.get("max_domain_reads", 2)
             ok = not missing and len(domain_reads) <= max_domains
-            detail = ""
+            order = ", ".join(reads) if reads else "none"
             if missing:
-                detail = f"never read required: {', '.join(missing)}"
+                detail = f"never read required: {', '.join(missing)}; reads in order: {order}"
             elif len(domain_reads) > max_domains:
-                detail = (f"bulk-loaded {len(domain_reads)} domain docs "
-                          f"(max {max_domains}): {', '.join(domain_reads)}")
+                detail = (f"read {len(domain_reads)} Canon notes "
+                          f"(max {max_domains}); reads in order: {order}")
+            else:
+                detail = f"reads in order: {order}"
             add("routing_precision", ok, detail, required=True)
 
     holdout = expected.get("holdout")

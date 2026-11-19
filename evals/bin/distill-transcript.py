@@ -4,11 +4,10 @@
 # ///
 """Distill a transcript into a compact, ordered action log for the judge.
 
-The supported stream-JSON event shape is distilled into tool calls, assistant
-text, and brief results so ordering evidence survives. Plain-text transcripts
-are passed through. Other JSON event shapes produce ``(no events parsed)``;
-in particular, Codex JSON is currently available to the mechanical routing
-checker but is not yet rendered into the qualitative judge transcript.
+Claude stream-JSON and Codex exec JSON events are distilled into tool calls,
+commands, assistant text, and brief results so ordering evidence (including
+which Canon notes were read, and when) survives. Plain-text transcripts are
+passed through. Other JSON event shapes produce ``(no events parsed)``.
 
 Usage: distill-transcript.py FILE [max_chars]
 """
@@ -65,6 +64,25 @@ def distill_stream_json(lines):
                         out.append(f"[result] {short(body, 80)}")
         elif etype == "result":
             out.append("[session end]")
+        elif etype == "thread.started":
+            out.append("[session start]")
+        elif etype == "turn.completed":
+            out.append("[session end]")
+        elif etype == "item.completed":
+            item = e.get("item", {})
+            itype = item.get("type")
+            if itype == "agent_message" and str(item.get("text", "")).strip():
+                out.append(f"[say] {short(item['text'], 240)}")
+            elif itype == "reasoning" and str(item.get("text", "")).strip():
+                out.append(f"[think] {short(item['text'], 140)}")
+            elif itype == "command_execution":
+                out.append(
+                    f"[cmd] {short(item.get('command', ''), 160)} "
+                    f"(exit {item.get('exit_code')})"
+                )
+            elif itype == "file_change":
+                paths = [c.get("path", "?") for c in item.get("changes", []) if isinstance(c, dict)]
+                out.append(f"[edit] {short(', '.join(paths), 160)}")
     return out
 
 

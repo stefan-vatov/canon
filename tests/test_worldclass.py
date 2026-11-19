@@ -159,59 +159,86 @@ class EvalIntegrityTests(unittest.TestCase):
                            if row["id"] == "routing_precision")
             self.assertEqual(routing["outcome"], "unsupported")
 
-    def test_unknown_command_reader_is_unsupported_not_a_false_miss(self) -> None:
+    def routing_check(self, events: list[dict], routing: dict) -> dict:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             git(root, "init", "-q", "--template=")
             git(root, "config", "user.email", "test@example.invalid")
             git(root, "config", "user.name", "Test")
-            write(root / ".gitignore", "canon/scratch/\n")
-            write(root / "canon/pricing.md", "# Pricing\n")
+            for name in ("pricing", "billing", "tax"):
+                write(root / f"canon/{name}.md", f"# {name}\n")
+            write(root / "app.py", "VALUE = 1\n")
             git(root, "add", "-A")
-            git(
-                root,
-                "-c",
-                "commit.gpgsign=false",
-                "commit",
-                "-qm",
-                "baseline",
-            )
+            git(root, "-c", "commit.gpgsign=false", "commit", "-qm", "baseline")
             expected = root / "expected.json"
-            write(expected, json.dumps({
-                "routing": {"must_read": ["canon/pricing.md"]}
-            }))
+            write(expected, json.dumps({"routing": routing}))
             transcripts = root / "transcripts"
             transcripts.mkdir()
-            event = {
-                "type": "item.completed",
-                "item": {
-                    "type": "command_execution",
-                    "command": "nl canon/pricing.md",
-                    "exit_code": 0,
-                },
-            }
-            write(transcripts / "transcript.txt", json.dumps(event) + "\n")
+            write(transcripts / "transcript.txt",
+                  "".join(json.dumps(event) + "\n" for event in events))
             out = root / "checks.json"
-            run(
-                sys.executable,
-                str(ROOT / "evals/bin/check.py"),
-                "--workdir",
-                str(root),
-                "--expected",
-                str(expected),
-                "--out",
-                str(out),
-                "--transcript-dir",
-                str(transcripts),
-                cwd=ROOT,
-            )
+            run(sys.executable, str(ROOT / "evals/bin/check.py"), "--workdir", str(root),
+                "--expected", str(expected), "--out", str(out),
+                "--transcript-dir", str(transcripts), cwd=ROOT)
+            return next(row for row in json.loads(out.read_text())["checks"]
+                        if row["id"] == "routing_precision")
 
-            routing = next(
-                row
-                for row in json.loads(out.read_text())["checks"]
-                if row["id"] == "routing_precision"
-            )
-            self.assertEqual(routing["outcome"], "unsupported")
+    @staticmethod
+    def codex(command: str, exit_code: int = 0) -> dict:
+        return {"type": "item.completed", "item": {
+            "type": "command_execution", "command": command, "exit_code": exit_code}}
+
+    @staticmethod
+    def claude(tool: str, tool_input: dict, error: bool = False) -> list[dict]:
+        return [
+            {"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "id": "t1", "name": tool, "input": tool_input}]}},
+            {"type": "user", "message": {"content": [
+                {"type": "tool_result", "tool_use_id": "t1", "is_error": error}]}},
+        ]
+
+    def test_zero_canon_reads_is_a_measured_pass(self) -> None:
+        cold = {"domain_glob": "canon/*", "max_domain_reads": 0, "require_telemetry": True}
+        row = self.routing_check(
+            [self.codex("ls canon/"), self.codex("cat app.py")], cold)
+        self.assertEqual(row["outcome"], "pass", row)
+        self.assertIn("none", row["detail"])
+
+    def test_cold_start_requires_telemetry(self) -> None:
+        cold = {"domain_glob": "canon/*", "max_domain_reads": 0, "require_telemetry": True}
+        row = self.routing_check([], cold)
+        self.assertEqual(row["outcome"], "fail", row)
+        self.assertTrue(row["required"])
+
+    def test_canon_reads_are_detected_in_every_common_form(self) -> None:
+        cold = {"domain_glob": "canon/*", "max_domain_reads": 0}
+        for events in (
+            [self.codex("cat canon/*.md")],
+            [self.codex("rg -n retry canon")],
+            [self.codex("bash -lc 'cat canon/pricing.md'")],
+            [self.codex("nl ./canon/pricing.md | head")],
+            [self.codex("grep -r fee canon/ && echo done")],
+            self.claude("Read", {"file_path": "/tmp/ws/canon/pricing.md"}),
+            self.claude("Bash", {"command": "sed -n 1,20p canon/tax.md"}),
+            self.claude("Grep", {"pattern": "fee", "path": "canon"}),
+        ):
+            with self.subTest(events=events):
+                row = self.routing_check(events, cold)
+                self.assertEqual(row["outcome"], "fail", row)
+
+    def test_failed_or_listing_commands_are_not_reads(self) -> None:
+        cold = {"domain_glob": "canon/*", "max_domain_reads": 0}
+        events = [self.codex("cat canon/missing.md", exit_code=1), self.codex("ls canon")]
+        events += self.claude("Read", {"file_path": "canon/pricing.md"}, error=True)
+        self.assertEqual(self.routing_check(events, cold)["outcome"], "pass")
+
+    def test_bulk_read_fails_routing_and_targeted_read_passes(self) -> None:
+        routing = {"domain_glob": "canon/*.md", "must_read": ["canon/pricing.md"],
+                   "max_domain_reads": 2}
+        bulk = self.routing_check([self.codex("cat canon/*.md")], routing)
+        self.assertEqual(bulk["outcome"], "fail", bulk)
+        targeted = self.routing_check([self.codex("cat canon/pricing.md")], routing)
+        self.assertEqual(targeted["outcome"], "pass", targeted)
 
     def test_eval_checker_imposes_no_canon_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

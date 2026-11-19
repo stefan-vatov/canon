@@ -8,7 +8,8 @@
   "routing": {
     "domain_glob": "canon/*",
     "must_read": [],
-    "max_domain_reads": 0
+    "max_domain_reads": 0,
+    "require_telemetry": true
   },
   "rules": [
     {
