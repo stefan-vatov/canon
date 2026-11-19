@@ -70,6 +70,7 @@ if [[ -f "$FROZEN_SCENARIO/fixture/PROJECT.md" ]]; then
     cat "$FROZEN_SCENARIO/fixture/PROJECT.md"
     printf '\n<!-- BEGIN PROJECT CANON -->\n'
     cat "$FROZEN_GUIDANCE"
+    [[ -z "$(tail -c 1 "$FROZEN_GUIDANCE")" ]] || printf '\n'
     printf '<!-- END PROJECT CANON -->\n'
   } > "$INSTRUCTIONS"
   cp "$INSTRUCTIONS" "$OUT/instructions-used.md"
@@ -119,6 +120,10 @@ for i in $(seq 1 "$RUNS"); do
     AGENT_STATUS=failed; RUN_FAILED=1
   fi
   git -C "$WORK" init -q --template=
+  # Let the agent commit: decision tasks ask for the reason in a commit body.
+  git -C "$WORK" config user.email eval@local
+  git -C "$WORK" config user.name eval
+  git -C "$WORK" config commit.gpgsign false
   git -C "$WORK" -c user.email=eval@local -c user.name=eval add -A
   git -C "$WORK" -c user.email=eval@local -c user.name=eval \
     -c commit.gpgsign=false commit -qm baseline
@@ -126,11 +131,12 @@ for i in $(seq 1 "$RUNS"); do
   uv run --script "$PROVENANCE" run-start \
     --run "$RUN" --index "$i" --batch-id "$BATCH_ID" --baseline "$BASELINE"
 
-  run_check() { # expected_json out_json
-    local expected_json="$1" out_json="$2"
+  run_check() { # expected_json out_json answer_transcript
+    local expected_json="$1" out_json="$2" answer_transcript="$3"
     if uv run --script "$CHECKER" \
       --workdir "$WORK" --expected "$expected_json" --out "$out_json" \
-      --transcript-dir "$RUN" --baseline "$BASELINE" \
+      --transcript-dir "$RUN" --answer-transcript "$answer_transcript" \
+      --baseline "$BASELINE" \
       --state-dir "$STATE" --state-key "$STATE_KEY"; then
       CHECK_FILES+=("$out_json")
     else
@@ -149,7 +155,7 @@ for i in $(seq 1 "$RUNS"); do
         AGENT_STATUS=failed; RUN_FAILED=1
       fi
       if [[ -f "$STEP_DIR/expected.json" ]]; then
-        run_check "$STEP_DIR/expected.json" "$RUN/checks-$STEP.json"
+        run_check "$STEP_DIR/expected.json" "$RUN/checks-$STEP.json" "$TRANSCRIPT"
       fi
     done
     : > "$RUN/transcript.txt"
@@ -158,7 +164,7 @@ for i in $(seq 1 "$RUNS"); do
       sed -n '1,$p' "$transcript" >> "$RUN/transcript.txt"
     done
     [[ -f "$FROZEN_SCENARIO/expected.json" ]] && \
-      run_check "$FROZEN_SCENARIO/expected.json" "$RUN/checks.json"
+      run_check "$FROZEN_SCENARIO/expected.json" "$RUN/checks.json" "$TRANSCRIPT"
   else
     PRIVATE_TASK="$PRIVATE_STATE/task-$i.md"
     cp "$FROZEN_SCENARIO/task.md" "$PRIVATE_TASK"
@@ -167,7 +173,7 @@ for i in $(seq 1 "$RUNS"); do
     if ! "$ADAPTER" run; then
       AGENT_STATUS=failed; RUN_FAILED=1
     fi
-    run_check "$FROZEN_SCENARIO/expected.json" "$RUN/checks.json"
+    run_check "$FROZEN_SCENARIO/expected.json" "$RUN/checks.json" "$RUN/transcript.txt"
   fi
 
   JUDGE_FILE=""

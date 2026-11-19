@@ -47,6 +47,15 @@
       "description": "no decision record, log, register or ADR anywhere"
     },
     {
+      "id": "no_adr_records",
+      "glob": "*adr*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no ADR directory or ADR files anywhere"
+    },
+    {
       "id": "no_metadata",
       "glob": "canon/*.md",
       "exclude_globs": [

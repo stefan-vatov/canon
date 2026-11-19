@@ -15,6 +15,8 @@ checks.json with one pass/fail entry per check. Checks:
                         must_regex / forbid_regex, narrowed by exclude_globs;
                         search_commit_messages lets must_regex also match
                         commit messages written after the baseline)
+  answer                the session's final answer matches a regex (a
+                        recommendation, an abstention)
   routing_precision     which canon notes the agent read, from structured
                         transcript telemetry
   holdout_pass          hidden tests the agent never saw, copied in from the
@@ -102,6 +104,39 @@ def changed_files(workdir, baseline):
                    capture_output=True, check=True)
     out = git(workdir, "diff", "--cached", "--name-only", baseline)
     return [line for line in out.splitlines() if line.strip()]
+
+
+def final_answer(transcript):
+    """Return the agent's final answer from one session transcript, or ""."""
+    path = Path(transcript) if transcript else None
+    if path is None or not path.is_file():
+        return ""
+    text = path.read_text(errors="replace")
+    answer, saw_json = "", False
+    for raw in text.splitlines():
+        raw = raw.strip()
+        if not raw.startswith("{"):
+            continue
+        try:
+            event = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        saw_json = True
+        if event.get("type") == "result" and isinstance(event.get("result"), str):
+            answer = event["result"]
+        elif event.get("type") == "item.completed":
+            item = event.get("item", {})
+            if item.get("type") == "agent_message" and isinstance(item.get("text"), str):
+                answer = item["text"]
+        elif event.get("type") == "assistant":
+            content = event.get("message", {}).get("content", [])
+            texts = [b.get("text", "") for b in content
+                     if isinstance(b, dict) and b.get("type") == "text"]
+            if any(t.strip() for t in texts):
+                answer = "\n".join(texts)
+    return answer if saw_json else text[-4000:]
 
 
 def commit_messages_since(workdir, baseline):
@@ -482,6 +517,8 @@ def main():
     ap.add_argument("--workdir", required=True)
     ap.add_argument("--expected", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--answer-transcript", default=None,
+                    help="transcript of the session just checked, for answer rules")
     ap.add_argument("--transcript-dir", default=None,
                     help="dir holding transcript*.txt, for routing checks")
     ap.add_argument("--baseline", default=None,
@@ -537,6 +574,7 @@ def main():
         )
 
     commit_messages = None
+    answer_text = final_answer(args.answer_transcript)
     for rule in expected.get("rules", []):
         files = selected_files(work, rule["glob"], rule.get("exclude_globs", []))
         contents = {p: p.read_text(errors="replace") for p in files}
@@ -557,10 +595,17 @@ def main():
             ok = any(re.search(rule["must_regex"], c) for c in contents.values())
             if not ok and rule.get("search_commit_messages"):
                 if commit_messages is None:
-                    commit_messages = commit_messages_since(work, args.baseline)
+                    # A harness whose sandbox forbids commits (Codex keeps .git
+                    # read-only) gets credit for the message it proposes.
+                    transcripts = sorted(Path(args.transcript_dir).glob("transcript-*.txt")) \
+                        if args.transcript_dir else []
+                    proposed = "\n".join(final_answer(t) for t in transcripts)
+                    commit_messages = (commit_messages_since(work, args.baseline)
+                                       + "\n" + proposed + "\n" + answer_text)
                 ok = bool(re.search(rule["must_regex"], commit_messages))
             if not ok:
-                where = " or a commit message" if rule.get("search_commit_messages") else ""
+                where = (" or a commit message (made or proposed)"
+                         if rule.get("search_commit_messages") else "")
                 detail = (f"no file matching {rule['glob']}{where} "
                           f"contains /{rule['must_regex']}/")
         if ok and rule.get("forbid_regex"):
@@ -590,6 +635,17 @@ def main():
             ok,
             detail or rule.get("description", ""),
             required=bool(rule.get("required", True)),
+        )
+
+    answer = expected.get("answer")
+    if answer:
+        ok = bool(answer_text.strip()) and bool(re.search(answer["must_regex"], answer_text))
+        add(
+            "answer",
+            ok,
+            "" if ok else (answer.get("description") or
+                           f"final answer does not match /{answer['must_regex']}/"),
+            required=bool(answer.get("required", True)),
         )
 
     state_dir = Path(args.state_dir).resolve() if args.state_dir else None

@@ -164,8 +164,9 @@ There is deliberately no default judge. `JUDGE_CMD` is executed as:
 The command contract is:
 
 - **stdin:** UTF-8 Markdown containing the judge instructions, rubric, task or
-  ordered tasks, staged diff, final permanent Canon files, mechanical check
-  JSON, and a distilled transcript;
+  ordered tasks, the fixture's project rules, staged diff, the agent's commit
+  messages, each session's final answer, final permanent Canon files,
+  mechanical check JSON, and a distilled transcript;
 - **stdout:** one JSON object and nothing else—no Markdown fence or commentary;
 - **stderr:** diagnostics only; they are retained in `judge-err.txt`;
 - **exit:** zero on success; a nonzero exit fails the run and batch;
@@ -537,12 +538,15 @@ also set `"forbid_python_floats": true` to reject float/complex literals,
 `"python_public_binding": "NAME"` to require a top-level assignment or import
 that exposes that module name. Behavioral holdouts should still verify the
 bound value and contract. `"search_commit_messages": true` lets a `must_regex`
-also match the messages of commits the agent made after the baseline, so a
-reason given in a commit body counts as kept.
+also match the messages of commits the agent made after the baseline, or the
+commit message it proposes in a final answer when its harness cannot commit,
+so a reason given in a commit body counts as kept.
 
 Additional contract blocks:
 
 - `holdout`: copy hidden tests into a disposable workspace and run them there;
+- `answer`: require the session's final answer to match `must_regex`, for a
+  recommendation that must apply a recorded reason;
 - `routing`: require successful structured reads of named notes and cap reads of the rest (`max_domain_reads: 0` asserts a task read no Canon);
 - `capture`: authenticate the exact paths and bytes matched at one step;
 - `preserve`: require a later step to retain the captured set and contents.
@@ -570,6 +574,11 @@ fixture vocabulary.
   the floor/no-regression gates in `PLAYBOOK.md`.
 - Mechanical checks are the trustworthy core; judge scores are relative signal
   and can inherit model-family bias.
+- The Codex adapter runs `--sandbox workspace-write`, which keeps `.git`
+  read-only, so Codex sessions cannot commit. Decision tasks therefore ask
+  for the proposed commit message in the final answer, and both the checker
+  and the judge accept it. Claude and Pi sessions can commit; the runner sets
+  a local Git identity in each workspace.
 - `distill-transcript.py` renders Claude stream-JSON and Codex exec JSON
   (commands, messages, file changes). Other harnesses' JSON appears as
   `(no events parsed)`; diff, Canon, and check evidence still reaches the

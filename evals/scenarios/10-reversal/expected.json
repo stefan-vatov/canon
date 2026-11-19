@@ -50,6 +50,15 @@
       ],
       "max_matching_files": 0,
       "description": "no decision record, log, register or ADR anywhere"
+    },
+    {
+      "id": "no_adr_records",
+      "glob": "*adr*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no ADR directory or ADR files anywhere"
     }
   ],
   "preserve": [
@@ -61,5 +70,6 @@
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t10f"
-  }
+  },
+  "diff_scope_required": true
 }

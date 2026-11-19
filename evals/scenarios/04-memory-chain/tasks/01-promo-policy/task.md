@@ -9,4 +9,8 @@ code. A "campaign" is a named group of promos that share one expiry date.
 Implement `apply_promo(total_cents, percent)` in orders.py: it returns the
 discounted total in cents (rounding down), raising ValueError for percents
 outside the allowed range. Add tests.
+
+Commit your change with a message that says why. If you cannot commit, end
+your answer with the commit message you would have used.
+
 <!-- Co-Authored-By: Claude Fable 5 <noreply@anthropic.com> -->

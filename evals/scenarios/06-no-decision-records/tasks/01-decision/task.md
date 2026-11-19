@@ -6,4 +6,8 @@ timezones were impossible to correlate.
 Implement `format_timestamp(dt)` in reports.py: accepts a timezone-aware
 datetime, converts to UTC, returns the "YYYY-MM-DDTHH:MM:SSZ" string. Naive
 datetimes raise ValueError. Add tests.
+
+Commit your change with a message that says why. If you cannot commit, end
+your answer with the commit message you would have used.
+
 <!-- Co-Authored-By: Claude Fable 5 <noreply@anthropic.com> -->

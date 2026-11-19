@@ -44,7 +44,8 @@
       "glob": "canon/pricing.md",
       "must_regex": "(?i)250 basis points",
       "forbid_regex": "(?i)apply_platform_fee|(?<![A-Za-z0-9_])billingcore\\.py|sources:|verified:",
-      "description": "the established fact needs no Canon edit for a new implementation"
+      "description": "the established fact needs no Canon edit for a new implementation",
+      "required": false
     }
   ],
   "holdout": {

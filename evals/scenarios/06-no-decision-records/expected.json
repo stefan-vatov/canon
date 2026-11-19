@@ -27,6 +27,15 @@
       "description": "no decision record, log, register or ADR anywhere"
     },
     {
+      "id": "no_adr_records",
+      "glob": "*adr*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no ADR directory or ADR files anywhere"
+    },
+    {
       "id": "no_history_in_canon",
       "glob": "canon/*.md",
       "exclude_globs": [
@@ -45,5 +54,6 @@
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t06f"
-  }
+  },
+  "diff_scope_required": true
 }

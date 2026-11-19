@@ -72,7 +72,7 @@ class JudgePromptBoundaryTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             prompt = capture.read_bytes()
             marker = b"## Agent's diff against the baseline\n```diff\n"
-            payload = prompt.split(marker, 1)[1].split(b"```\n\n## Canon files", 1)[0]
+            payload = prompt.split(marker, 1)[1].split(b"```\n\n## Commit messages", 1)[0]
             self.assertEqual(payload, expected[:30_000])
             self.assertEqual(list(run_dir.glob(".judge-diff.*")), [])
 

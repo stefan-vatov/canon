@@ -65,6 +65,15 @@
       "description": "a reversal creates no decision or supersession record"
     },
     {
+      "id": "no_adr_records",
+      "glob": "*adr*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no ADR directory or ADR files anywhere"
+    },
+    {
       "id": "no_metadata",
       "glob": "canon/*.md",
       "exclude_globs": [
@@ -87,5 +96,6 @@
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t10b"
-  }
+  },
+  "diff_scope_required": true
 }

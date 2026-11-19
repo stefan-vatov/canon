@@ -9,7 +9,10 @@ commands, assistant text, and brief results so ordering evidence (including
 which Canon notes were read, and when) survives. Plain-text transcripts are
 passed through. Other JSON event shapes produce ``(no events parsed)``.
 
-Usage: distill-transcript.py FILE [max_chars]
+Usage: distill-transcript.py FILE [max_chars] [--final]
+
+With --final, print only the session's final answer (Claude's result event,
+Codex's last agent message, or the tail of a plain-text transcript).
 """
 import json
 import sys
@@ -86,12 +89,43 @@ def distill_stream_json(lines):
     return out
 
 
+def final_answer(text):
+    answer, saw_json = "", False
+    for raw in text.splitlines():
+        raw = raw.strip()
+        if not raw.startswith("{"):
+            continue
+        try:
+            e = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(e, dict):
+            continue
+        saw_json = True
+        if e.get("type") == "result" and isinstance(e.get("result"), str):
+            answer = e["result"]
+        elif e.get("type") == "item.completed":
+            item = e.get("item", {})
+            if item.get("type") == "agent_message" and isinstance(item.get("text"), str):
+                answer = item["text"]
+        elif e.get("type") == "assistant":
+            texts = [b.get("text", "") for b in e.get("message", {}).get("content", [])
+                     if isinstance(b, dict) and b.get("type") == "text"]
+            if any(t.strip() for t in texts):
+                answer = "\n".join(texts)
+    return answer if saw_json else text[-MAX:]
+
+
 def main():
     path = Path(sys.argv[1])
     if not path.is_file():
         print("(transcript missing)")
         return 0
     text = path.read_text(errors="replace")
+    if "--final" in sys.argv[3:]:
+        answer = final_answer(text).strip() or "(no final answer)"
+        print(answer[-MAX:])
+        return 0
     stripped = text.lstrip()
     is_json_lines = stripped.startswith("{") and '"type"' in stripped[:2000]
 

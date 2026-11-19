@@ -5,3 +5,6 @@ disagree by a cent.
 
 Enforce it in `ledger.post(account, amount)`: a float, a bool or any other
 non-integer amount raises ValueError. Add tests.
+
+Commit your change with a message that says why. If you cannot commit, end
+your answer with the commit message you would have used.

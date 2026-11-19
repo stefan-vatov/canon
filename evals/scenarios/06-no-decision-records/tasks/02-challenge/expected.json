@@ -9,6 +9,15 @@
       ],
       "max_matching_files": 0,
       "description": "a challenge to a settled topic creates no record either"
+    },
+    {
+      "id": "no_adr_records",
+      "glob": "*adr*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no ADR directory or ADR files anywhere"
     }
   ],
   "preserve": [
@@ -24,5 +33,9 @@
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t06c"
+  },
+  "answer": {
+    "must_regex": "(?is)(?=.*\\bUTC\\b)(?=.*(ticket|correlat))",
+    "description": "the recommendation retrieves and applies the ticket-correlation reason for UTC"
   }
 }

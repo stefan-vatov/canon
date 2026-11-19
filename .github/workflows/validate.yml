@@ -43,4 +43,7 @@ jobs:
           done
 
       - name: Validate shell entry points
-        run: bash -n evals/bin/*.sh evals/adapters/*.sh
+        run: |
+          for f in evals/bin/*.sh evals/adapters/*.sh; do
+            bash -n "$f"
+          done

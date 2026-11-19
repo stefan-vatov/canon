@@ -21,8 +21,8 @@
       "exclude_globs": [
         "canon/scratch/*"
       ],
-      "forbid_regex": "(?i)every session expires after exactly 30 minutes",
-      "description": "the task never mentioned documentation, yet the sentence it made false is fixed or deleted"
+      "forbid_regex": "(?i)(expire|expiry|expires|timeout|inactiv)[^.\\n]{0,60}(30|thirty)[ -]minutes?|(30|thirty)[ -]minutes?[^.\\n]{0,60}(expire|expiry|expires|inactiv)|half[- ]an?[- ]hour|half-hour",
+      "description": "no sentence, however phrased, still claims a fixed half-hour expiry"
     },
     {
       "id": "cross_owner_fact_kept",
@@ -65,6 +65,15 @@
       ],
       "max_matching_files": 0,
       "description": "no decision record, log, register or ADR anywhere"
+    },
+    {
+      "id": "no_adr_records",
+      "glob": "*adr*",
+      "exclude_globs": [
+        "*.py"
+      ],
+      "max_matching_files": 0,
+      "description": "no ADR directory or ADR files anywhere"
     },
     {
       "id": "no_metadata",
