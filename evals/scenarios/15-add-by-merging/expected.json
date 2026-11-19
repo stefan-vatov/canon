@@ -48,8 +48,17 @@
       "exclude_globs": [
         "canon/scratch/*"
       ],
-      "must_regex": "(?is)(integer|whole)[^.\\n]{0,80}cents.{0,400}round|round.{0,400}(integer|whole)[^.\\n]{0,80}cents",
-      "description": "the integer-cents rule and its rounding reason appear together"
+      "must_regex": "(?is)(integer|whole)[^.]{0,80}?cents.{0,400}round|round.{0,400}(integer|whole)[^.]{0,80}?cents",
+      "description": "first filter: the integer-cents rule and its rounding reason appear together"
+    },
+    {
+      "id": "rejection_stated",
+      "glob": "canon/*.md",
+      "exclude_globs": [
+        "canon/scratch/*"
+      ],
+      "must_regex": "(?i)reject|never\\s+round",
+      "description": "first filter: the note says non-integer amounts are rejected, not rounded"
     },
     {
       "id": "no_contrary_rule",
@@ -57,8 +66,8 @@
       "exclude_globs": [
         "canon/scratch/*"
       ],
-      "forbid_regex": "(?i)\\bdollars\\b|always round",
-      "description": "no note states a rule contrary to the owner's"
+      "forbid_regex": "(?i)\\balways round",
+      "description": "first filter: no note tells agents to round"
     },
     {
       "id": "canon_did_not_grow",
@@ -100,5 +109,11 @@
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t15"
-  }
+  },
+  "judge_required": [
+    {
+      "id": "guarantees_survive_and_cents_rule_with_reason",
+      "criterion": "Against the fixture notes, every seeded live guarantee (append-only journal with derived balances, issued invoice totals never edited and gapless numbering, server-side logout revocation, server-ordered offline sync rejecting stale versions) survives without being weakened or reversed, and the owner's rule that money crossing a module boundary is integer cents, rejected rather than rounded, appears with its reason (rounding at different boundaries made the ledger and invoices disagree). The note count stays within the owner's budget of five."
+    }
+  ]
 }

@@ -269,6 +269,21 @@ def validate_judge(path: Path) -> tuple[dict, float]:
     return judge, score
 
 
+def required_judge_criteria(scenario_inputs: Path) -> list[str]:
+    """IDs of the scenario's required judge criteria, from its expected.json."""
+    expected = scenario_inputs / "expected.json"
+    if not expected.is_file() or expected.is_symlink():
+        return []
+    data = json.loads(expected.read_text())
+    entries = data.get("judge_required", []) if isinstance(data, dict) else []
+    ids = []
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("id"), str) or not entry["id"]:
+            raise InvalidResult("invalid judge_required entry in scenario expected.json")
+        ids.append(entry["id"])
+    return ids
+
+
 def summarize(result_dir: Path) -> dict:
     result_dir = result_dir.resolve()
     manifest = read_object(result_dir / "manifest.json")
@@ -339,6 +354,7 @@ def summarize(result_dir: Path) -> dict:
     judge_requested = judge_declaration["status"] == "requested"
     rows, failed_checks, unsupported, judge_notes = [], {}, {}, []
     all_required = True
+    required_judge = required_judge_criteria(scenario_inputs)
     for index, run_name in enumerate(expected_runs, 1):
         run = result_dir / run_name
         receipt = read_object(run / "receipt.json")
@@ -395,6 +411,14 @@ def summarize(result_dir: Path) -> dict:
             sum(check["outcome"] == "pass" for check in measured) / len(measured), 3
         )
         run_required = all(required_flags)
+        if required_judge:
+            # Meaning-based scenarios: regex checks are only a first filter;
+            # a full pass needs the judge to grade each scenario criterion 1.
+            scores = {c["id"]: c.get("score") for c in (judge or {}).get("criteria", [])}
+            unmet = [cid for cid in required_judge if scores.get(cid) != 1]
+            for cid in unmet:
+                failed_checks.setdefault(f"judge-required:{cid}", []).append(run_name)
+            run_required = run_required and not unmet
         all_required = all_required and run_required
         rows.append((run_name, mechanical, judge_score, run_required))
         for step, check in all_checks:

@@ -66,11 +66,14 @@ class EvalIntegrityTests(unittest.TestCase):
         }
 
     def make_result(self, root: Path, *, judge: bool = False,
-                    agent_status: str = "completed") -> Path:
+                    agent_status: str = "completed", scenario_expected=None,
+                    judge_criteria=None) -> Path:
         result, run_dir = root, root / "run-1"
         run_dir.mkdir(parents=True)
         write(result / "guidance-used.md", "guidance\n")
         write(result / "inputs/scenario/task.md", "task\n")
+        if scenario_expected is not None:
+            write(result / "inputs/scenario/expected.json", json.dumps(scenario_expected))
         retained_checker = result / "inputs/evaluator/evals/bin/check.py"
         write(retained_checker, "# frozen checker\n")
         manifest = {
@@ -85,7 +88,10 @@ class EvalIntegrityTests(unittest.TestCase):
         write(run_dir / "checks.json", json.dumps(self.check_payload()))
         judge_spec = None
         if judge:
-            payload = {"criteria": [{"id": "quality", "score": 1}], "judge_score": 1.0}
+            criteria = judge_criteria or [{"id": "quality", "score": 1, "reason": ""}]
+            scores = [c["score"] for c in criteria if c["score"] is not None]
+            payload = {"criteria": criteria, "notes": "",
+                       "judge_score": round(sum(scores) / len(scores), 3)}
             write(run_dir / "judge.json", json.dumps(payload))
             judge_spec = {"path": "judge.json", "sha256": digest(run_dir / "judge.json")}
         receipt = {
@@ -117,6 +123,21 @@ class EvalIntegrityTests(unittest.TestCase):
             summary = json.loads((result / "summary.json").read_text())
             self.assertTrue(summary["complete"])
             self.assertEqual(summary["mechanical_mean"], 1.0)
+
+    def test_required_judge_criteria_gate_a_full_pass(self) -> None:
+        expected = {"judge_required": [{"id": "meaning_kept", "criterion": "..."}]}
+        for criteria, passes in (
+            ([{"id": "quality", "score": 1, "reason": ""}], False),
+            ([{"id": "meaning_kept", "score": 0, "reason": ""}], False),
+            ([{"id": "meaning_kept", "score": 1, "reason": ""}], True),
+        ):
+            with self.subTest(criteria=criteria), tempfile.TemporaryDirectory() as directory:
+                result = self.make_result(Path(directory), judge=True,
+                                          scenario_expected=expected,
+                                          judge_criteria=criteria)
+                self.summarize(result)
+                summary = json.loads((result / "summary.json").read_text())
+                self.assertEqual(summary["pass_all_required"], passes, summary["failed"])
 
     def test_corrupt_judge_failed_agent_and_digest_mismatch_reject(self) -> None:
         for mode in ("judge", "agent", "digest"):

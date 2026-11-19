@@ -34,6 +34,20 @@ git -C "$WORK" diff --cached "$BASELINE" > "$DIFF_TMP"
   else
     echo; echo "## Task given to the agent"; cat "$SCEN/task.md"
   fi
+  if [[ -f "$SCEN/expected.json" ]]; then
+    uv run python - "$SCEN/expected.json" <<'PYEOF'
+import json, sys
+entries = json.load(open(sys.argv[1])).get("judge_required", [])
+if entries:
+    print()
+    print("## Scenario criteria (required)")
+    print("Score each of these too, with the same JSON shape and these exact ids.")
+    print("A full pass of this scenario needs every one scored 1; regex checks only")
+    print("filter common forms and cannot prove meaning.")
+    for entry in entries:
+        print(f"- `{entry['id']}`: {entry['criterion']}")
+PYEOF
+  fi
   echo; echo "## Project rules in the agent's instruction file"
   if [[ -f "$SCEN/fixture/PROJECT.md" ]]; then
     echo "These were composed ahead of the Canon block in the instruction file the agent loaded."

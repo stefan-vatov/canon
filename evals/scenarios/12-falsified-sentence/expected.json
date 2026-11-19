@@ -21,8 +21,8 @@
       "exclude_globs": [
         "canon/scratch/*"
       ],
-      "forbid_regex": "(?i)(expire|expiry|expires|timeout|inactiv)[^.\\n]{0,60}(30|thirty)[ -]minutes?|(30|thirty)[ -]minutes?[^.\\n]{0,60}(expire|expiry|expires|inactiv)|half[- ]an?[- ]hour|half-hour",
-      "description": "no sentence, however phrased, still claims a fixed half-hour expiry"
+      "forbid_regex": "(?i)(?<!every )\\b(30|thirty)[ -]?min|half[- ]an?[- ]hour|half-hour|\\b1,?800\\s*s(ec|econds)?\\b",
+      "description": "first filter: no fixed half-hour expiry in common forms (the sweeper's 'every 30 minutes' is the one true 30-minute fact); the judge grades meaning"
     },
     {
       "id": "cross_owner_fact_kept",
@@ -88,5 +88,11 @@
   "holdout": {
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t12"
-  }
+  },
+  "judge_required": [
+    {
+      "id": "no_fixed_expiry_stated",
+      "criterion": "Against the fixture note (canon/sessions.md), the final note no longer states any fixed session expiry duration in any wording, still says the outside seat sweeper depends on session expiry, and copies no limit from the code."
+    }
+  ]
 }

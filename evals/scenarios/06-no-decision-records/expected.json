@@ -55,5 +55,11 @@
     "dir": "holdout",
     "test_cmd": "uv run python -m unittest holdout_t06f"
   },
-  "diff_scope_required": true
+  "diff_scope_required": true,
+  "judge_required": [
+    {
+      "id": "challenge_recommends_utc_with_reason",
+      "criterion": "In the second session the agent's final answer recommends keeping UTC and applies the recorded reason (support tickets quoting local times across timezones could not be correlated). An answer that recommends local time, or that gives no project reason, fails."
+    }
+  ]
 }

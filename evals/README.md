@@ -223,7 +223,7 @@ Interpret the summary fields separately:
 | field | meaning |
 |---|---|
 | `complete` | The expected runs, frozen inputs, receipts, hashes, check schemas, and requested judge artifacts passed integrity validation. |
-| `pass_all_required` | All checks marked `required` passed. This is a hard gate, but optional behavioral checks may still have failed. |
+| `pass_all_required` | All checks marked `required` passed, and the judge scored every `judge_required` criterion 1. This is a hard gate, but optional behavioral checks may still have failed. |
 | `mechanical_mean` | Mean fraction of measured mechanical checks that passed. |
 | `judge_mean` | Mean of non-null judged criteria, or `null` for `--no-judge`. |
 | `failed` | Check or judge criterion IDs mapped to the runs that failed them. |
@@ -552,6 +552,10 @@ Additional contract blocks:
 - `holdout`: copy hidden tests into a disposable workspace and run them there;
 - `answer`: require the session's final answer to match `must_regex`, for a
   recommendation that must apply a recorded reason;
+- `judge_required` (root `expected.json` only): a list of `{id, criterion}`
+  that `judge.sh` adds to the judge prompt and `summarize.py` treats as
+  required: `pass_all_required` holds only if the judge scored each one 1, so
+  an unjudged batch of such a scenario never fully passes;
 - `routing`: require successful structured reads of named notes and cap reads of the rest (`max_domain_reads: 0` asserts a task read no Canon);
 - `capture`: authenticate the exact paths and bytes matched at one step;
 - `preserve`: require a later step to retain the captured set and contents.
@@ -572,6 +576,12 @@ every note it matches. Listing (`ls`, plain `find`, Claude `Glob`) is not a
 read. Missing telemetry fails a routing check unless the scenario sets
 `"require_telemetry": false`, in which case it is recorded as `unsupported`.
 The check detail lists the reads in order.
+
+Regex and keyword rules are a cheap first filter, never proof of meaning.
+Where a scenario is about meaning (06's recommendation, 12's falsified
+sentence, 15's merged guarantee), keep mechanical rules for the common forms
+and put the meaning itself in `judge_required`, graded against the fixture.
+Do not chase every paraphrase with another regex.
 
 Always prove a scenario is winnable: implement a correct solution by hand and
 confirm every intended mechanical check and holdout passes. Extend
