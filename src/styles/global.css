@@ -645,7 +645,7 @@ article[id] {
   padding-bottom: 14px;
 }
 
-/* front matter — the compact metadata every permanent page opens with */
+/* doc-card meta line — a mono strip above a card (scratch uses it) */
 .doc-meta {
   border-bottom: 1px solid var(--rule-soft);
   color: var(--ink-faint);
@@ -1263,8 +1263,8 @@ article[id] {
   width: 100%;
 }
 
-/* Plate I — the routing chart. Nodes are pages of the record; edges are
-   manifest routes. A task lights only what it needs; the rest stays dim. */
+/* Plate I — the routing chart. Nodes are notes in canon/; the hub is the
+   listing. A task lights only the note it needs; the rest stays dim. */
 .route-svg {
   display: block;
   width: 100%;
@@ -1520,9 +1520,9 @@ article[id] {
   outline-offset: -3px;
 }
 
-/* the gate table (§ III) — the classification in its native form: the
-   printed three-way table the repository itself documents. Row headers
-   carry the verdicts; the report strings are set in the machine voice. */
+/* the verdict tables (§ II, § IV) — printed three-column tables: the old
+   rules and what they cost, then the write trigger. Row headers carry the
+   verdicts. */
 
 .gate-table {
   border-collapse: collapse;

@@ -1,66 +1,64 @@
 ---
 ---
-
-<div class="exhibit" aria-label="A page of the record and the ledger that guards it">
-  <figure class="doc-card" data-file="canon/architecture/payments.md">
-    <div class="doc-meta" aria-label="Front matter">
-      <span class="k">status:</span> <span class="v normative">normative</span><br />
-      <span class="k">scope:</span> <span class="v">[payments]</span><br />
-      <span class="k">validation:</span> <span class="v">[tests/test_payment_idempotency.py]</span>
-    </div>
-    <span class="doc-label">Invariant</span>
-    <p class="doc-title">A retried payment never charges twice.</p>
+<div class="exhibit" aria-label="A note from the record and the ledger of changes that left it alone">
+  <figure class="doc-card" data-file="canon/payment-retries.md">
+    <span class="doc-label">Guarantee across owners</span>
+    <p class="doc-title">A retried charge never bills twice.</p>
     <p>
-      Every charge carries a client-supplied idempotency key. Replays return
-      the original result; a conflicting amount fails closed with 409 and no
-      partial write.
+      Checkout, the billing worker and the bank adapter all rely on the
+      client's idempotency key: a replay returns the first result, because a
+      customer was double-billed in an outage (owner). Enforced by the
+      charge-replay test.
     </p>
     <p class="doc-rejects">
-      Owns the guarantee, never the geography: no file paths, no helper
-      inventories, no line numbers.
+      No front matter, no file paths, no limits copied from code. The note
+      holds only what no single module can.
     </p>
-
     <div class="doc-divide" role="presentation"></div>
-
-    <span class="doc-label">Decision — routed as history</span>
+    <span class="doc-label">And no decision record</span>
     <p>
-      <strong>Postgres over an event log</strong> (2026-06-14, rationale
-      supplied). Immutable, byte-identical, superseded only by a new record.
+      <strong>Postgres over an event log:</strong> the reason and the
+      rejected option are in the commit body. If the owner reverses it, the
+      one clause that mentions it is edited in place.
     </p>
   </figure>
-
   <figure class="term hero-term">
     <figcaption class="term-bar">
       <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-      <span>canon impact — change ledger</span>
+      <span>write trigger — what each change did to canon</span>
     </figcaption>
     <div class="term-body" tabindex="0">
       <table class="ledger">
         <caption class="sr-only">
-          Canon impact ledger from three implementation changes: each row
-          lists a change, its classification, and what happened to Canon.
+          Four implementation changes: each row lists a change, whether it
+          made a Canon sentence false, and what happened to Canon.
         </caption>
         <tbody>
           <tr>
             <td>extract retry helper</td>
-            <td class="dim">NONE</td>
+            <td class="dim">nothing false</td>
             <td class="pass">canon untouched</td>
           </tr>
           <tr>
             <td>rename charge module</td>
-            <td class="dim">NONE</td>
+            <td class="dim">nothing false</td>
             <td class="pass">canon untouched</td>
           </tr>
           <tr>
             <td>retry ceiling 3 → 5</td>
-            <td class="flag">CHANGE</td>
-            <td class="dim">owning page updated</td>
+            <td class="dim">lives in code</td>
+            <td class="pass">code + test only</td>
+          </tr>
+          <tr>
+            <td>adapter drops the key</td>
+            <td class="flag">guarantee false</td>
+            <td class="dim">note fixed, same change</td>
           </tr>
         </tbody>
       </table>
       <div class="gate-line">
-        <span class="pass">canon-doctor: PASS</span>
-        <span class="dim">(structure · routes · immutability · size caps)</span>
+        <span class="pass">no checker · no stamps · no records</span>
+        <span class="dim">(small by rule, not by tooling)</span>
       </div>
     </div>
   </figure>

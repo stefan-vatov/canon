@@ -1,8 +1,8 @@
 ---
 // Plate I — the routing chart, mounted like a plate from an atlas.
-// The manifest is the hub; routed pages hang off it with their
-// read-when conditions. Picking a task lights only the pages that
-// task loads. The rename task lights nothing — geography, not law.
+// There is no manifest: a task that needs Canon lists canon/ and reads
+// the note whose name matches. Picking a task lights only that note. A
+// rename or a code-only feature lights nothing, not even the listing.
 
 type Node = {
   id: string;
@@ -18,48 +18,48 @@ const HUB = { x: 54, y: 170, w: 132, h: 30, cx: 120, cy: 185 };
 
 const nodes: Node[] = [
   {
-    id: "standards",
-    label: "standards.md",
+    id: "payments",
+    label: "payment-retries.md",
     x: 430,
     y: 46,
     w: 236,
-    when: "read for laws before structural change",
-    lit: [],
-  },
-  {
-    id: "payments",
-    label: "architecture/payments.md",
-    x: 430,
-    y: 108,
-    w: 236,
-    when: "read when touching charge flow",
+    when: "guarantee across owners",
     lit: ["t1"],
   },
   {
-    id: "uploads",
-    label: "architecture/uploads.md",
+    id: "restore",
+    label: "restore-gaps.md",
     x: 430,
-    y: 170,
+    y: 108,
     w: 236,
-    when: "read when changing ingest limits",
-    lit: ["t3"],
-  },
-  {
-    id: "persistence",
-    label: "architecture/persistence.md",
-    x: 430,
-    y: 232,
-    w: 236,
-    when: "read when changing storage lifecycle",
+    when: "accepted gap, with its reason",
     lit: [],
   },
   {
-    id: "decisions",
-    label: "decisions/2026-08-02-sqlite.md",
+    id: "latency",
+    label: "latency-lessons.md",
+    x: 430,
+    y: 170,
+    w: 236,
+    when: "measured dead ends",
+    lit: ["t3"],
+  },
+  {
+    id: "sync",
+    label: "offline-sync.md",
+    x: 430,
+    y: 232,
+    w: 236,
+    when: "guarantee across owners",
+    lit: [],
+  },
+  {
+    id: "plan",
+    label: "plan-search.md",
     x: 430,
     y: 294,
     w: 236,
-    when: "history — clearly labeled",
+    when: "approved plan, deleted once built",
     lit: [],
   },
 ];
@@ -76,13 +76,13 @@ const edge = (node: Node) => {
 const tasks = [
   { id: "t1", label: "fix refund retries" },
   { id: "t2", label: "rename a helper" },
-  { id: "t3", label: "raise the upload cap" },
+  { id: "t3", label: "cache session lookups" },
 ];
 
 const verdicts = [
-  { id: "t1", parts: ["2 pages load", " — the manifest routes; the rest stay unread"] },
-  { id: "t2", parts: ["no route lights", " — a rename is geography, not law · canon impact: none"] },
-  { id: "t3", parts: ["2 pages load", " — the cap's owning page, nothing else"] },
+  { id: "t1", parts: ["1 note read", " — its name matches the task; the rest stay unread"] },
+  { id: "t2", parts: ["nothing read", " — a rename makes no sentence false · canon untouched"] },
+  { id: "t3", parts: ["1 note read", " — the cache was measured once and dropped"] },
 ];
 ---
 
@@ -109,7 +109,7 @@ const verdicts = [
         class="route-svg"
         viewBox="0 0 760 400"
         role="img"
-        aria-label="A chart of a repository's canon directory. A hub node, the manifest, connects by curved routes to five pages, each annotated with its read-when condition. A scratch node sits apart behind a dashed border, connected to nothing. Depending on the chosen task, either two nodes light up, or none."
+        aria-label="A chart of a repository's canon directory. A hub node, the listing of canon/, connects by curved lines to five flat notes, each annotated with the kind of knowledge it holds. A scratch node sits apart behind a dashed border, connected to nothing. Depending on the chosen task, either one note and the listing light up, or nothing does."
       >
         {nodes.map((node) => (
           <path
@@ -121,7 +121,7 @@ const verdicts = [
 
         <g class="route-node hub">
           <rect x={HUB.x} y={HUB.y} width={HUB.w} height={HUB.h} rx="4"></rect>
-          <text x={HUB.cx} y={HUB.cy + 4} text-anchor="middle">manifest.md</text>
+          <text x={HUB.cx} y={HUB.cy + 4} text-anchor="middle">ls canon/</text>
         </g>
 
         {nodes.map((node) => (
@@ -149,7 +149,7 @@ const verdicts = [
           <text x={HUB.cx} y="349" text-anchor="middle">scratch/</text>
         </g>
         <text class="route-when" x={HUB.x + HUB.w + 14} y="349">
-          never routed · non-authoritative
+          never read unless asked · never cited
         </text>
       </svg>
       <p class="route-verdict" aria-live="polite">
@@ -162,9 +162,9 @@ const verdicts = [
     </div>
   </div>
   <figcaption class="plate-caption">
-    The manifest routes; the task decides which law is loaded. A routed
-    session reads one or two pages and lets the rest lie — and when a change
-    is only geography, no page lights at all.
+    No manifest, no session-start read. A task that touches a note's
+    subject lists the directory and reads that one note; everything else
+    stays unread, and a change that is only geography reads nothing at all.
   </figcaption>
 </figure>
 
@@ -183,8 +183,8 @@ const verdicts = [
         const lit = (el.getAttribute("data-lit") ?? "").split(" ");
         el.classList.toggle("is-lit", lit.includes(task));
       });
-      // the hub lights whenever anything routes: reading the manifest is
-      // itself the first page loaded
+      // the listing lights only when a note is read: a task that needs no
+      // Canon does not even list the directory
       const hubLit = litable.some((el) => el.classList.contains("is-lit"));
       plate.querySelector(".route-node.hub")?.classList.toggle("is-lit", hubLit);
       verdicts.forEach((el) =>

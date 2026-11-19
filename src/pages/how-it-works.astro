@@ -3,125 +3,125 @@ import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-const pageTitle = "Why invariants | Project Canon";
+const pageTitle = "Why so little | Project Canon";
 const pageDescription =
-  "Why durable memory for coding agents must be made of invariants, not inventories: sessions are amnesiac, staleness is asymmetric, and a record that owns too much governs nothing.";
+  "Why durable memory for coding agents should be a handful of notes: most knowledge already has a better home, copies of the code rot, decision records bind the owner, and a record read up front costs every session.";
 ---
 
 <BaseLayout title={pageTitle} description={pageDescription}>
   <SiteHeader root="/" />
   <main id="main">
     <article class="essay">
-      <span class="mono-label">Why invariants</span>
-      <h1>A memory made of invariants.</h1>
+      <span class="mono-label">Why so little</span>
+      <h1>A memory that owns almost nothing.</h1>
       <p class="essay-sub">
-        The mechanistic argument: why the durable record must own almost
-        nothing — and why that is what makes it durable.
+        The argument, and the field evidence behind it: why the durable
+        record must hold only what no other home can — and why that is what
+        keeps it true.
       </p>
 
       <h2>Sessions are amnesiac</h2>
       <p class="opener">
         A coding agent's working memory is its context window, and the
         context window dies with the session. Whatever the agent understood
-        about your system — why the gateway exists, why the cap is 10 MB, why
-        Postgres won — is discarded at the end of the run. The next session
-        starts from the same place every session starts: the code, and
-        nothing else.
+        about your system — why the gateway exists, why two services share a
+        key, why a cache was ripped out — is discarded at the end of the run.
+        The next session starts from the repository, and nothing else.
       </p>
       <p>
-        Code is a remarkable record of one thing: where the implementation
-        currently lives. It is a terrible record of why. The constraint that
-        shaped a module, the outage that mandated a timeout, the trade-off
-        that was argued for a week and settled — none of it survives
-        compilation. An agent can re-derive some of the why from shape alone,
-        the way an archaeologist re-derives a city from foundations. Each
-        re-derivation is expensive, partial, and a little more wrong than the
-        last, because the people who could correct it are no longer in the
-        loop.
+        The repository holds more than it seems. Code says what the system
+        does; tests say what must not regress; a comment says why one line
+        is odd; a commit body says why a change was made and what was
+        rejected; a runbook beside the tooling says how to recover. What is
+        left over is small: a guarantee several owners rely on that no single
+        file can state, a gap the owner accepted on purpose, an approach
+        measured and dropped, a plan approved but not yet built.
       </p>
 
-      <h2>Two kinds of truth</h2>
+      <h2>Every kind of knowledge has a first home</h2>
       <p>
-        Everything worth writing about a system is one of two kinds of fact.
-        <strong>Where-facts</strong>: which file holds the validator, which
-        helper wraps the driver, which tests cover the flow. The repository
-        itself is the authoritative record of these — types, manifests,
-        schemas, build graphs — and any prose copy of them begins to rot at
-        the next commit.
-        <strong>Why-facts</strong>: what must remain true regardless of where
-        anything lives. Uploads fail closed. Retries never double-charge.
-        Feature code never imports a driver.
-      </p>
-      <p>
-        The two kinds age in opposite directions, and that asymmetry is the
-        whole design. A where-fact written down is a liability with a
-        half-life measured in commits. A why-fact written down is stale only
-        when a human changes their mind — and that moment is exactly when the
-        human is present, deciding, and able to update one page.
+        Canon's rules are mostly a routing table for knowledge. How to work
+        here goes in the instruction file, in the owner's words. Behavior,
+        limits and error cases go in code and a test named for the behavior.
+        Why a change was made goes in its commit. Only the leftovers become a
+        Canon note, and session notes go to an ignored scratch directory that
+        nobody cites. Each home is the one a later reader will actually meet:
+        the test fails, the comment sits beside the code, <code>git log -S</code>
+        finds the reason.
       </p>
 
-      <h2>Inventories rot; invariants hold</h2>
+      <h2>Copies rot, and so do records</h2>
       <p>
-        This is why documentation-as-inventory fails twice. First
-        mechanically: the mirror drifts from the tree, because nothing forces
-        the tree to tell the mirror. Then socially, which is worse: agents
-        and humans learn the mirror lies, and stop consulting it — including
-        the parts that were true and load-bearing. A record that is 80% stale
-        where-facts teaches its readers to ignore the 20% that matters.
+        Documentation as inventory fails twice: first the copy drifts from
+        the code, then readers learn the copy lies and stop consulting it,
+        including the parts that were true. An earlier Canon tried to fix
+        that with process — a manifest every session read first, front
+        matter stamped with the commit it was verified against, immutable
+        decision records, per-feature specs holding every limit. One adopter
+        followed it for 30 days. Canon was touched in 488 of 639 commits;
+        about half of all canon file touches were stamp bumps; agents read
+        about 23k tokens before any code; 271 decision records piled up; the
+        specs drifted to wrong production defaults anyway.
       </p>
       <p>
-        Canon takes the asymmetry as law. It owns durable guarantees only —
-        ownership, contracts, lifecycle policy, security, required
-        validation, explicit decisions with their rationale — and refuses
-        inventories outright. Not because file lists are useless, but because
-        the repository already maintains them perfectly, for free, forever.
-        One fact, one owning page. If a page cannot go stale without a human
-        changing their mind, the record stays trustworthy without
-        maintenance, and trustworthy is what gets read.
-      </p>
-
-      <h2>Memory must be loaded, then routed</h2>
-      <p>
-        A record does no work from outside the context window. Canon ships as
-        the files agents already load — generated CLAUDE.md and AGENTS.md —
-        so the contract is in context before the first decision. But a durable
-        record that grows must not be read whole: bulk-loading a memory into
-        a working context spends the very resource the task needs. So the
-        first action is a route, not a read: the manifest maps each concern
-        to its owning page with an explicit read-when condition, and a
-        well-routed session loads one or two pages. The memory scales; the
-        cost of consulting it does not.
+        The records did worse than cost. An approval record said any other
+        path voided it, and an agent reverted a finished retirement 18
+        minutes after it landed. A rule an agent had written for itself bound
+        the next agent. Immutability made the oldest text the strongest.
       </p>
 
-      <h2>The gate keeps it small</h2>
+      <h2>The owner outranks the record</h2>
       <p>
-        Left alone, every record grows toward inventory, because writing
-        feels like diligence. Canon's gate is a classification every session
-        must file: <strong>none</strong> — the guarantees didn't move, leave
-        the record alone; <strong>clarification</strong> — same rule, clearer
-        words; <strong>change</strong> — a guarantee moved, update the
-        smallest owning page with its complete contract. The gate makes
-        not-writing a deliberate, reportable act, which is the only way
-        restraint survives automation.
+        So authority is now plain. For what should be true: the owner's
+        current instruction, then the rules, then the notes. For what is true
+        now: code and tests. A note that disagrees with the owner is
+        mentioned once and then fixed or deleted in the same change; it can
+        never grant permission, veto the owner or be cited to delay them.
+        Only the owner's words make a rule, and decisions get no records at
+        all: the reason and the rejected alternative go in the commit body,
+        and at most one clause goes in the document the decision constrains.
+        A reversal edits that clause in place. Git is the history.
       </p>
 
-      <h2>Authority, drift, and silence</h2>
+      <h2>Read nothing up front</h2>
       <p>
-        Two failure modes remain, and both are answered by rank rather than
-        judgment. When code contradicts the record, the norm outranks the
-        drift: the agent reports the conflict or, when authorized, fixes the
-        code — it never rewrites the rule to match what it found, because a
-        record that follows the code is just a slower mirror. And when the
-        record is silent, silence outranks invention: absent policy is a gap
-        to surface, not a blank to fill. A guessed limit, once written,
-        becomes load-bearing — the most dangerous kind of documentation,
-        authority without an author.
+        A record does no work from outside the context window, but a record
+        read whole spends the very resource the task needs. The rules are the
+        only up-front context. A task that touches a cross-module guarantee,
+        a production operation or a previously tried approach lists
+        <code>canon/</code> and reads the note whose name matches; a task that
+        touches none reads nothing. The notes scale; the cost of not needing
+        them is zero.
+      </p>
+
+      <h2>Small by rule, not by tooling</h2>
+      <p>
+        Nothing enforced the old rules, and agents followed them anyway — the
+        stamps were never checked by any tool, yet thousands were written. So
+        the lever is what the rules demand at the moment of writing, not a
+        gate afterwards. A change must fix or delete every Canon sentence it
+        makes false; moves, renames and refactors oblige nothing. The
+        directory is flat, at most twelve notes of about a thousand words
+        unless the owner says otherwise, and at the limit a note is added
+        only by merging or removing one. There is no checker to satisfy, so
+        there are no commits that exist only to satisfy it.
+      </p>
+
+      <h2>Drift and silence</h2>
+      <p>
+        Two failure modes remain. When code contradicts a note, it matters
+        what the note was: a stated guarantee is a finding to report and
+        resolve as the owner directs; a plain description is merely stale,
+        so fix it or delete it. And when the record is silent, silence
+        outranks invention: absent policy is a gap to surface, not a blank to
+        fill. A guessed limit, once written, becomes load-bearing — authority
+        without an author.
       </p>
 
       <p class="essay-close">
-        Canon is small because the truth that must survive is small.
-        Everything else is implementation — and the implementation is allowed
-        to churn.
+        Canon is small because the truth that has no other home is small.
+        Everything else already lives somewhere better — and is allowed to
+        churn.
       </p>
 
       <a class="btn btn-ghost essay-back" href="/">Back to the overview</a>

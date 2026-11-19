@@ -13,14 +13,13 @@
   where the ring meets the piers. The companion project's mark is the pen
   (the instrument that writes the law); Canon's is the arch (the structure
   that stays standing): it holds because the keystone holds — "the
-  implementation churns, the canon holds" — and it is also the gate every
-  change passes through (§ III). Joints are overprinted in the ground
+  implementation churns, the canon holds" — and it is also the threshold a
+  sentence crosses only when a change has made it false (§ IV). Joints are overprinted in the ground
   color and dropped at tiny sizes, where the solid silhouette carries.
 - There is deliberately **no ratification-style seal**: ratification is the
-  companion project's ritual, and Canon has none — the record starts empty
-  and
-  grows page by page, its authority carried by front matter
-  (`status: normative`) and the doctor's gate. Where a large emblem is
+  companion project's ritual, and Canon has none — the record starts empty,
+  holds a handful of notes, and has no authority above the owner's current
+  word. Where a large emblem is
   wanted (the meta-strip, the OG corner), the mark appears as a plain
   **printer's device** (`src/components/ArchMark.astro`) — the press's
   emblem on a colophon: it declares provenance, it certifies nothing.

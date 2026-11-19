@@ -5,7 +5,7 @@
 // dashed drop). Each rebuild recovers less of the original why — the
 // authors leave, the tickets close, the intent decays. The canon line
 // is the only red on the plot: written once at the start, read back
-// unchanged by every session that follows. Knots are designed, not
+// unchanged by any later session whose task needs it. Knots are designed, not
 // random — every visitor reads the same printed figure.
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
@@ -82,14 +82,14 @@ const arcs = sessions.map(([x0, peak]) => {
     <circle class="fig-late fig-canon-dot" cx={left} cy={canonY} r="3.2"></circle>
     <text class="fig-late fig-label canon" x={left + 12} y={canonY - 12}>written once</text>
     <text class="fig-late fig-label canon" x={right} y={canonY - 12} text-anchor="end">
-      canon — read by every session
+      canon — read when a task needs it
     </text>
   </svg>
   <figcaption class="fig-caption">
     Fig. I. Each fresh session rebuilds its picture of the system from code
-    alone, and each rebuild recovers less of the original why. A fact written
-    into canon is read back in seconds, unchanged, by every session that
-    follows.
+    alone, and each rebuild recovers less of the original why. A guarantee
+    written into a canon note is read back unchanged by the later session
+    whose task touches it, and costs nothing to the sessions that do not.
   </figcaption>
 </figure>
 
