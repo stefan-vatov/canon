@@ -315,9 +315,9 @@ following:
    notes, no gates or checkers, and no agent-authored rule binding agents.
    This is a veto, not a score: a candidate that breaks it is rejected however
    well it scores, because most scenarios cannot see these costs.
-   `optimize.py` enforces it mechanically (`OWNER_INVARIANTS`,
-   `RETIRED_RULES`); apply the same veto by hand to any hand-written
-   candidate.
+   `optimize.py` screens common wordings (`OWNER_INVARIANTS` kept verbatim,
+   `RETIRED_RULES` searched in the flattened text); a maintainer applies the
+   veto to every candidate before adoption, generated or hand-written.
 
 Retain raw bundles with exact runtime details. Record only the decision,
 comparison key, decisive passes or floors, artifact-set key, and known
@@ -369,8 +369,8 @@ files by hand.
 `optimize.py` is exploration tooling, not adoption-grade paired A/B. It
 evaluates a cached baseline and later candidates in separate batches, blends
 mechanical and judge means, uses one configured stratum, and does not enforce
-the floor, capable-tier, or holdout gates above (it does enforce the veto in
-gate 8). Its failure collector reads every `checks*.json`, including
+the floor, capable-tier, or holdout gates above (it screens common wordings for
+the gate 8 veto). Its failure collector reads every `checks*.json`, including
 multi-session step files.
 
 A judged optimizer run requires three explicit commands/pins:

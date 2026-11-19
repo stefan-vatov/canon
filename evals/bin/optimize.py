@@ -51,42 +51,62 @@ LEAK_TERMS = [
 ]
 
 
-# The owner's invariants. A candidate must keep each sentence verbatim
-# (whitespace-normalized); the optimizer may tune everything else.
+# The owner's invariants. A candidate must keep each clause verbatim
+# (whitespace-normalized); the optimizer may tune everything else. Whole
+# normative clauses are listed so that flipping "Must not" to "Must", or
+# dropping one item from a list, is caught.
 OWNER_INVARIANTS = [
     "read nothing in `canon/` at session start",
-    "Nothing in Canon outranks what the owner says now",
+    "Nothing in Canon outranks what the owner says now: say once that a note "
+    "disagrees, do what was asked, and fix or delete the note in the same change.",
     "Only the owner's words make a rule.",
     'Never record your own choices, plans or process as "must" or "never".',
-    "Decisions get no records.",
-    "No `decisions/` directory, decision log, register or ADR.",
-    "add front matter, status fields, `sources`/`verified` stamps, review dates, "
-    "an index or a manifest",
-    "fix or delete every Canon sentence your change makes false",
+    "Decisions get no records. No `decisions/` directory, decision log, register or ADR.",
+    "**Must**, in the same change: fix or delete every Canon sentence your change "
+    "makes false; update a note when a guarantee, contract or accepted gap it "
+    "states changes.",
+    "**Must not**: edit Canon because nearby code changed (moves, renames, "
+    "refactors and repeats of a pattern oblige nothing); create a note without "
+    "the owner's approval; add front matter, status fields, `sources`/`verified` "
+    "stamps, review dates, an index or a manifest; copy what code holds (limits, "
+    "defaults, status codes, field lists, file or test inventories); write "
+    "changelogs, progress, approvals or handovers anywhere but scratch; cite "
+    "Canon to refuse or delay the owner.",
     "Canon stays small by rule, not by tooling.",
-    "Never split a note to fit the budget.",
-    "Nothing in Canon is immutable",
+    "At the limit, add a note only by removing or merging one. Never split a "
+    "note to fit the budget.",
+    "Nothing in Canon is immutable; git is the history",
 ]
 
-# Wording that restores a rule the owner retired. Any match vetoes adoption,
-# whatever the candidate scores.
+# Wording that restores a rule the owner retired. It is searched in the
+# candidate's whitespace-flattened text after the invariant clauses above are
+# removed, so line wraps cannot hide it and the invariants' own "no ADR" or
+# "never split" wording cannot trip it. This screens common wordings only; a
+# maintainer still applies the veto to every candidate before adoption.
 RETIRED_RULES = [
     (r"\bread (?:every|all|each) (?:canon |of the )?(?:notes?|pages?|files?)\b",
      "mandatory reads of every note"),
-    (r"\b(?:first|before any)\b[^.]{0,60}\bread\b[^.]{0,40}canon/",
+    (r"\b(?:cat|read|load|open)\b[^.]{0,30}`?canon/\*", "bulk Canon reads"),
+    (r"\bload (?:all|every|the whole)(?: of)? `?canon", "bulk Canon reads"),
+    (r"\b(?:first|before (?:any|you|starting|work))\b[^.]{0,60}\b(?:read|load|open)\b[^.]{0,40}canon/",
      "an up-front Canon read"),
-    (r"canon/(?:manifest|index|overview|glossary)\.md", "a manifest or index"),
-    (r"\b(?:write|create|add|keep|record)\b[^.]{0,40}\b(?:decision records?|ADRs?|decision logs?)\b",
-     "decision records"),
+    (r"canon/(?:manifest|index|overview|glossary|decisions)\.md", "a manifest, index or register"),
+    (r"\bADRs?\b", "ADRs"),
+    (r"\bdecision (?:records?|registers?|logs?|entr(?:y|ies))\b", "decision records"),
     (r"\brecord (?:each|every|the|a|your) decisions?\b", "decision records"),
     (r"\bsupersed", "supersession records"),
-    (r"(?m)^\s*(?:sources|verified|status|scope|validation)\s*:", "front matter or stamps"),
-    (r"\bsplit\b[^.]{0,30}\binto\b", "splitting notes"),
-    (r"canon-doctor|\b(?:run|wire|add)\b[^.]{0,30}\b(?:checker|linter|doctor|validator|gate)\b",
+    (r"\blast[ -]verified\b|\bverified[ -]stamps?\b|\breview[ -]by\b", "freshness stamps"),
+    (r"\b(?:split|break)\b[^.]{0,30}\binto\b", "splitting notes"),
+    (r"canon-doctor|\bpre-commit\b[^.]{0,40}\bcanon\b|\bci\b[^.]{0,40}\b(?:canon|must fail|fails?)\b",
      "a Canon gate or checker"),
+    (r"\b(?:run|wire|add)\b[^.]{0,30}\b(?:checker|linter|doctor|validator|gate)\b",
+     "a Canon gate or checker"),
+    (r"\brules? (?:that )?an? agents? (?:writes?|wrote|records?)\b[^.]{0,20}\bbind",
+     "agent-authored rules binding agents"),
     (r"\bagent-(?:written|authored) (?:rules?|briefs?)\b[^.]{0,30}\b(?:bind|binding|apply)",
      "agent-authored rules binding agents"),
 ]
+FRONT_MATTER = re.compile(r"(?m)^\s*(?:sources|verified|status|scope|validation)\s*:")
 
 
 def normalized(text):
@@ -206,12 +226,17 @@ def candidate_problems(text):
     if "canon/" not in text:
         problems.append("does not mention canon/")
     flat = normalized(text)
-    for sentence in OWNER_INVARIANTS:
-        if normalized(sentence) not in flat:
-            problems.append(f"drops owner invariant: {sentence}")
+    remainder = flat
+    for sentence in sorted(OWNER_INVARIANTS, key=len, reverse=True):
+        clause = normalized(sentence)
+        if clause not in flat:
+            problems.append(f"drops owner invariant: {sentence[:80]}")
+        remainder = remainder.replace(clause, " ")
     for pattern, rule in RETIRED_RULES:
-        if re.search(pattern, text, re.IGNORECASE):
+        if re.search(pattern, remainder, re.IGNORECASE):
             problems.append(f"restores retired rule: {rule}")
+    if FRONT_MATTER.search(text):
+        problems.append("restores retired rule: front matter or stamps")
     return problems
 
 

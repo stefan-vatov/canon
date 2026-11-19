@@ -331,11 +331,17 @@ one outer Markdown fence is tolerated and stripped. Keep it below the
 - contain a fixture-specific term from `LEAK_TERMS`;
 - have fewer than 30 or more than 200 lines, or more than 800 words;
 - do not mention `canon/`;
-- drop any of the owner's invariant sentences (`OWNER_INVARIANTS`, passed to
-  the improver as sentences to keep verbatim); or
-- restore a retired rule (`RETIRED_RULES`: up-front or mandatory reads,
-  decision records, stamps or front matter, a manifest, splitting notes,
-  gates, agent-authored rules binding agents).
+- drop or alter any of the owner's invariant clauses (`OWNER_INVARIANTS`,
+  whole normative clauses such as the "Must not" list, passed to the improver
+  to keep verbatim); or
+- restore a retired rule in common wordings (`RETIRED_RULES`, searched in the
+  whitespace-flattened text: up-front, bulk or mandatory reads, decision
+  records, registers or ADRs, freshness stamps or front matter, a manifest,
+  splitting notes, pre-commit or CI gates, agent-authored rules binding
+  agents).
+
+This screen catches common wordings, not every paraphrase. A maintainer
+applies the playbook's veto to every candidate before adoption.
 
 Configure the improver command:
 

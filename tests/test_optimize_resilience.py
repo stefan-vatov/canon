@@ -103,6 +103,17 @@ class OptimizeResilienceTests(unittest.TestCase):
             (core + "\nRecord each decision as an ADR under canon/adr/.\n", "decision"),
             (core + "\nIf a note grows long, split it into two notes.\n", "split"),
             (core + "\nRun the Canon checker before you commit.\n", "checker"),
+            (core.replace("read nothing in\n`canon/` at session start",
+                          "read every\nnote in `canon/` at session start"), "wrapped"),
+            (core.replace("- **Must not**: edit Canon", "- **Must**: edit Canon"), "flip"),
+            (core + "\nBefore starting, cat canon/*.md.\n", "cat-glob"),
+            (core + "\nLoad all of canon/ when unsure.\n", "load-all"),
+            (core + "\nAdd a decision entry in canon/decisions.md.\n", "register"),
+            (core + "\nKeep a Last verified line in each note.\n", "stamp"),
+            (core + "\nIf a note is long, break it into two notes.\n", "break"),
+            (core + "\nA pre-commit check of canon keeps it honest.\n", "pre-commit"),
+            (core + "\nCI must fail when a note is stale.\n", "ci"),
+            (core + "\nRules an agent writes bind later agents.\n", "agent-rules"),
         ):
             with self.subTest(reason=reason):
                 self.assertTrue(OPTIMIZE.candidate_problems(broken))
