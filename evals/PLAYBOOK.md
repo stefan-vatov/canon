@@ -307,7 +307,9 @@ following:
    check it against one long-running adopter's numbers: the share of commits
    that touch `canon/`, canon file touches that only bump a stamp, and the
    words an agent reads before its first code action. The compact-canon
-   skill's `analyze_canon.py` reports all three. Fixtures are too small to
+   skill's `analyze_canon.py` reports the first two and an instruction-file
+   proxy for the third (canon words the instruction files name next to
+   "read"); measure actual reads from session transcripts where you can. Fixtures are too small to
    show these costs; the 2026-11-19 core change came from them.
 8. The candidate keeps the owner's invariants verbatim and restores no
    retired rule: no up-front or mandatory reads, no decision records,

@@ -82,6 +82,16 @@ cannot answer it.
 | Retired stack, completed migration, approval, checkpoint, session direction | delete |
 | Manifest, index, overview, glossary, standards page | live lines to the instruction file; delete |
 
+## The standing rule for every deletion
+
+Before any file marked `DELETE` goes (a decision record, a handoff, an
+overview, a spec, a retired document), read it for sentences that are the
+only statement of an operating requirement (an alert, a stop condition, a
+recovery step), an open gap, accepted or not, or a measurement that code and
+tests do not hold. Move each such sentence to its home first: a runbook, a
+comment at the owning code, or a surviving note. Delete the file only when
+every such sentence has a home or the owner accepts losing it.
+
 ## Apply (in this order)
 
 1. **Tag first.** Tag the starting commit (for example `canon-v1`). Cite the
@@ -119,21 +129,20 @@ cannot answer it.
    home, or drop it where the citing sentence already states the rule. A dead
    pointer is worse than none. A dated data artifact may keep an old path only
    if it names the tag.
-7. **Delete decision records after moving still-live rules.** For each record,
+7. **Delete decision records after moving still-live rules,** under the
+   standing rule. For each record,
    ask whether a rule in it still governs work. If so, move that one rule to
    its home as one clause. Rejected alternatives and history stay in git. Do
    not build a register, a decision index or an archive directory. "Immutable"
    records go too.
-8. **Delete specs that copy code, and nothing else with them.** Per-feature
-   specifications, inventories, limits, defaults and file maps go; the code
-   and tests are the record. Never delete the only statement of an operating
-   requirement (an alert, a stop condition, a recovery step), an open gap,
-   accepted or not, or a measurement that code and tests do not hold. Move it
-   first, to a runbook, a comment at the owning code or a surviving note, and
-   delete the file only when each such sentence has a home or the owner
-   accepts losing it. If a spec states behavior no test covers, report it as a
-   test gap.
-9. **Review against the tag.** Read every deleted file at the tag, in a fresh
+8. **Delete specs that copy code.** Per-feature specifications, inventories,
+   limits, defaults and file maps go; the code and tests are the record. If a
+   spec states behavior no test covers, report it as a test gap.
+9. **Delete every remaining `DELETE` row.** Handoffs, overviews, manifests,
+   glossaries, retired-stack and completed-migration documents, approvals and
+   checkpoints, each under the standing rule. When this step ends, the
+   disposition table has no `DELETE` row whose file still exists.
+10. **Review against the tag.** Read every deleted file at the tag, in a fresh
    session or with a second reviewer, looking for operating requirements, open
    gaps and measurements that found no home. Check every row of the
    disposition table, every item the owner asked to keep, every live rule from
@@ -144,9 +153,10 @@ Never guess a rule, limit or reason to fill a gap; report the gap.
 
 ## Verify and report
 
-- `ls canon/` shows flat notes within the budget (twelve of about a thousand
-  words, or the owner's numbers in the instruction file), no `decisions/`, no
-  manifest.
+- `canon/` is flat, with no `decisions/` and no manifest, and within the
+  budget: count words per note (for example `wc -w canon/*.md`), at most
+  twelve notes of about a thousand words each, or the owner's numbers in the
+  instruction file.
 - No front matter, stamps or status fields remain.
 - `git grep "canon/"` outside `canon/` finds only paths that exist, and no
   deleted file's stem, slug or cited section title is still referenced.
@@ -154,7 +164,9 @@ Never guess a rule, limit or reason to fill a gap; report the gap.
 - No instruction file asks for a canon read at session start, and no hook,
   CI job or build step runs old Canon tooling.
 
-Report files and words before and after, startup reads before and after, what
+Report files and words before and after, the startup-read proxy before and
+after (canon words the instruction files name next to "read", not a
+measurement of what agents read), what
 moved where, what the owner asked to keep and where it is, references
 repointed, unresolved gaps, the tag with its full SHA and the command that
 recovers a deleted file, and the commits. Then tell the owner the skill can be uninstalled.
