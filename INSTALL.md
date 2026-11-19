@@ -396,9 +396,9 @@ Upgrading the instruction block does not rewrite the target's `canon/`. A canon
 built under older Project Canon rules usually has decision records, a
 manifest, `standards.md`, front matter or `sources`/`verified` stamps,
 per-feature specs, and instructions that make every session read it first.
-Those are what made it expensive: in one production adopter, canon was touched
-in 488 of 639 commits and about half of all canon file touches were stamp
-bumps.
+Those are what made it expensive: in one production adopter's last 30 days,
+canon was touched in 488 of 639 commits and about half of all canon file
+touches were stamp bumps.
 
 Install the [`compact-canon`](.codex/skills/compact-canon/SKILL.md) skill. If
 the target already has an older copy, replace it through the skill upgrade

@@ -130,11 +130,10 @@ every such sentence has a home or the owner accepts losing it.
    pointer is worse than none. A dated data artifact may keep an old path only
    if it names the tag.
 7. **Delete decision records after moving still-live rules,** under the
-   standing rule. For each record,
-   ask whether a rule in it still governs work. If so, move that one rule to
-   its home as one clause. Rejected alternatives and history stay in git. Do
-   not build a register, a decision index or an archive directory. "Immutable"
-   records go too.
+   standing rule. For each record, ask whether a rule in it still governs
+   work. If so, move that one rule to its home as one clause. Rejected
+   alternatives and history stay in git. Do not build a register, a decision
+   index or an archive directory. "Immutable" records go too.
 8. **Delete specs that copy code.** Per-feature specifications, inventories,
    limits, defaults and file maps go; the code and tests are the record. If a
    spec states behavior no test covers, report it as a test gap.

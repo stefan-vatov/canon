@@ -9,7 +9,11 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
-const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : null;
+// The 404 page is served at every missing address, so it gets no canonical
+// URL or og:url of its own.
+const isNotFound = Astro.url.pathname.replace(/\/$/, "").endsWith("/404")
+  || Astro.url.pathname.endsWith("404.html");
+const canonical = Astro.site && !isNotFound ? new URL(Astro.url.pathname, Astro.site) : null;
 const ogImage = Astro.site ? new URL("/og.png", Astro.site) : null;
 const jsonLd = JSON.stringify({
   "@context": "https://schema.org",

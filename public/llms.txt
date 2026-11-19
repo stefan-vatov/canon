@@ -17,7 +17,7 @@ note. There are no decision records, no front matter or stamps, no index,
 and no checker: canon/ is flat, at most twelve notes of about a thousand
 words unless the owner sets other numbers, kept small by rule.
 
-The rules changed on field evidence. An adopter of the earlier, larger
+The rules changed on field evidence. One adopter ran the earlier, larger
 Canon (manifest read first, stamped front matter, immutable decision
 records, per-feature specs) at production scale. In its last 30 days
 canon/ was touched in 488 of 639 commits, and about half of all canon
