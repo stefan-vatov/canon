@@ -339,8 +339,11 @@ and verifies every installed file against its source:
 ```
 
 The loop stops at the first refusal, and destinations before it stay installed;
-the printed lines say which. Resolve the refused path — an existing directory
-is never overwritten — and rerun with only the remaining destinations.
+the printed lines say which. An existing directory is never overwritten: if
+the refused path is an older compact-canon copy (earlier Canon installs put
+one there as a maintenance skill), replace it through [Upgrade the installed
+skill](#upgrade-the-installed-skill), then rerun with only the remaining
+destinations.
 
 Each copied directory is Canon-owned in the same sense as a whole-file
 integration: keep repository-specific instructions out of it so upgrades and
@@ -390,8 +393,10 @@ Those are what made it expensive: in one production adopter, canon was touched
 in 488 of 639 commits and about half of all canon file touches were stamp
 bumps.
 
-Install the [`compact-canon`](.codex/skills/compact-canon/SKILL.md) skill,
-start from a clean target worktree, and ask for a dry run first:
+Install the [`compact-canon`](.codex/skills/compact-canon/SKILL.md) skill. If
+the target already has an older copy, replace it through the skill upgrade
+path below rather than the first-install copy, which refuses existing paths.
+Start from a clean target worktree and ask for a dry run first:
 
 ```text
 Use the compact-canon skill for a dry run: measure this repository's canon and
@@ -400,13 +405,16 @@ propose a disposition for every file.
 
 Review the disposition with the project owner, then ask the skill to migrate.
 It works in this order, one reviewable commit per step: tag the starting
-commit; replace the old canon protocol in the instruction files first; move
-runbooks beside their tools; repoint citations into `canon/`; delete decision
-records after moving any still-live rule to its home; delete specs that copy
-code; keep only cross-owner guarantees, accepted gaps, measured lessons and
-owner-approved plans as flat notes without front matter; and review the
-result against the tag. Every deleted file stays one `git show <tag>:<path>`
-away.
+commit and record its full SHA (push the tag yourself); replace the old canon
+protocol in the instruction files first; remove old Canon machinery such as a
+vendored doctor and the hooks or CI steps that run it; write the surviving
+notes and any preserved plan before deleting anything; move runbooks and live
+operating requirements beside their tools; repoint citations, including bare
+names and cited section titles; delete decision records after moving any
+still-live rule to its home; delete specs that copy code, but never the only
+statement of an operating requirement, an open gap or a measurement; and read
+every deleted file at the tag again before calling it done. Every deleted file
+stays one `git show <tag>:<path>` away.
 
 The migration installs no check. Remove the skill when it is done.
 
@@ -555,9 +563,10 @@ helper replaces only its contents and preserves all repository-specific text.
 
 ### Upgrade the installed skill
 
-Only a target in the middle of a migration still has the skill installed.
-Upgrade it in the same change as the instruction file, so the target never
-mixes revisions. Define this guard, which reconstructs the skill from the
+Targets installed under earlier Canon revisions usually carry the skill as a
+maintenance tool; targets mid-migration carry it too. Upgrade it in the same
+change as the instruction file, so the target never mixes revisions, or remove
+it once no migration is pending. Define this guard, which reconstructs the skill from the
 recorded installed revision and refuses a locally modified copy:
 
 ```sh

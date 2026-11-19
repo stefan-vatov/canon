@@ -4,8 +4,9 @@
 Reports what a one-time migration needs to decide on: files and words per
 directory, decision records, front matter and stamps, how much recent commit
 traffic touches canon/ and how much of it only bumps stamps, which canon
-paths are cited from outside canon/, and how many words the instruction
-files tell an agent to read before it starts. Nothing is written.
+paths are cited from outside canon/, and how many words of canon the
+instruction files name next to "read" (a proxy for startup reads, not a
+measurement). Nothing is written.
 """
 
 from __future__ import annotations
@@ -235,7 +236,8 @@ def print_text(report: dict[str, object]) -> None:
         f"({startup['instruction_words']} words)"
     )
     print(
-        f"canon files named next to 'read': {len(startup['canon_files_named_with_read'])} "
+        f"canon files named next to 'read' (startup-read proxy): "
+        f"{len(startup['canon_files_named_with_read'])} "
         f"({startup['canon_words_named_with_read']} words)"
     )
 
