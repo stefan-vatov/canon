@@ -309,6 +309,15 @@ following:
    words an agent reads before its first code action. The compact-canon
    skill's `analyze_canon.py` reports all three. Fixtures are too small to
    show these costs; the 2026-11-19 core change came from them.
+8. The candidate keeps the owner's invariants verbatim and restores no
+   retired rule: no up-front or mandatory reads, no decision records,
+   registers or ADRs, no stamps, front matter, manifest or index, no splitting
+   notes, no gates or checkers, and no agent-authored rule binding agents.
+   This is a veto, not a score: a candidate that breaks it is rejected however
+   well it scores, because most scenarios cannot see these costs.
+   `optimize.py` enforces it mechanically (`OWNER_INVARIANTS`,
+   `RETIRED_RULES`); apply the same veto by hand to any hand-written
+   candidate.
 
 Retain raw bundles with exact runtime details. Record only the decision,
 comparison key, decisive passes or floors, artifact-set key, and known
@@ -360,8 +369,9 @@ files by hand.
 `optimize.py` is exploration tooling, not adoption-grade paired A/B. It
 evaluates a cached baseline and later candidates in separate batches, blends
 mechanical and judge means, uses one configured stratum, and does not enforce
-the floor, capable-tier, or holdout gates above. Its failure collector reads
-`checks.json` but misses multi-session `checks-*.json` files.
+the floor, capable-tier, or holdout gates above (it does enforce the veto in
+gate 8). Its failure collector reads every `checks*.json`, including
+multi-session step files.
 
 A judged optimizer run requires three explicit commands/pins:
 

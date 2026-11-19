@@ -26,7 +26,7 @@ def write(path: Path, text: str) -> None:
 
 
 def valid_guidance(label: str) -> str:
-    return "canon/ guidance\n" + "\n".join(f"{label} line {i}" for i in range(30)) + "\n"
+    return (ROOT / "canon-core.md").read_text() + f"\n{label}\n"
 
 
 class OptimizeResilienceTests(unittest.TestCase):
@@ -90,6 +90,33 @@ class OptimizeResilienceTests(unittest.TestCase):
                              ["baseline", "rejected", "rejected"])
             self.assertTrue(all(not row["kept"] for row in history[1:]))
             self.assertEqual((output / "best.md").read_text(), baseline_text)
+
+    def test_shipped_core_passes_the_candidate_veto(self) -> None:
+        self.assertEqual(OPTIMIZE.candidate_problems(valid_guidance("core")), [])
+
+    def test_candidates_restoring_retired_rules_are_vetoed(self) -> None:
+        core = valid_guidance("core")
+        for broken, reason in (
+            (core.replace("read nothing in\n`canon/` at session start",
+                          "read every note in\n`canon/` at session start"), "invariant"),
+            (core + "\nFirst, read `canon/manifest.md`.\n", "manifest"),
+            (core + "\nRecord each decision as an ADR under canon/adr/.\n", "decision"),
+            (core + "\nIf a note grows long, split it into two notes.\n", "split"),
+            (core + "\nRun the Canon checker before you commit.\n", "checker"),
+        ):
+            with self.subTest(reason=reason):
+                self.assertTrue(OPTIMIZE.candidate_problems(broken))
+
+    def test_failure_signals_include_per_step_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            result = Path(directory) / "batch-run-data-chain-stub-1"
+            write(result / "run-1/checks-01-decide.json", json.dumps({"checks": [
+                {"id": "no_decision_records", "pass": False, "outcome": "fail",
+                 "detail": "decisions.md"}]}))
+            self.assertEqual(
+                OPTIMIZE.gather_failures([result]),
+                ["[chain-stub-1/01-decide] check 'no_decision_records': decisions.md"],
+            )
 
     def test_nonzero_improver_exit_is_not_accepted_as_a_proposal(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -329,8 +329,13 @@ one outer Markdown fence is tolerated and stripped. Keep it below the
 600-second timeout and make it exit zero. Candidates are rejected if they:
 
 - contain a fixture-specific term from `LEAK_TERMS`;
-- have fewer than 30 or more than 200 lines, or more than 800 words; or
-- do not mention `canon/`.
+- have fewer than 30 or more than 200 lines, or more than 800 words;
+- do not mention `canon/`;
+- drop any of the owner's invariant sentences (`OWNER_INVARIANTS`, passed to
+  the improver as sentences to keep verbatim); or
+- restore a retired rule (`RETIRED_RULES`: up-front or mandatory reads,
+  decision records, stamps or front matter, a manifest, splitting notes,
+  gates, agent-authored rules binding agents).
 
 Configure the improver command:
 
@@ -379,8 +384,8 @@ The optimizer writes `iter-*-candidate.md`, `best.md`, and `history.json`
 under `evals/results/opt-<timestamp>/`; it never changes `canon-core.md`.
 `--improver-cmd` overrides the environment variable. The optimizer rejects
 incomplete results and required-check failures, but it blends available means,
-does not implement the playbook's floor/two-tier gates, and currently gathers
-failure text only from `checks.json`, not multi-session `checks-*.json` files.
+does not implement the playbook's floor/two-tier gates. It gathers failure
+text from every `checks*.json`, including multi-session step files.
 Optimizer artifacts do not record the improver command, model, provider,
 version, or optimizer source revision. Record those separately; `best.md` and
 `history.json` are proposal artifacts, not adoption provenance. Do not use a

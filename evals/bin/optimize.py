@@ -51,6 +51,48 @@ LEAK_TERMS = [
 ]
 
 
+# The owner's invariants. A candidate must keep each sentence verbatim
+# (whitespace-normalized); the optimizer may tune everything else.
+OWNER_INVARIANTS = [
+    "read nothing in `canon/` at session start",
+    "Nothing in Canon outranks what the owner says now",
+    "Only the owner's words make a rule.",
+    'Never record your own choices, plans or process as "must" or "never".',
+    "Decisions get no records.",
+    "No `decisions/` directory, decision log, register or ADR.",
+    "add front matter, status fields, `sources`/`verified` stamps, review dates, "
+    "an index or a manifest",
+    "fix or delete every Canon sentence your change makes false",
+    "Canon stays small by rule, not by tooling.",
+    "Never split a note to fit the budget.",
+    "Nothing in Canon is immutable",
+]
+
+# Wording that restores a rule the owner retired. Any match vetoes adoption,
+# whatever the candidate scores.
+RETIRED_RULES = [
+    (r"\bread (?:every|all|each) (?:canon |of the )?(?:notes?|pages?|files?)\b",
+     "mandatory reads of every note"),
+    (r"\b(?:first|before any)\b[^.]{0,60}\bread\b[^.]{0,40}canon/",
+     "an up-front Canon read"),
+    (r"canon/(?:manifest|index|overview|glossary)\.md", "a manifest or index"),
+    (r"\b(?:write|create|add|keep|record)\b[^.]{0,40}\b(?:decision records?|ADRs?|decision logs?)\b",
+     "decision records"),
+    (r"\brecord (?:each|every|the|a|your) decisions?\b", "decision records"),
+    (r"\bsupersed", "supersession records"),
+    (r"(?m)^\s*(?:sources|verified|status|scope|validation)\s*:", "front matter or stamps"),
+    (r"\bsplit\b[^.]{0,30}\binto\b", "splitting notes"),
+    (r"canon-doctor|\b(?:run|wire|add)\b[^.]{0,30}\b(?:checker|linter|doctor|validator|gate)\b",
+     "a Canon gate or checker"),
+    (r"\bagent-(?:written|authored) (?:rules?|briefs?)\b[^.]{0,30}\b(?:bind|binding|apply)",
+     "agent-authored rules binding agents"),
+]
+
+
+def normalized(text):
+    return " ".join(text.split())
+
+
 def run_eval(guidance, scenario, harness, runs, judge):
     cmd = [
         str(EVALS / "bin" / "run-eval.sh"),
@@ -86,11 +128,15 @@ def gather_failures(result_dirs):
     for result_dir in result_dirs:
         scenario = result_dir.name.split("-", 3)[-1]
         for run in sorted(result_dir.glob("run-*")):
-            checks = load_json(run / "checks.json")
-            if checks:
+            for check_file in sorted(run.glob("checks*.json")):
+                checks = load_json(check_file)
+                if not checks:
+                    continue
+                step = check_file.stem[len("checks-"):] if check_file.stem != "checks" else ""
+                label = f"{scenario}/{step}" if step else scenario
                 for c in checks["checks"]:
                     if c.get("outcome") != "unsupported" and not c["pass"]:
-                        lines.append(f"[{scenario}] check '{c['id']}': {c['detail'] or 'failed'}")
+                        lines.append(f"[{label}] check '{c['id']}': {c['detail'] or 'failed'}")
             judge = load_json(run / "judge.json")
             if judge:
                 for c in judge.get("criteria", []):
@@ -123,6 +169,8 @@ def evaluate(guidance, scenarios, harness, runs, judge):
 def propose(improver_cmd, guidance_text, failures, score):
     prompt = "\n".join([
         (EVALS / "judge" / "improver-prompt.md").read_text(),
+        "## Sentences to keep verbatim",
+        "\n".join(f"- {sentence}" for sentence in OWNER_INVARIANTS),
         "## Current guidance file", guidance_text,
         "## Current combined score", f"{score:.3f}",
         "## Observed failures",
@@ -157,6 +205,13 @@ def candidate_problems(text):
         problems.append(f"too long ({words} words)")
     if "canon/" not in text:
         problems.append("does not mention canon/")
+    flat = normalized(text)
+    for sentence in OWNER_INVARIANTS:
+        if normalized(sentence) not in flat:
+            problems.append(f"drops owner invariant: {sentence}")
+    for pattern, rule in RETIRED_RULES:
+        if re.search(pattern, text, re.IGNORECASE):
+            problems.append(f"restores retired rule: {rule}")
     return problems
 
 
