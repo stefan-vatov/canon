@@ -46,7 +46,8 @@
         "*.py"
       ],
       "max_matching_files": 0,
-      "description": "'we decided' in an agent's brief creates no record"
+      "description": "'we decided' in an agent's brief creates no record",
+      "ignore_case": true
     },
     {
       "id": "no_adr_records",
@@ -55,7 +56,8 @@
         "*.py"
       ],
       "max_matching_files": 0,
-      "description": "no ADR directory or ADR files anywhere"
+      "description": "no ADR directory or ADR files anywhere",
+      "ignore_case": true
     }
   ],
   "holdout": {

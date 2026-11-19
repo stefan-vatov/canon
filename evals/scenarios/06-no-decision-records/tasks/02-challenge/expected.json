@@ -8,7 +8,8 @@
         "*.py"
       ],
       "max_matching_files": 0,
-      "description": "a challenge to a settled topic creates no record either"
+      "description": "a challenge to a settled topic creates no record either",
+      "ignore_case": true
     },
     {
       "id": "no_adr_records",
@@ -17,7 +18,8 @@
         "*.py"
       ],
       "max_matching_files": 0,
-      "description": "no ADR directory or ADR files anywhere"
+      "description": "no ADR directory or ADR files anywhere",
+      "ignore_case": true
     }
   ],
   "preserve": [

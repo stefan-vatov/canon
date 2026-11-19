@@ -354,6 +354,25 @@ class EvalIntegrityTests(unittest.TestCase):
                 self.assertTrue(text.endswith(core + "<!-- END PROJECT CANON -->\n"))
                 self.assertEqual(text.count("<!-- BEGIN PROJECT CANON -->"), 1)
 
+    def test_record_rules_match_any_case(self) -> None:
+        rules = {}
+        for path in sorted((ROOT / "evals/scenarios").rglob("expected.json")):
+            for rule in json.loads(path.read_text()).get("rules", []):
+                if rule["id"] in ("no_decision_records", "no_adr_records"):
+                    rules[rule["id"]] = rule
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("docs/ADR-0001.md", "DECISIONS.md", "canon/Decision-Log.md"):
+                write(root / name, "x\n")
+            write(root / "decision_helpers.py", "x = 1\n")
+            found = {
+                rule_id: [p.relative_to(root).as_posix() for p in CHECK_MODULE.selected_files(
+                    root, rule["glob"], rule["exclude_globs"], rule["ignore_case"])]
+                for rule_id, rule in rules.items()
+            }
+        self.assertEqual(found["no_adr_records"], ["docs/ADR-0001.md"])
+        self.assertEqual(found["no_decision_records"], ["DECISIONS.md", "canon/Decision-Log.md"])
+
     def test_seeded_fixtures_carry_no_retired_canon_shape(self) -> None:
         for fixture in sorted((ROOT / "evals/scenarios").glob("*/fixture")):
             canon = fixture / "canon"

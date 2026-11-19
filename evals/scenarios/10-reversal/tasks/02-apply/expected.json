@@ -19,7 +19,8 @@
         "*.py"
       ],
       "max_matching_files": 0,
-      "description": "routine implementation creates no record"
+      "description": "routine implementation creates no record",
+      "ignore_case": true
     },
     {
       "id": "no_adr_records",
@@ -28,7 +29,8 @@
         "*.py"
       ],
       "max_matching_files": 0,
-      "description": "no ADR directory or ADR files anywhere"
+      "description": "no ADR directory or ADR files anywhere",
+      "ignore_case": true
     }
   ],
   "preserve": [

@@ -12,7 +12,8 @@ checks.json with one pass/fail entry per check. Checks:
   diff_scope            every changed file matches allowed_change_globs
   rules                 per-scenario file-count and content rules
                         (min_matching_files / max_matching_files /
-                        must_regex / forbid_regex, narrowed by exclude_globs;
+                        must_regex / forbid_regex, narrowed by exclude_globs,
+                        optionally ignore_case for the globs;
                         search_commit_messages lets must_regex also match
                         commit messages written after the baseline)
   answer                the session's final answer matches a regex (a
@@ -150,21 +151,27 @@ def commit_messages_since(workdir, baseline):
     return result.stdout if result.returncode == 0 else ""
 
 
-def selected_files(workdir, glob, excluded=()):
+def glob_match(path, glob, ignore_case=False):
+    if ignore_case:
+        return fnmatch.fnmatchcase(path.lower(), glob.lower())
+    return fnmatch.fnmatchcase(path, glob)
+
+
+def selected_files(workdir, glob, excluded=(), ignore_case=False):
     """Files matching glob, minus any matching one of the excluded globs."""
     return [
-        path for path in matching_files(workdir, glob)
-        if not any(fnmatch.fnmatch(str(path.relative_to(workdir)), g) for g in excluded)
+        path for path in matching_files(workdir, glob, ignore_case)
+        if not any(glob_match(str(path.relative_to(workdir)), g, ignore_case) for g in excluded)
     ]
 
 
-def matching_files(workdir, glob):
+def matching_files(workdir, glob, ignore_case=False):
     return sorted(
         p for p in workdir.rglob("*")
         if p.is_file()
         and not p.is_symlink()
         and ".git" not in p.relative_to(workdir).parts
-        and fnmatch.fnmatch(str(p.relative_to(workdir)), glob)
+        and glob_match(str(p.relative_to(workdir)), glob, ignore_case)
     )
 
 
@@ -651,7 +658,8 @@ def main():
     commit_messages = None
     answer_text = final_answer(args.answer_transcript)
     for rule in expected.get("rules", []):
-        files = selected_files(work, rule["glob"], rule.get("exclude_globs", []))
+        files = selected_files(work, rule["glob"], rule.get("exclude_globs", []),
+                               bool(rule.get("ignore_case")))
         contents = {p: p.read_text(errors="replace") for p in files}
         ok, detail = True, ""
         if rule.get("min_matching_files") is not None:
